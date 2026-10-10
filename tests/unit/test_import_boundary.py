@@ -21,6 +21,7 @@ SCENARIO_VOCABULARY = [
     "edge-gateway",
     "partner-pricing",
     "orders.events",
+    "pricing.events",
     "fulfillment-consumers",
     "appdb",
 ]

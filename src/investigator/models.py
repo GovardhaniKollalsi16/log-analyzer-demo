@@ -1,9 +1,11 @@
-"""Core data models shared by every stage of the deterministic pipeline.
+"""Core data models shared by every stage of the deterministic pipeline (design Rev 2).
 
-Flow: RawRecord -> (parse) -> Event | ParseIssue -> CorrelationGroup -> TimelineEntry
+Flow: seed line -> Seed; fetched raw output -> RawRecord -> (parse) -> Event
+-> (classify) Event with Severity/error_code -> CorrelationGroup -> TimelineEntry
 -> Finding -> Hypothesis -> AnalysisBundle (handed to the LLM).
+Traversal: Seed + AppTopology -> FetchPlan of FetchSteps; anything unreachable -> CoverageGap.
 
-Report models live in `investigator.report` (M7), not here.
+Report models live in `investigator.report` (M9), not here.
 """
 
 from __future__ import annotations
@@ -13,17 +15,22 @@ from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set
 
-DEFAULT_SKEW_TOLERANCE_MS = 60_000  # D2: Kafka events have been seen about 1 min late; tune later.
+DEFAULT_SKEW_TOLERANCE_MS = 60_000      # D2: Kafka events have been seen about 1 min late; tune later.
+THREAD_SEGMENT_WINDOW_MS = 60_000       # D17: thread links within 1 min, stop early at a new correlation ID.
 
 
 class Source(str, enum.Enum):
+    """The four components the traversal reads (Rev 2)."""
+
     APP = "app"
-    UPSTREAM = "upstream"
+    APP_CONFIG = "app_config"
     KAFKA = "kafka"
     DB = "db"
 
 
 class Level(str, enum.Enum):
+    """The level the log record itself declared. Not the same as Severity."""
+
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARN = "WARN"
@@ -34,12 +41,17 @@ class Level(str, enum.Enum):
     def rank(self) -> int:
         return _LEVEL_ORDER.index(self)
 
-    @property
-    def is_error(self) -> bool:
-        return self.rank >= Level.ERROR.rank
-
 
 _LEVEL_ORDER = [Level.DEBUG, Level.INFO, Level.WARN, Level.ERROR, Level.CRITICAL]
+
+
+class Severity(str, enum.Enum):
+    """Per-component classification (PROPOSAL §2), decided by investigator.classify."""
+
+    ERROR = "ERROR"      # the component failed to do its job
+    SYMPTOM = "SYMPTOM"  # degraded, not failed
+    CONTEXT = "CONTEXT"  # normal activity, useful for chronology
+    ANOMALY = "ANOMALY"  # app config only
 
 
 class Confidence(str, enum.Enum):
@@ -61,6 +73,13 @@ class Confidence(str, enum.Enum):
 _CONFIDENCE_ORDER = [Confidence.INSUFFICIENT, Confidence.LOW, Confidence.MEDIUM, Confidence.HIGH]
 
 
+class FactorName(str, enum.Enum):
+    ID_LINKAGE = "id_linkage"
+    TRAVERSAL_COVERAGE = "traversal_coverage"
+    TEMPORAL_PRECEDENCE = "temporal_precedence"
+    COMPETING_HYPOTHESES = "competing_hypotheses"
+
+
 class FactorValue(str, enum.Enum):
     STRONG = "STRONG"
     PARTIAL = "PARTIAL"
@@ -70,7 +89,8 @@ class FactorValue(str, enum.Enum):
 
 class LinkKind(str, enum.Enum):
     EXACT_ID = "exact_id"            # shares a correlation/trace/message/request ID
-    WEAK_TEMPORAL = "weak_temporal"  # no shared ID; attached by time + service only, always labeled
+    THREAD_LOCAL = "thread_local"    # same app + instance + thread segment (D17); weaker than an ID
+    WEAK_TEMPORAL = "weak_temporal"  # no ID, no thread; time + app only. Last resort, always labeled
 
 
 class ParseIssueKind(str, enum.Enum):
@@ -78,6 +98,19 @@ class ParseIssueKind(str, enum.Enum):
     BAD_TIMESTAMP = "bad_timestamp"
     UNKNOWN_FORMAT = "unknown_format"
     MISSING_FIELD = "missing_field"
+
+
+class Direction(str, enum.Enum):
+    SEED = "seed"
+    UPSTREAM = "upstream"
+    DOWNSTREAM = "downstream"
+
+
+class GapReason(str, enum.Enum):
+    ACCESS_DENIED = "access_denied"  # user's entitlements don't cover it (D16)
+    AUTH_REQUIRED = "auth_required"  # SSO session missing/expired and the user did not re-authenticate (D21)
+    NOT_FOUND = "not_found"
+    EMPTY = "empty"
 
 
 @dataclass(frozen=True)
@@ -92,6 +125,11 @@ class RawRecord:
 
 @dataclass(frozen=True)
 class ParseIssue:
+    """Returned by parsers so tests can assert malformed input was handled.
+
+    Not part of the AnalysisBundle and not a confidence factor (Q1).
+    """
+
     source: Source
     line_no: int
     kind: ParseIssueKind
@@ -114,19 +152,40 @@ class Ids:
         return not self.present()
 
 
+@dataclass(frozen=True)
+class KafkaRef:
+    topic: str
+    partition: Optional[int] = None
+    offset: Optional[int] = None
+    group: Optional[str] = None
+    client_id: Optional[str] = None
+    producer_app: Optional[str] = None  # from message headers; how upstream apps are found (R13)
+
+
 @dataclass
 class Event:
-    """One normalized, deduplicated log event. `event_id` is what reports cite."""
+    """One normalized, deduplicated record. `event_id` is what reports cite.
+
+    `app` is the application the record belongs to: the emitting app for app logs,
+    the client/producing app for Kafka records when known, and the connecting app
+    for DB records when known. `component` is the sub-part (producer, broker,
+    consumer, db-server, ...).
+    """
 
     event_id: str
     source: Source
-    service: str
     level: Level
     message: str
     ts_raw: str
-    ts_utc: Optional[datetime]  # None when the timestamp was unparseable (a ParseIssue is also recorded)
+    ts_utc: Optional[datetime]  # None when the timestamp was unparseable
+    app: Optional[str] = None
     component: Optional[str] = None
+    instance: Optional[str] = None
+    thread: Optional[str] = None
+    severity: Severity = Severity.CONTEXT
+    error_code: Optional[str] = None
     ids: Ids = field(default_factory=Ids)
+    kafka: Optional[KafkaRef] = None
     attrs: Dict[str, Any] = field(default_factory=dict)
     raw_refs: List[RawRecord] = field(default_factory=list)
     duplicate_count: int = 1
@@ -138,6 +197,97 @@ class Event:
             raise ValueError(f"ts_utc must be timezone-aware UTC, got {self.ts_utc!r}")
         if self.duplicate_count < 1:
             raise ValueError("duplicate_count must be >= 1")
+        # Classification invariants (PROPOSAL §2): every non-CONTEXT record carries a code.
+        if (self.severity is Severity.CONTEXT) != (self.error_code is None):
+            raise ValueError(
+                f"error_code must be set exactly when severity is not CONTEXT "
+                f"(severity={self.severity.value}, error_code={self.error_code!r})"
+            )
+        if self.severity is Severity.ANOMALY and self.source is not Source.APP_CONFIG:
+            raise ValueError("ANOMALY severity is only valid for app config records")
+        if self.thread is not None and (self.app is None or self.instance is None):
+            raise ValueError("thread is only meaningful with app and instance (threads are not global IDs)")
+
+
+@dataclass(frozen=True)
+class Seed:
+    """The app error line the investigation starts from (agent's first message, D19)."""
+
+    event_id: str
+    app: str
+    ts_utc: datetime
+    instance: Optional[str] = None
+    thread: Optional[str] = None
+    correlation_id: Optional[str] = None
+    error_code: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if not self.app:
+            raise ValueError("seed must name the application")
+        if self.ts_utc.utcoffset() != timedelta(0):
+            raise ValueError(f"seed ts_utc must be timezone-aware UTC, got {self.ts_utc!r}")
+
+
+@dataclass(frozen=True)
+class ConfigEntry:
+    """One key from an app's config. No change history is used (D20)."""
+
+    app: str
+    key: str
+    value: str
+    raw_ref: RawRecord
+
+
+@dataclass(frozen=True)
+class TopicSubscription:
+    topic: str
+    group: str
+
+
+@dataclass
+class AppTopology:
+    """What the seed app's config says it is connected to."""
+
+    app: str
+    consumes: List[TopicSubscription] = field(default_factory=list)
+    produces: List[str] = field(default_factory=list)
+    databases: List[str] = field(default_factory=list)
+    limits: Dict[str, str] = field(default_factory=dict)  # timeouts, retries, pool sizes, ...
+
+
+@dataclass
+class FetchStep:
+    """One allowlisted command the planner wants run next, and why."""
+
+    order: int
+    component: Source
+    target: str
+    argv: List[str]
+    reason: str
+    direction: Direction = Direction.SEED
+
+    def __post_init__(self) -> None:
+        if not self.argv:
+            raise ValueError("argv must be non-empty")
+
+
+@dataclass
+class FetchPlan:
+    steps: List[FetchStep] = field(default_factory=list)
+    done: bool = False
+    stop_reason: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.done and not self.stop_reason:
+            raise ValueError("a finished plan must say why it stopped")
+
+
+@dataclass(frozen=True)
+class CoverageGap:
+    component: Source
+    target: str
+    reason: GapReason
+    detail: str = ""
 
 
 @dataclass
@@ -194,7 +344,7 @@ class Hypothesis:
 
 @dataclass
 class ConfidenceFactor:
-    name: str  # id_linkage | source_coverage | temporal_precedence | competing_hypotheses | data_quality
+    name: FactorName
     value: FactorValue
     reason: str
 
@@ -204,16 +354,17 @@ class AnalysisBundle:
     """Everything the LLM is allowed to reason over. It never sees raw logs directly."""
 
     bundle_id: str
+    seed: Optional[Seed] = None
+    topology: Optional[AppTopology] = None
     skew_tolerance_ms: int = DEFAULT_SKEW_TOLERANCE_MS
-    sources_queried: List[Source] = field(default_factory=list)
-    coverage_gaps: List[str] = field(default_factory=list)
+    traversal: List[FetchStep] = field(default_factory=list)
+    coverage_gaps: List[CoverageGap] = field(default_factory=list)
     events: List[Event] = field(default_factory=list)
     groups: List[CorrelationGroup] = field(default_factory=list)
     timeline: List[TimelineEntry] = field(default_factory=list)
     skew_estimates: List[SkewEstimate] = field(default_factory=list)
     findings: List[Finding] = field(default_factory=list)
     hypotheses: List[Hypothesis] = field(default_factory=list)
-    parse_issues: List[ParseIssue] = field(default_factory=list)
     factors: List[ConfidenceFactor] = field(default_factory=list)
     confidence_cap: Confidence = Confidence.INSUFFICIENT
 
