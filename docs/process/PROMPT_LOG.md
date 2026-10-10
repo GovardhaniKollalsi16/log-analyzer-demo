@@ -449,3 +449,13 @@ Oky what is m2?
 - **Did:** Explained M2's scope in chat, from MILESTONES.md. No files changed besides this log. M1 is not pushed: the message was a question, not an explicit approval, so I asked again.
 - **Commands run:** none besides appending this entry.
 - **Tests:** none.
+
+---
+
+## Entry 020 — 2026-10-10T18:11:47Z (11:11 PDT) — Milestone: M1 approved → M2 (start pending a skill-timing question)
+
+### Prompt (verbatim)
+
+````text
+Yes, and in which step are you creating skill files for the agent to know how to connect to neach log source and how the agent will know to fetch the applicationn up streama dn downstream systems. In what step are we creating the skills that is important
+````

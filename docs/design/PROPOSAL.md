@@ -1,6 +1,6 @@
 # Design Proposal: Revision 2 (seed-driven traversal)
 
-Status: **Rev 2 approved 2026-10-10 (PROMPT_LOG entry 018).** M1 models updated to §3.1, awaiting M1 review. M1 code is on hold until then, and needs the model changes in §3.1. Rev 1 is in git history (`git show d15deee:docs/design/PROPOSAL.md`, which includes the user's own Rev 1 edit).
+Status: **Rev 2 approved 2026-10-10 (PROMPT_LOG entry 018).** M1 (models per §3.1) approved and pushed 2026-10-10. M1 code is on hold until then, and needs the model changes in §3.1. Rev 1 is in git history (`git show d15deee:docs/design/PROPOSAL.md`, which includes the user's own Rev 1 edit).
 
 ## 0. What changed from Rev 1
 
@@ -257,7 +257,7 @@ Detailed, editable version with kickoff prompts: `docs/design/MILESTONES.md`.
 | M | Scope |
 |---|---|
 | M0 ✅ | Process + design Rev 1; Rev 2 merged, awaiting final approval |
-| M1 🟡 | Skeleton + models; **update to §3.1 after Rev 2 approval** |
+| M1 ✅ | Skeleton + models (Rev 2) |
 | M2 | `mocklogs`: 4 components, access control, scenario 1 |
 | M3 | Parsing + normalization (incl. app/instance/thread) + dedupe |
 | M4 | Per-component error classification (§2); user reviews the rule tables |
