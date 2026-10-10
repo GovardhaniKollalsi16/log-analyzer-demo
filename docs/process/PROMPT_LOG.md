@@ -522,3 +522,19 @@ I think it is better ton have skills for each component seperately on how to log
 - **Commands run (actual results):**
   - `.venv/bin/pytest` → `collected 38 items` … `38 passed in 0.03s`
   - Canary: appended `canary pricing.events` to `incident-kafka/SKILL.md` → `AssertionError: incident-kafka/SKILL.md mentions scenario vocabulary: ['pricing.events']`, `1 failed, 14 passed`. Restored (`grep -c canary` → `0`). `.venv/bin/pytest` → `38 passed in 0.03s`
+
+---
+
+## Entry 023 — 2026-10-10T18:20:23Z (11:20 PDT) — Milestone: M2 step 1 (skills under user review)
+
+### Prompt (verbatim)
+
+````text
+Let me verifyh the skills file and then we can go ahead with a commint and next steps
+````
+
+### Outcome
+
+- **Did:** Paused for the user's review of the skill files. No work done, no files changed besides this log. Nothing pushed. No `mocklogs` code.
+- **Commands run:** none besides appending this entry.
+- **Tests:** none.
