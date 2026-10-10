@@ -831,4 +831,4 @@ Fix this and proceed to M3
 - **Commands run (actual results):**
   - `.venv/bin/pytest` → `180 passed in 0.99s`
   - Canary (old `ts_raw` line restored) → `1 failed`; restored → `180 passed in 0.96s`
-  - `git push` → (see the commit after this one)
+  - `git push` → `ceb4b38..751d484  main -> main`
