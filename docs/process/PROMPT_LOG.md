@@ -234,3 +234,13 @@ What is m0?
 - **Did:** Explained in chat what M0 is and what it delivered. No project files changed.
 - **Commands run:** `git log --oneline | wc -l` to count the commits so far.
 - **Tests:** none.
+
+---
+
+## Entry 011 — 2026-10-10T17:34:27Z (10:34 PDT) — Milestone: M0 approved → M1 (skeleton, models, pytest wiring)
+
+### Prompt (verbatim)
+
+````text
+yes push it and start m1
+````
