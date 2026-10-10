@@ -163,3 +163,8 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 - **AI interpretations flagged to the user, not yet confirmed:**
   - the plain `app:` line covers only the seed app, so related apps need `app[<name>]:`;
   - the config may still supply the consumer group and the consume/produce direction.
+
+## 2026-10-10 — M2 — Interpretation: skills approval settles the two open points
+
+- **Context:** The AI had asked two questions: does `app:` cover only the seed app, and may the config supply topic direction and group? The user didn't answer them directly and said "nice the skills are fine now. commit and goahead with next steps".
+- **AI's interpretation:** Approval of the skills as written, which already encoded (a) seed-app-only `app:` and (b) config for direction/group. The markers were removed, and the user was told explicitly so they can object.

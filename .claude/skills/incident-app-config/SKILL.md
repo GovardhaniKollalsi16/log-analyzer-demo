@@ -61,9 +61,9 @@ Config has no time dimension: it's the current config. There is no change histor
 
 | Key | Used for |
 |---|---|
-| `kafka.consumer.topics` | Which incident topics the app **consumes** → the producers on them are **upstream** *(pending user confirmation)* |
-| `kafka.producer.topics` | Which incident topics the app **produces** → the consumers of them are **downstream** *(pending user confirmation)* |
-| `kafka.consumer.group` | The group for the lag check, if the incident gave no `group=` *(pending user confirmation)* |
+| `kafka.consumer.topics` | Which incident topics the app **consumes** → the producers on them are **upstream** |
+| `kafka.producer.topics` | Which incident topics the app **produces** → the consumers of them are **downstream** |
+| `kafka.consumer.group` | The group for the lag check, if the incident gave no `group=` |
 | timeouts, retries, pool sizes, thread counts | Limits that `investigator` checks for inconsistencies (e.g. pool size below worker threads, retries × timeout longer than a consumer can wait). You don't judge these yourself |
 
 Topics in the config that **aren't** in the incident are **not** fetched (no input, no access). The config may also name a Kafka cluster or DB that differs from the incident. Don't use the config's value. Note the mismatch in the report.

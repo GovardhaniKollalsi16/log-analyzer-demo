@@ -566,3 +566,13 @@ I need ton add afeguards and limiting but will add later. The incident will ment
   - `grep` for leftover config-as-source wording → found 4 descriptions + the app-config section; fixed.
   - `.venv/bin/pytest` (before updating the test) → `4 failed, 34 passed`, each `AssertionError: <skill> is missing section '## 2. Where the inputs come from'`
   - `.venv/bin/pytest` (after updating the test) → `39 passed in 0.03s`
+
+---
+
+## Entry 025 — 2026-10-10T18:29:48Z (11:29 PDT) — Milestone: M2 step 1 approved → M2 step 2 (mocklogs)
+
+### Prompt (verbatim)
+
+````text
+nice the skills are fine now. commit and goahead with next steps
+````

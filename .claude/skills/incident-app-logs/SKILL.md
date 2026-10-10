@@ -37,7 +37,7 @@ description: How to fetch application logs for an incident investigation (kubect
 
 **If any required input is missing, don't run any command from this skill.** Record a `missing_input` gap that names what's missing (e.g. `missing_input: app cluster`) and continue with the next step. Never guess or substitute a value, and never reuse another app's or another source's value.
 
-**Related apps need their own location.** Use an `app[<name>]: cluster=… namespace=…` line from the incident for that app. If the incident has no such line, record `missing_input: cluster/namespace for <name>` and **don't fetch** that app's logs. Never reuse the seed app's cluster for another app *(pending user confirmation: see the coordinator, §2)*.
+**Related apps need their own location.** Use an `app[<name>]: cluster=… namespace=…` line from the incident for that app. If the incident has no such line, record `missing_input: cluster/namespace for <name>` and **don't fetch** that app's logs. Never reuse the seed app's cluster for another app.
 
 ## 3. Commands
 

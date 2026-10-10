@@ -42,3 +42,8 @@ Format:
   - The config is no longer a source of Kafka/DB access inputs. It's only used for direction/group/limits (pending confirmation), and mismatches against the incident get reported.
   - Removed the "assume the seed's cluster" guidance for related apps (R21 withdrawn).
   - The structure test now enforces the Required-inputs section and the rule in every component skill, plus the rule and the format in the coordinator.
+
+## 2026-10-10 — skills — "pending confirmation" markers removed (approved)
+- **Reason:** User approved the skills: "nice the skills are fine now. commit and goahead with next steps". The two open points were taken as approved as written: (a) the plain `app:` line = the seed app only, so related apps need `app[<name>]:`; (b) the config may supply topic direction and the consumer group.
+- **Triggering run transcript:** none (no agent runs yet).
+- **Change:** Removed the "pending user confirmation" markers in `incident-logs`, `incident-app-logs`, `incident-kafka` and `incident-app-config`. No rule changed.

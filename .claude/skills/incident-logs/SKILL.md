@@ -22,7 +22,7 @@ description: Coordinator for investigating a distributed-system incident. The in
 9. **Don't look for or use the scenario name.** It's deliberately hidden, because it would give away the answer.
 10. **"Insufficient evidence" is a valid conclusion.** Prefer it to a guess. Missing inputs, missing access and missing auth all reduce what you may conclude; say which ones applied.
 
-## 2. The incident message (proposed format, pending user review)
+## 2. The incident message
 
 ```
 INCIDENT
@@ -35,7 +35,7 @@ db:     host=<db host> name=<database>
 - `seed` is required. Without it, there's nothing to investigate: say so and stop.
 - Any other line may be absent. That source's **required inputs** are then missing, and its skill isn't run (rule 1). It isn't a failure; it gets recorded and reported.
 - Values are used **exactly as written**.
-- *Pending user confirmation:* the plain `app:` line covers **only the seed app**. A related (upstream/downstream) app is fetched only if the incident has an `app[<name>]:` line for it.
+- The plain `app:` line covers **only the seed app**. A related (upstream/downstream) app is fetched only if the incident has an `app[<name>]:` line for it.
 
 ## 3. Which skill, in which order
 
