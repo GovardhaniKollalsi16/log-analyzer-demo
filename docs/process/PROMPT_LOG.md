@@ -126,3 +126,26 @@ Show me what decisisons are pending
 - **Did:** Listed the pending decisions D3–D12 in chat, with recommendations (copied from the M0 proposal message). No project files changed.
 - **Commands run:** none besides appending this entry.
 - **Tests:** none.
+
+---
+
+## Entry 006 — 2026-10-10T17:29:15Z (10:29 PDT) — Milestone: M0 (decisions pending)
+
+### Prompt (verbatim; first block was pasted by the user, tabs preserved)
+
+````text
+D3	Offline demo mode: replay recorded transcripts, or a rule-based fallback?	Replay recorded transcripts from runs/, so the demo shows real AI behavior. The scripted fake AI stays test-only.
+D4	Report output format	JSON is the validated source of truth, and Markdown is generated from it.
+D5	Mock log formats	Mixed: JSON lines for app services; text in each tool's native style for Kafka and the DB, so the parsers get real work.
+D6	Generic names	order-api, fulfillment-worker, notification-worker, edge-gateway, upstream partner-pricing, topic orders.events, consumer group fulfillment-consumers, DB appdb. Veto any that resemble your employer's.
+D7	Allowlist enforcement for the Claude Code subagent	A hook that checks each shell command against the same JSON allowlist before it runs.
+
+I am fine with this
+````
+
+### Outcome
+
+- **Did:** Recorded D3–D7 as resolved, all as recommended, in the PROPOSAL.md Decisions table. D8–D12 were not included in the pasted rows, so they remain open. Finished at 2026-10-10T17:29:20Z.
+- **Files:** `docs/design/PROPOSAL.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** a Python script appended this entry (keeping the pasted tabs) and updated the table. `grep` confirmed rows D1–D7 resolved and D8–D12 open.
+- **Tests:** none (no code yet).

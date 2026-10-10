@@ -155,4 +155,9 @@ Assumptions: all timestamps are normalized to UTC; a single host runs everything
 |---|---|---|
 | D1 | Python version | **Resolved 2026-10-10:** stay on Python 3.9; the allowlist is JSON instead of TOML (user: "follow option 2 dont need to complciate it") |
 | D2 | Default clock-skew tolerance | **Resolved 2026-10-10:** 60 000 ms (1 min), configurable via `--skew-tolerance-ms`; to be tuned later. Rationale (user): Kafka events have been seen reflected about 1 min late |
-| D3–D12 | See chat on 2026-10-10 / PROMPT_LOG entry 001 outcome | Open |
+| D3 | Offline demo mode | **Resolved 2026-10-10:** replay recorded transcripts from `runs/`; the scripted fake LLM is test-only |
+| D4 | Report output | **Resolved 2026-10-10:** JSON is the validated source of truth; Markdown is rendered from it |
+| D5 | Mock log formats | **Resolved 2026-10-10:** JSON lines for app services; native-tool-style text for upstream/Kafka/DB |
+| D6 | Generic names | **Resolved 2026-10-10:** `order-api`, `fulfillment-worker`, `notification-worker`, `edge-gateway`, upstream `partner-pricing`, topic `orders.events`, group `fulfillment-consumers`, DB `appdb` |
+| D7 | Subagent allowlist enforcement | **Resolved 2026-10-10:** PreToolUse hook checks each Bash command against the same JSON allowlist |
+| D8–D12 | Scenario data generation, packaging, default model/env var, push cadence, validator retry limit | Open |
