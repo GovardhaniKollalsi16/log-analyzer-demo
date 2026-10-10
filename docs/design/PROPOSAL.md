@@ -1,6 +1,6 @@
 # Design Proposal: Revision 2 (seed-driven traversal)
 
-Status: **Rev 2 merged 2026-10-10 with the user's decisions and confirmations (PROMPT_LOG entries 014–016); awaiting the user's explicit approval to proceed to the M1 update.** M1 code is on hold until then, and needs the model changes in §3.1. Rev 1 is in git history (`git show d15deee:docs/design/PROPOSAL.md`, which includes the user's own Rev 1 edit).
+Status: **Rev 2 approved 2026-10-10 (PROMPT_LOG entry 018).** M1 models updated to §3.1, awaiting M1 review. M1 code is on hold until then, and needs the model changes in §3.1. Rev 1 is in git history (`git show d15deee:docs/design/PROPOSAL.md`, which includes the user's own Rev 1 edit).
 
 ## 0. What changed from Rev 1
 
@@ -167,6 +167,11 @@ tests/  unit/  integration/  robustness/
 - `RawRecord`, `Ids(correlation_id, trace_id, message_id, request_id)`: unchanged.
 - ★ `ParseIssue`: kept only as a parser return value for tests; **not** in the bundle (Q1).
 - `Event`: ★ plus `app`, `instance`, `thread`, `severity`, `error_code`, `kafka: Optional[KafkaRef(topic, partition, offset, group, client_id, producer_app)]`.
+  - As implemented in the M1 update: M1's `service` field was **replaced** by `app` (not kept alongside it), and `component` holds the sub-part (producer/broker/consumer/db-server).
+  - Invariants are enforced at construction:
+    - `error_code` is set exactly when severity ≠ CONTEXT;
+    - ANOMALY only for `APP_CONFIG`;
+    - `thread` requires `app` + `instance`.
 - ★ `Seed(event_id, app, instance, thread, ts_utc, correlation_id, error_code)`
 - ★ `ConfigEntry(app, key, value, raw_ref)` (no change history, D20)
 - ★ `AppTopology(app, consumes: [(topic, group)], produces: [topic], databases: [name], limits: {key: value})`

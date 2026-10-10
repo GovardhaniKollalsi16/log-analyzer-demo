@@ -98,3 +98,15 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 - **AI asked:** whether SSO should apply only to Kafka (as first stated) or also to app logs, config and DB logs.
 - **User:** "Yes" (to the SSO question).
 - **Changed:** D21 and §1.2 now cover every `mocklogs` fetch command. The SKILL outline and M2 scope were updated to match.
+
+## 2026-10-10 — M1 update — AI judgment calls beyond the written §3.1 (flagged to the user)
+
+- **`service` → `app`:** §3.1 said Event gains `app`. The AI **replaced** M1's `service` field instead of keeping both, to avoid two names for the same thing. Recorded in PROPOSAL §3.1.
+- **Added invariants that weren't in the design:**
+  - `error_code` is set exactly when severity ≠ CONTEXT;
+  - ANOMALY only on `APP_CONFIG` records;
+  - `thread` requires `app` + `instance` (enforces R12 at the type level);
+  - `FetchPlan(done=True)` needs a `stop_reason`;
+  - `Seed` must name the app and use UTC.
+- **New small types not named in §3.1:** `TopicSubscription` (instead of a `(topic, group)` tuple, for readable JSON), the `Direction`/`GapReason`/`FactorName` enums, and the `THREAD_SEGMENT_WINDOW_MS` constant.
+- **Self-caught:** a garbled test comment ("ID-less of thread is fine") was fixed before committing.

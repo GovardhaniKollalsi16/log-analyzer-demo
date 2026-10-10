@@ -413,3 +413,23 @@ For traversal to fetch the kafka logs, take user sso for authentication as there
 1. Does SSO apply only to Kafka, as you said, or also to app logs, config and DB logs? At work, app logs and configs would usually sit behind the same SSO. Yes
 2. Can I go ahead with the M1 data model update? It now also includes the "authentication required" gap reason. Yes
 ````
+
+### Outcome
+
+- **Did:**
+  1. Extended SSO auth (D21) to all four components in PROPOSAL.md/MILESTONES.md (commit `7549c2f`).
+  2. Updated M1 to the Rev 2 models (§3.1):
+     - `Source` = app/app_config/kafka/db;
+     - new `Severity`, `FactorName`, `Direction`, `GapReason` (incl. `auth_required`), `KafkaRef`, `Seed`, `ConfigEntry`, `TopicSubscription`, `AppTopology`, `FetchStep`, `FetchPlan`, `CoverageGap`;
+     - `LinkKind.THREAD_LOCAL`;
+     - `Event` gained app/instance/thread/severity/error_code/kafka (`service` replaced by `app`);
+     - `AnalysisBundle` gained seed/topology/traversal/coverage_gaps and dropped `parse_issues`;
+     - the `data_quality` factor removed;
+     - construction-time invariants.
+  3. Added `pricing.events` to the boundary-test vocabulary.
+  4. Marked Rev 2 approved and M1 awaiting review in the design docs.
+  Not pushed (D11: after M1 approval). Finished at 2026-10-10T18:07:03Z.
+- **Files:** `src/investigator/models.py`, `tests/unit/test_models.py`, `tests/unit/test_import_boundary.py`, `docs/design/PROPOSAL.md`, `docs/design/MILESTONES.md`, `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` → `collected 23 items` … `23 passed in 0.02s` (Python 3.9.6, pytest-8.4.2)
+  - After fixing a test comment: `.venv/bin/pytest` → `23 passed in 0.02s`

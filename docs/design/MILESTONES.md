@@ -6,10 +6,10 @@ Status: ✅ approved · 🟡 implemented, awaiting review · ⬜ not started
 
 ---
 
-## M0 — Process + design ✅ (Rev 2 awaiting final approval)
+## M0 — Process + design ✅ (Rev 2 approved 2026-10-10)
 CLAUDE.md, docs/process/*, PROPOSAL Rev 1 (pushed) → Rev 2 (seed-driven traversal, per-component errors), decisions D1–D20 + Q1, `.venv`.
 
-## M1 — Skeleton + models 🟡 (needs Rev 2 update)
+## M1 — Skeleton + models 🟡 (Rev 2 update done, awaiting review)
 Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard.
 **Pending after Rev 2 approval:** apply PROPOSAL §3.1:
 - `Source` loses `UPSTREAM`, gains `APP_CONFIG`;
