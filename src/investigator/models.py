@@ -88,8 +88,9 @@ class FactorValue(str, enum.Enum):
 
 
 class LinkKind(str, enum.Enum):
-    EXACT_ID = "exact_id"            # shares a correlation/trace/message/request ID
-    THREAD_LOCAL = "thread_local"    # same app + instance + thread segment (D17); weaker than an ID
+    EXACT_ID = "exact_id"            # same app + same in-app correlation ID (D25: correlation IDs are per app)
+    BUSINESS_KEY = "business_key"    # same business key (order_id, product_id, ...) across apps; not request-unique (R22)
+    THREAD_LOCAL = "thread_local"    # same cluster + app + instance + thread segment (D17); weaker than an ID
     WEAK_TEMPORAL = "weak_temporal"  # no ID, no thread; time + app only. Last resort, always labeled
 
 
@@ -109,6 +110,7 @@ class Direction(str, enum.Enum):
 class GapReason(str, enum.Enum):
     ACCESS_DENIED = "access_denied"  # user's entitlements don't cover it (D16)
     AUTH_REQUIRED = "auth_required"  # SSO session missing/expired and the user did not re-authenticate (D21)
+    MISSING_INPUT = "missing_input"  # a required input wasn't in the incident; the step was not run (D22)
     NOT_FOUND = "not_found"
     EMPTY = "empty"
 
@@ -180,11 +182,15 @@ class Event:
     ts_utc: Optional[datetime]  # None when the timestamp was unparseable
     app: Optional[str] = None
     component: Optional[str] = None
+    cluster: Optional[str] = None
+    namespace: Optional[str] = None
     instance: Optional[str] = None
     thread: Optional[str] = None
+    logger: Optional[str] = None
     severity: Severity = Severity.CONTEXT
     error_code: Optional[str] = None
-    ids: Ids = field(default_factory=Ids)
+    ids: Ids = field(default_factory=Ids)  # in-app IDs; correlation_id belongs to `app` only (D25)
+    keys: Dict[str, str] = field(default_factory=dict)  # business keys, e.g. {"order_id": "o-1"} (D25)
     kafka: Optional[KafkaRef] = None
     attrs: Dict[str, Any] = field(default_factory=dict)
     raw_refs: List[RawRecord] = field(default_factory=list)
@@ -211,14 +217,19 @@ class Event:
 
 @dataclass(frozen=True)
 class Seed:
-    """The app error line the investigation starts from (agent's first message, D19)."""
+    """The app error line the investigation starts from (the incident's `seed:` line, D19/D23)."""
 
     event_id: str
     app: str
     ts_utc: datetime
+    cluster: Optional[str] = None
+    namespace: Optional[str] = None
     instance: Optional[str] = None
     thread: Optional[str] = None
+    logger: Optional[str] = None
     correlation_id: Optional[str] = None
+    keys: Dict[str, str] = field(default_factory=dict)
+    business_key: Optional[str] = None  # key NAME chosen by the correlation-key table; value is keys[name]
     error_code: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -226,6 +237,27 @@ class Seed:
             raise ValueError("seed must name the application")
         if self.ts_utc.utcoffset() != timedelta(0):
             raise ValueError(f"seed ts_utc must be timezone-aware UTC, got {self.ts_utc!r}")
+
+
+@dataclass(frozen=True)
+class Location:
+    cluster: str
+    namespace: str
+
+
+@dataclass
+class Incident:
+    """The agent's first message (D23). Absent lines stay None/empty: no input, no access (D22)."""
+
+    seed: Seed
+    seed_event: "Event"
+    app: Optional[Location] = None                                      # seed app only
+    related_apps: Dict[str, Location] = field(default_factory=dict)     # app[<name>]: lines
+    kafka_bootstrap: Optional[str] = None
+    kafka_topics: List[str] = field(default_factory=list)
+    kafka_group: Optional[str] = None
+    db_host: Optional[str] = None
+    db_name: Optional[str] = None
 
 
 @dataclass(frozen=True)

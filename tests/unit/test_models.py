@@ -78,7 +78,8 @@ def test_confidence_is_categorical_and_ordered():
 def test_rev2_enum_members():
     assert {s.value for s in Severity} == {"ERROR", "SYMPTOM", "CONTEXT", "ANOMALY"}
     assert LinkKind.THREAD_LOCAL.value == "thread_local"
-    assert {r.value for r in GapReason} == {"access_denied", "auth_required", "not_found", "empty"}
+    assert {r.value for r in GapReason} == {"access_denied", "auth_required", "missing_input", "not_found", "empty"}
+    assert LinkKind.BUSINESS_KEY.value == "business_key"
     assert {f.value for f in FactorName} == {
         "id_linkage", "traversal_coverage", "temporal_precedence", "competing_hypotheses",
     }  # data_quality deliberately absent (Q1)
@@ -228,3 +229,20 @@ def test_to_jsonable_full_bundle_round_trips_through_json():
 def test_to_jsonable_refuses_naive_datetime():
     with pytest.raises(ValueError, match="naive"):
         to_jsonable(datetime(2026, 1, 1))
+
+
+# --- M3 model additions ----------------------------------------------------------
+
+def test_event_carries_location_logger_and_business_keys():
+    ev = make_event(cluster="c-1", namespace="ns", logger="x.OrderThing", keys={"order_id": "o-1"})
+    data = to_jsonable(ev)
+    assert data["cluster"] == "c-1" and data["keys"] == {"order_id": "o-1"} and data["logger"] == "x.OrderThing"
+
+
+def test_incident_model_defaults_mean_no_input():
+    from investigator.models import Incident, Location
+    seed = Seed(event_id="ev-1", app="app-x", ts_utc=T0, keys={"order_id": "o-1"}, business_key="order_id")
+    inc = Incident(seed=seed, seed_event=make_event())
+    assert inc.app is None and inc.kafka_bootstrap is None and inc.db_host is None and not inc.related_apps
+    inc.related_apps["app-y"] = Location("c-1", "ns")
+    assert to_jsonable(inc)["related_apps"]["app-y"] == {"cluster": "c-1", "namespace": "ns"}

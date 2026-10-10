@@ -33,6 +33,9 @@ class Result:
     code: int = OK
     out: List[str] = field(default_factory=list)
     err: List[str] = field(default_factory=list)
+    # Structured outputs (a configmap document, tables, offsets) are atomic in the real tools,
+    # so perturbation knobs never shuffle/drop/duplicate/truncate their lines.
+    structured: bool = False
 
 
 class Refusal(Exception):
@@ -138,7 +141,7 @@ def cmd_kubectl_get(a, world: World) -> Result:
         "metadata": {"name": a.name, "namespace": a.namespace, "annotations": {"cluster": a.context}},
         "data": dict(sorted(world.configs[app].items())),
     }
-    return Result(out=[(l, True) for l in json.dumps(doc, indent=4).split("\n")])  # type: ignore[arg-type]
+    return Result(out=[(l, True) for l in json.dumps(doc, indent=4).split("\n")], structured=True)  # type: ignore[arg-type]
 
 
 # --- Kafka ---------------------------------------------------------------------
@@ -175,7 +178,7 @@ def cmd_consumer_groups(a, world: World) -> Result:
         for g in (groups if a.all_groups else groups[:1]):
             out.append(("", True))
             out += [(l, True) for l in render.table(render.LAG_HEADER, render.lag_rows(world, [g], at))]
-    return Result(out=out)  # type: ignore[arg-type]
+    return Result(out=out, structured=True)  # type: ignore[arg-type]
 
 
 def cmd_get_offsets(a, world: World) -> Result:
@@ -194,7 +197,7 @@ def cmd_get_offsets(a, world: World) -> Result:
             off = next((m.offset for m in msgs
                         if render.skewed(world, "kafka", m.ts).timestamp() * 1000 >= a.time), end)
         out.append((f"{a.topic}:{p}:{off}", True))
-    return Result(out=out)  # type: ignore[arg-type]
+    return Result(out=out, structured=True)  # type: ignore[arg-type]
 
 
 def cmd_console_consumer(a, world: World) -> Result:
@@ -391,15 +394,18 @@ def run(argv: List[str]) -> Result:
             return res
         require_sso()
         res = FETCH[key](a, world)
-        salt = " ".join(x for x in argv if not x.startswith("--save-dir"))
-        res.out = render.perturb(res.out, knobs_from_env(), salt=salt)  # type: ignore[arg-type]
+        if res.structured:
+            res.out = [text for text, _ in res.out]  # type: ignore[misc]
+        else:
+            salt = " ".join(argv_without_save_dir(argv))  # the save path must not change the noise
+            res.out = render.perturb(res.out, knobs_from_env(), salt=salt)  # type: ignore[arg-type]
         return res
     except Refusal as r:
         return Result(code=r.code, err=[r.message])
 
 
-def _slug(argv: List[str]) -> str:
-    words = []
+def argv_without_save_dir(argv: List[str]) -> List[str]:
+    words: List[str] = []
     skip = False
     for x in argv:
         if skip:
@@ -411,7 +417,11 @@ def _slug(argv: List[str]) -> str:
         if x.startswith("--save-dir="):
             continue
         words.append(x)
-    return re.sub(r"[^a-zA-Z0-9]+", "-", " ".join(words)).strip("-")[:60] or "output"
+    return words
+
+
+def _slug(argv: List[str]) -> str:
+    return re.sub(r"[^a-zA-Z0-9]+", "-", " ".join(argv_without_save_dir(argv))).strip("-")[:60] or "output"
 
 
 def save_output(save_dir: str, argv: List[str], res: Result) -> Path:

@@ -290,3 +290,19 @@ def test_order_and_product_services_log_their_business_keys_with_own_correlation
         for l in lines:
             per_order.setdefault(l.keys["order_id"], set()).add(l.correlation_id)
         assert all(len(ids) == 1 for ids in per_order.values())
+
+
+@pytest.mark.parametrize("name", ["config", "lag", "all_groups", "offsets"])
+def test_structured_outputs_are_never_perturbed(logged_in, monkeypatch, capsys, name):
+    _, clean, _ = run(FETCH_COMMANDS[name], capsys)
+    monkeypatch.setenv("MOCKLOGS_KNOBS", json.dumps(
+        {"shuffle": True, "dup_rate": 0.5, "drop_rate": 0.5, "malformed_rate": 0.5}))
+    _, noisy, _ = run(FETCH_COMMANDS[name], capsys)
+    assert noisy == clean
+
+
+def test_noise_does_not_depend_on_the_save_dir_path(logged_in, monkeypatch, capsys):
+    monkeypatch.setenv("MOCKLOGS_KNOBS", json.dumps({"drop_rate": 0.5, "shuffle": True}))
+    _, a, _ = run(FETCH_COMMANDS["app_logs"] + ["--save-dir", str(logged_in / "one")], capsys)
+    _, b, _ = run(FETCH_COMMANDS["app_logs"] + ["--save-dir", str(logged_in / "two" / "deeper")], capsys)
+    assert a == b
