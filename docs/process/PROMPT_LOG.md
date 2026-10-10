@@ -276,3 +276,19 @@ Give all the steps planned, i will review the prompts and modify them and the de
 - **Files:** `docs/design/MILESTONES.md` (new), `docs/design/PROPOSAL.md`, `docs/process/PROMPT_LOG.md`
 - **Commands run:** `sed` to add the link, then `grep` to confirm it.
 - **Tests:** none run (no code changed since M1's `11 passed`).
+
+---
+
+## Entry 013 — 2026-10-10T17:41:02Z (10:41 PDT) — Milestone: M0 design under user review (M1 on hold)
+
+### Prompt (verbatim)
+
+````text
+Wait i am reviewing m0 the design
+````
+
+### Outcome
+
+- **Did:** Acknowledged and paused. No work done, no files changed besides this log. M1 stays unpushed. No M2 work.
+- **Commands run:** none besides appending this entry.
+- **Tests:** none.
