@@ -22,7 +22,7 @@ Status: **M0 approved and pushed 2026-10-10.** M1 implemented, awaiting review.
 
 1. The agent reads SKILL.md and follows its investigation order: app services → upstream → Kafka → DB. It can **only** run commands in the JSON allowlist.
 2. `mocklogs` prints synthetic raw logs shaped like real tools. Every output starts with a `MOCK` banner, and each record carries a source tag.
-3. `investigator correlate` turns raw outputs into one **analysis bundle** (JSON). The bundle holds normalized events with stable `event_id`s, correlation groups, an ordered timeline with uncertainty flags, detector findings, data-quality issues, source coverage, and a **confidence cap**.
+3. `investigator correlate` turns raw outputs into one **analysis bundle** (JSON). The bundle holds normalized events with stable `event_id`s, correlation groups, an ordered timeline with uncertainty flags, detector findings, source coverage, and a **confidence cap**.
 4. The LLM reasons only over the bundle, then calls `submit_report`. The validator rejects unknown event IDs, a confidence above the deterministic cap, a root cause without evidence, and missing required sections. On rejection the agent gets the errors back and can retry (bounded).
 5. Every turn and tool call is appended to `runs/<ts>-<scenario>.jsonl`.
 
