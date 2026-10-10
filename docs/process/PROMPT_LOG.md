@@ -433,3 +433,19 @@ For traversal to fetch the kafka logs, take user sso for authentication as there
 - **Commands run (actual results):**
   - `.venv/bin/pytest` → `collected 23 items` … `23 passed in 0.02s` (Python 3.9.6, pytest-8.4.2)
   - After fixing a test comment: `.venv/bin/pytest` → `23 passed in 0.02s`
+
+---
+
+## Entry 019 — 2026-10-10T18:07:53Z (11:07 PDT) — Milestone: M1 (awaiting review)
+
+### Prompt (verbatim)
+
+````text
+Oky what is m2?
+````
+
+### Outcome
+
+- **Did:** Explained M2's scope in chat, from MILESTONES.md. No files changed besides this log. M1 is not pushed: the message was a question, not an explicit approval, so I asked again.
+- **Commands run:** none besides appending this entry.
+- **Tests:** none.
