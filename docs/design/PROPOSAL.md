@@ -49,7 +49,7 @@ Status: **Rev 2 merged 2026-10-10 with the user's decisions and confirmations (P
 
 **Traversal rules**
 - **Step 1, seed.** The seed line is the agent's first message (D19). The runtime saves it verbatim to the run's workdir as `seed.log`, and `investigator plan` parses it. The LLM doesn't extract fields from it. From the seed, the code gets the app, instance, thread, timestamp, correlation ID and error code. Fetch that app's logs around the seed time, filtered by correlation ID, plus the seed's thread segment (§1.1).
-- **Step 2, config.** Fetch the seed app's config. If access is denied, it's recorded as a coverage gap that lowers the confidence cap (D16), not a crash. The config yields the topology: consumed topics + group, produced topics, downstream DB(s), timeouts/retries/pool sizes. **No change history is used** (D20).
+- **Step 2, config.** Fetch the seed app's config. If access is denied, it's recorded as a coverage gap that lowers the confidence cap (D16)(Yes this is important), not a crash. The config yields the topology: consumed topics + group, produced topics, downstream DB(s), timeouts/retries/pool sizes. **No change history is used** (D20).
 - **Step 3, Kafka.** For each topic in the topology:
   - consumer-group lag for the app's group;
   - producer/consumer logs;
