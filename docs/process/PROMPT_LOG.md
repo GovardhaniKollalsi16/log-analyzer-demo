@@ -785,3 +785,26 @@ Yes, that looks correct. Go with next step
   - After fixes → `1 failed, 177 passed`, then `178 passed` twice (flaky)
   - Root cause: the save-dir path changed the noise seed. After the fix and the prefix-rule test → 5 consecutive runs of `179 passed` (~0.92s each).
   - Unused-import scan of `src/investigator` → none found.
+
+---
+
+## Entry 032 — 2026-10-10T20:20:38Z (13:20 PDT) — Milestone: M3 (awaiting review; demo requested)
+
+### Prompt (verbatim)
+
+````text
+Run and show me examples of the input logs and output strcutrees
+````
+
+### Outcome
+
+- **Did:**
+  - Ran a scratch demo (session scratchpad, not in the repo): 8 `mocklogs` fetches for scenario 1 with `--save-dir` (one Forbidden via knob) plus the incident, parsed with `FileSource` + `parse_all` + `parse_incident`.
+  - Showed raw input → output structure for: incident, seed app log, config key, timed lag row, Kafka message, broker log, producer log (the internal "correlation id 8850" trap), DB log, refusal → CoverageGap.
+  - No repo code changed.
+- **Commands run (actual results):** `.venv/bin/python <scratchpad>/m3_demo.py` → `38 events, 7 config entries, 1 gaps, 0 parse issues`.
+- **Things the demo surfaced, raised with the user:**
+  1. `severity` is `CONTEXT` even for the ERROR seed. Expected: classification is M4.
+  2. `ts_raw` for lag rows and Kafka messages holds a reconstructed ISO string, not the raw text (e.g. `CreateTime:1773478820300`). That's an inconsistency in the AI's M3 code, proposed for fixing before approval.
+  3. Kafka broker/producer events have no `app`: `clientId=product-service-producer-1` isn't mapped to an app, by design (no guessing). They link by partition + time instead.
+- Finished at 2026-10-10T20:21:10Z.
