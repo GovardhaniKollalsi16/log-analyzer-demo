@@ -38,6 +38,7 @@ db:     host=<db host> name=<database>
 - Any other line may be absent. That source's **required inputs** are then missing, and its skill isn't run (rule 1). It isn't a failure; it gets recorded and reported.
 - Values are used **exactly as written**.
 - The plain `app:` line covers **only the seed app**. A related (upstream/downstream) app is fetched only if the incident has an `app[<name>]:` line for it.
+- **Where vs. who:** the incident is the only source of **where** to look (clusters, namespaces, Kafka bootstrap and topics, DB host and name). The seed app's config only says **who** is related (upstream/downstream apps and their Kafka client IDs). Never use a cluster, topic or DB from the config to access anything; if it differs from the incident, report the mismatch.
 
 ## 3. Which ID correlates across services
 

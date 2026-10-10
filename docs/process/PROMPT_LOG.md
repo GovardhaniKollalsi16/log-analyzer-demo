@@ -864,3 +864,20 @@ Dont map like that, just map kafka client details from the config you get from k
   - `UPDATE_SNAPSHOTS=1 pytest tests/mocklogs/test_snapshots.py` → `22 passed`; `python -m mocklogs.skill_samples --write` → 2 skills updated
   - `git diff` of the snapshots → only the new config keys, `clientId=<app>-consumer-1` and the `CLIENT-ID` column changed
   - After the skill edits: `skill_samples --check` → exit 0; `.venv/bin/pytest` → `180 passed`; with 3 new tests → `183 passed in 1.05s`
+
+---
+
+## Entry 035 — 2026-10-10T20:35:11Z (13:35 PDT) — Milestone: between M3 and M4 (decision: where vs. who)
+
+### Prompt (verbatim)
+
+````text
+r should the incident stay the only source of where to look, with the config only saying who is related? This is correct
+````
+
+### Outcome
+
+- **Did:** Recorded D27 (incident = where, config = who). Added an explicit "where vs. who" bullet to the coordinator skill; the component skills already encoded it. Not pushed; asked about push + M4. Finished at 2026-10-10T20:35:24Z.
+- **Files:** `.claude/skills/incident-logs/SKILL.md`, `docs/design/PROPOSAL.md`, `docs/process/{SKILL_CHANGELOG,PROMPT_LOG}.md`
+- **Commands run (actual results):** `.venv/bin/pytest` → see the chat reply (run before this entry was written; result also recorded below).
+  - `.venv/bin/pytest` → `183 passed in 1.05s`

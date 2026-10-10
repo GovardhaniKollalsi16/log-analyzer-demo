@@ -85,3 +85,8 @@ Format:
     - removed the fallback "treat any producer other than the seed app as upstream".
   - `incident-app-logs` v0.3: related apps come from the config.
   - Real samples regenerated (configmap gains the declarations; `CLIENT-ID`s are now `<app>-consumer-1`).
+
+## 2026-10-10 — incident-logs — "where vs. who" stated explicitly (D27)
+- **Reason:** The user confirmed "the incident stay the only source of where to look, with the config only saying who is related" ("This is correct").
+- **Triggering run transcript:** none.
+- **Change:** One bullet added to coordinator §2. No rule changed: the component skills already said the config is never a source of access inputs.
