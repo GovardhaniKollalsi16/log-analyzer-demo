@@ -459,3 +459,24 @@ Oky what is m2?
 ````text
 Yes, and in which step are you creating skill files for the agent to know how to connect to neach log source and how the agent will know to fetch the applicationn up streama dn downstream systems. In what step are we creating the skills that is important
 ````
+
+### Outcome
+
+- **Did:**
+  - Treated "Yes" as M1 approval: marked M1 ✅ in MILESTONES.md/PROPOSAL.md, reran the tests, and pushed.
+  - Answered where skills are created: `SKILL.md` was planned for M10 only. The upstream/downstream discovery logic lives in the M5 planner.
+  - Proposed moving the skill earlier (v0 in M2, v1 in M5, v2 allowlist in M10, M13 frontmatter).
+  - Did not start M2, because the answer changes M2's scope. Finished at 2026-10-10T18:13:17Z.
+- **Files:** `docs/design/MILESTONES.md`, `docs/design/PROPOSAL.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run (actual results):** `.venv/bin/pytest` → `23 passed in 0.03s`; `git push` → `613375a..7f0b26e  main -> main`
+- **Tests:** 23 passed (above).
+
+---
+
+## Entry 021 — 2026-10-10T18:13:17Z (11:13 PDT) — Milestone: M2 (step 1: SKILL.md v0)
+
+### Prompt (verbatim)
+
+````text
+Yes, move skills earlier and start M2 with SKILL.md
+````
