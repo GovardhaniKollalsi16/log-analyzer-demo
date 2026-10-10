@@ -1,6 +1,6 @@
 # Design Proposal (M0, awaiting approval)
 
-Status: **PROPOSED, not approved.** No implementation code exists yet.
+Status: **M0 approved and pushed 2026-10-10.** M1 implemented, awaiting review.
 
 ## 1. Architecture & data flow
 
@@ -137,7 +137,7 @@ Assumptions: all timestamps are normalized to UTC; a single host runs everything
 | M | Scope | Done when |
 |---|---|---|
 | M0 | Process docs, CLAUDE.md, this proposal | User approves |
-| M1 | Skeleton: pyproject, packages, `models.py`, pytest wiring, import-boundary test | `pytest` green (real output pasted) |
+| M1 | Skeleton: pyproject, packages, `models.py`, pytest wiring, import-boundary test | `pytest` green (real output pasted). **Implemented 2026-10-10, awaiting review** |
 | M2 | `mocklogs` + scenario 1 generator, all four source formats, MOCK banners | Golden-output tests; user reviews log shapes |
 | M3 | Parsers + normalization + malformed handling + dedupe | Unit tests incl. malformed/duplicate fixtures |
 | M4 | Correlation (ID graph) + timeline with skew tolerance | Tests: shuffle, skew injection, missing IDs |

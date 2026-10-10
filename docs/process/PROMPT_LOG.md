@@ -244,3 +244,18 @@ What is m0?
 ````text
 yes push it and start m1
 ````
+
+### Outcome
+
+- **Did:** Pushed the M0 commits to GitHub (`main -> main`, upstream set). Implemented M1:
+  - `pyproject.toml`: setuptools backend, src layout, `requires-python >=3.9`, no runtime deps, optional `test` extra, pytest config. Console scripts are deferred to the M2/M5 milestones that build those CLIs, so no entry point points at missing code.
+  - Two top-level packages `investigator` and `mocklogs` (`__init__` only). Subpackages are created in the milestones that need them.
+  - `investigator/models.py`: Source, Level, Confidence (categorical, ordered, `at_most`), FactorValue, LinkKind, ParseIssueKind, RawRecord, ParseIssue, Ids, Event (UTC-only, non-empty ID), CorrelationGroup, SkewEstimate, TimelineEntry, Finding (must cite ≥1 event), Hypothesis, ConfidenceFactor, AnalysisBundle (default skew tolerance 60 000 ms per D2), and `to_jsonable`.
+  - Tests: `tests/unit/test_models.py` (9) and `tests/unit/test_import_boundary.py` (2: no `mocklogs` import, no D6 scenario names in `investigator`).
+- **Files:** `pyproject.toml`, `src/investigator/__init__.py`, `src/investigator/models.py`, `src/mocklogs/__init__.py`, `tests/unit/test_models.py`, `tests/unit/test_import_boundary.py`, `docs/design/PROPOSAL.md`, `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run (actual results):**
+  - `git push -u origin main` → `* [new branch] main -> main`
+  - `.venv/bin/pip install -q -e .` → no output. The exit code was not captured (zsh/`PIPESTATUS` slip, see AI_NOTES). `pip show` → `Editable project location: /Users/goodvibesonly/log-analyzer-demo`
+  - `.venv/bin/pytest` → `collected 11 items` … `11 passed in 0.02s` (Python 3.9.6, pytest-8.4.2)
+  - Canary check: temporarily added `src/investigator/_canary_violation.py` (`import mocklogs` + `"order-api"`) → `2 failed` with `investigator imports mocklogs at: ['investigator/_canary_violation.py:1']` and `scenario vocabulary found in investigator: ['investigator/_canary_violation.py: order-api']`. Removed the file, then `.venv/bin/pytest` → `11 passed in 0.01s`.
+- **Not pushed:** M1 awaits review (D11: push after approval).
