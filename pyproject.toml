@@ -12,8 +12,9 @@ dependencies = []
 [project.optional-dependencies]
 test = ["pytest>=8"]
 
-# Console scripts (mocklogs, investigator) are added in the milestones that
-# implement those CLIs (M2, M5), so the entry points never reference missing code.
+[project.scripts]
+mocklogs = "mocklogs.cli:main"
+# `investigator` is added in M5, when its CLI exists.
 
 [tool.setuptools.packages.find]
 where = ["src"]

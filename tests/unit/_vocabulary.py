@@ -14,4 +14,8 @@ SCENARIO_VOCABULARY = [
     "pricing.events",
     "fulfillment-consumers",
     "appdb",
+    "notification-consumers",
+    "cluster-a",
+    "kafka-a:9092",
+    "db-a",
 ]
