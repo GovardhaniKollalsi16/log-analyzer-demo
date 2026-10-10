@@ -1,5 +1,9 @@
 """Scenario 1 (ground truth, mock side only).
 
+Domain (user, 2026-10-10): orders come from the OrderService, product-based inputs
+(here: prices) from the ProductService. Each service logs the business key with its
+own, per-service correlation ID.
+
 One partition of the upstream topic degrades (its ISR shrinks to the leader). The
 upstream app's producer gets request timeouts on that partition, retries, then
 expires the record. The seed app waits for the pricing event that never arrives and
@@ -34,8 +38,8 @@ from mocklogs.world import (
 
 DEFAULT_NAMES: Dict[str, str] = {
     "gateway_app": "edge-gateway",
-    "seed_app": "order-api",
-    "upstream_app": "partner-pricing",
+    "seed_app": "order-service",
+    "upstream_app": "product-service",
     "downstream_app": "fulfillment-worker",
     "notify_app": "notification-worker",
     "in_topic": "pricing.events",
@@ -158,7 +162,7 @@ def generate(knobs: ScenarioKnobs) -> World:
             "POST /v1/orders -> 202 Accepted", corr["gateway_app"], keys=ok)
         app(sec + 0.05, "INFO", "seed_app", i, wait_thread, "orders.OrderPricingAwaiter",
             f"Order {order_id} received; awaiting pricing event", corr["seed_app"], keys=ok)
-        app(sec + 0.15, "INFO", "upstream_app", i, f"pricer-{i % 3 + 1}", "pricing.PriceService",
+        app(sec + 0.15, "INFO", "upstream_app", i, f"pricer-{i % 3 + 1}", "products.ProductPriceService",
             f"Price computed for order {order_id}", corr["upstream_app"],
             keys={"order_id": order_id, "product_id": product_id})
 
@@ -178,7 +182,7 @@ def generate(knobs: ScenarioKnobs) -> World:
             app(sec + 0.3 + DELIVERY_TIMEOUT_S, "ERROR", "upstream_app", i, net_thread, sender, expire, critical=True)
             klog(sec + 0.3 + DELIVERY_TIMEOUT_S, "ERROR", "producer", n["in_topic"], expire, sender, critical=True)
             app(sec + 0.35 + DELIVERY_TIMEOUT_S, "ERROR", "upstream_app", i, f"pricer-{i % 3 + 1}",
-                "pricing.PricePublisher", f"Failed to publish pricing event for order {order_id}", corr["upstream_app"],
+                "products.ProductPricePublisher", f"Failed to publish pricing event for order {order_id}", corr["upstream_app"],
                 {"type": "org.apache.kafka.common.errors.TimeoutException", "message": expire.split("] ", 1)[1]},
                 critical=True, keys={"order_id": order_id, "product_id": product_id})
             app(sec + 0.05 + WAIT_TIMEOUT_S, "ERROR", "seed_app", i, wait_thread, "orders.OrderPricingAwaiter",
@@ -191,7 +195,7 @@ def generate(knobs: ScenarioKnobs) -> World:
 
         produce(n["in_topic"], p_in, sec + 0.3, corr["upstream_app"], "upstream_app",
                 {"order_id": order_id, "product_id": product_id, "price": 10 + i})
-        app(sec + 0.32, "INFO", "upstream_app", i, f"pricer-{i % 3 + 1}", "pricing.PricePublisher",
+        app(sec + 0.32, "INFO", "upstream_app", i, f"pricer-{i % 3 + 1}", "products.ProductPricePublisher",
             f"Published pricing event for order {order_id}", corr["upstream_app"],
             keys={"order_id": order_id, "product_id": product_id})
         app(sec + 0.6, "INFO", "seed_app", i, wait_thread, "orders.OrderPricingAwaiter", "Pricing event received",

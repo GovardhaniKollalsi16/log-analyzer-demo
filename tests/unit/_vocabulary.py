@@ -6,6 +6,8 @@ hardcode answers) or in the agent's SKILL.md (it would hint at answers).
 
 SCENARIO_VOCABULARY = [
     "order-api",
+    "order-service",
+    "product-service",
     "fulfillment-worker",
     "notification-worker",
     "edge-gateway",

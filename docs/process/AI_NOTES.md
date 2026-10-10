@@ -195,3 +195,13 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 - **Interpretations flagged to the user:**
   - "Order* file" was taken as the record's **source class**, i.e. the last segment of `logger` (the mock has no separate `file` field);
   - the user's "Yes" to "do these formats look like work? Do any … resemble your employer's systems?" answers two questions at once, so the AI asked which one it meant before treating it as resolved.
+
+## 2026-10-10 — M2 — Domain clarification: OrderService / ProductService
+
+- **User:** "Yes, one more thing For All product based inpusts comes from Product Service and Orders come from OrderService and it has logs of the whichbwill have the order_id and the the correlation id in app should/will match it"
+- **AI's interpretation:**
+  - "Order* file" refers to the OrderService and "Product*" to the ProductService;
+  - pricing is a product-based input, so the upstream app is the ProductService;
+  - "correlation id in app should/will match" means one correlation ID per order within a service. The mock already did this; it's now pinned by a test.
+- **Changed:** mock seed app `order-api` → `order-service` (classes `orders.Order*`); upstream `partner-pricing` → `product-service` (classes `products.ProductPrice*`); coordinator skill domain note; D25a; vocabulary guard updated; new test → `90 passed`.
+- **Still ambiguous, asked again:** the user's "Yes" didn't say which of the two questions it answered (realistic formats vs. resembling the employer's systems). Until it's answered, nothing gets pushed.

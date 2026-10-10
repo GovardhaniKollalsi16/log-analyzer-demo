@@ -647,3 +647,25 @@ Realism: do these formats look like what you'd see at work? Do any names or log 
     - seed = `orders.OrderPricingAwaiter`, `correlation_id` `c-325b56`, `order_id` `o-1008`;
     - `partner-pricing` logs `--grep o-1008` → 2 lines with **its own** `correlation_id` `c-2a7b94`;
     - a `pricing.events` message header `correlation_id:c-d6d9ab,producer_app:partner-pricing` with `order_id`/`product_id` in the value.
+
+---
+
+## Entry 027 — 2026-10-10T18:56:10Z (11:56 PDT) — Milestone: M2 (correlation keys: OrderService / ProductService)
+
+### Prompt (verbatim)
+
+````text
+Yes, one more thing For All product based inpusts comes from Product Service and Orders come from OrderService and it has logs of the whichbwill have the order_id and the the correlation id in app should/will match it
+````
+
+### Outcome
+
+- **Did:**
+  - Mirrored the domain rule in the mock: seed app `order-service` with `Order*` classes logging `order_id`; upstream `product-service` with `Product*` classes logging `product_id` (+ `order_id`); one correlation ID per order inside each service, pinned by a new test.
+  - Added a domain note to the coordinator skill; recorded D25a; updated the vocabulary guard.
+  - Asked again about the ambiguous "Yes".
+  Not pushed. Finished at 2026-10-10T18:56:47Z.
+- **Files:** `src/mocklogs/scenarios/upstream_timeout.py`, `tests/mocklogs/test_cli.py`, `tests/unit/_vocabulary.py`, `.claude/skills/incident-logs/SKILL.md`, `docs/design/PROPOSAL.md`, `docs/process/{SKILL_CHANGELOG,AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` after the rename → `89 passed in 0.21s`; after the new test → `90 passed in 0.40s`
+  - `mocklogs scenario incident` → seed from `order-service` / `orders.OrderPricingAwaiter` with `order_id`; `app[product-service]` line present

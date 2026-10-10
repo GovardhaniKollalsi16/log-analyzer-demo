@@ -57,3 +57,8 @@ Format:
   - `incident-kafka` v0.2: message search by the business key in the value; the header `correlation_id` is the producer's own.
   - `incident-db-logs` v0.2: a business-key search.
   - A test checks that the JSON table parses and has both rules.
+
+## 2026-10-10 — incident-logs — OrderService / ProductService domain note
+- **Reason:** User: "For All product based inpusts comes from Product Service and Orders come from OrderService and it has logs of the whichbwill have the order_id and the the correlation id in app should/will match it"
+- **Triggering run transcript:** none (no agent runs yet).
+- **Change:** Coordinator §3 gains "Where the keys come from": the OrderService logs `order_id`, the ProductService logs `product_id`, each with its own correlation ID that's consistent within the service. Search by the business key first, then by the correlation ID found. The key table is unchanged.

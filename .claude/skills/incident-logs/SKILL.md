@@ -54,6 +54,8 @@ db:     host=<db host> name=<database>
 ]}
 ```
 *More API → key rules will be added by the user.*
+
+**Where the keys come from:** orders come from the **OrderService** and product-based inputs from the **ProductService**. Each logs its business key (`order_id` / `product_id`) together with **its own** `correlation_id`. Inside one service, every line for the same order or product shares that correlation ID, so search by the business key first, then by the correlation ID you find.
 - **No rule matches, or the seed record lacks that field** → there's no business key. Every cross-service step (Kafka messages, related apps, DB) is recorded as `missing_input: business key`. In-app steps still run.
 - A business key isn't unique to one request: a product appears in many orders. Matches only count inside the incident time window, and `investigator` treats them as weaker than an in-app `correlation_id` match.
 

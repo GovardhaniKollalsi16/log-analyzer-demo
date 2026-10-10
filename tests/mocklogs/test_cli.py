@@ -17,9 +17,9 @@ SCENARIO = "upstream-timeout"
 WINDOW = ["--since-time=2026-03-14T08:54:50Z", "--until-time=2026-03-14T09:06:50Z"]
 
 FETCH_COMMANDS = {
-    "app_logs": ["kubectl", "logs", "deploy/order-api", "--context", "cluster-a", "-n", "apps", "--timestamps", *WINDOW],
-    "config": ["kubectl", "get", "configmap", "order-api-config", "--context", "cluster-a", "-n", "apps", "-o", "json"],
-    "lag": ["kafka-consumer-groups", "--bootstrap-server", "kafka-a:9092", "--describe", "--group", "order-api-pricing", "--samples", "3"],
+    "app_logs": ["kubectl", "logs", "deploy/order-service", "--context", "cluster-a", "-n", "apps", "--timestamps", *WINDOW],
+    "config": ["kubectl", "get", "configmap", "order-service-config", "--context", "cluster-a", "-n", "apps", "-o", "json"],
+    "lag": ["kafka-consumer-groups", "--bootstrap-server", "kafka-a:9092", "--describe", "--group", "order-service-pricing", "--samples", "3"],
     "all_groups": ["kafka-consumer-groups", "--bootstrap-server", "kafka-a:9092", "--describe", "--all-groups"],
     "offsets": ["kafka-get-offsets", "--bootstrap-server", "kafka-a:9092", "--topic", "pricing.events", "--time", "0"],
     "messages": ["kafka-console-consumer", "--bootstrap-server", "kafka-a:9092", "--topic", "pricing.events",
@@ -113,7 +113,7 @@ def test_access_denied(logged_in, monkeypatch, capsys, denied, name, needle):
 
 
 @pytest.mark.parametrize("argv", [
-    ["kubectl", "logs", "deploy/order-api", "--context", "nope", "-n", "apps"],
+    ["kubectl", "logs", "deploy/order-service", "--context", "nope", "-n", "apps"],
     ["kubectl", "logs", "deploy/nope", "--context", "cluster-a", "-n", "apps"],
     ["kubectl", "get", "configmap", "nope-config", "--context", "cluster-a", "-n", "apps", "-o", "json"],
     ["kafka-get-offsets", "--bootstrap-server", "other:9092", "--topic", "pricing.events", "--time", "0"],
@@ -154,10 +154,10 @@ def test_incident_has_required_inputs_and_parseable_seed(logged_in, capsys):
     lines = out.splitlines()
     assert lines[:2] == [BANNER, "INCIDENT"]
     seed = json.loads(lines[2][len("seed: "):])
-    assert seed["level"] == "ERROR" and seed["app"] == "order-api" and seed["correlation_id"]
+    assert seed["level"] == "ERROR" and seed["app"] == "order-service" and seed["correlation_id"]
     assert seed["order_id"] and seed["logger"].rsplit(".", 1)[-1].startswith("Order")
     assert any(l.startswith("kafka:  bootstrap=kafka-a:9092 topics=") for l in lines)
-    assert any(l.startswith("app[partner-pricing]:") for l in lines)
+    assert any(l.startswith("app[product-service]:") for l in lines)
     assert not any(l.startswith("db:") for l in lines)  # the seed app has no database
 
 
@@ -178,7 +178,7 @@ def test_rename_knob_removes_every_default_name(logged_in, monkeypatch, capsys):
     monkeypatch.setenv("MOCKLOGS_KNOBS", json.dumps({"names": {
         "seed_app": "svc-q", "upstream_app": "svc-u", "in_topic": "t.in", "cluster": "c-9"}}))
     _, out, _ = run(["scenario", "incident"], capsys)
-    for old in ("order-api", "partner-pricing", "pricing.events", "cluster-a"):
+    for old in ("order-service", "product-service", "pricing.events", "cluster-a"):
         assert old not in out
     assert '"app":"svc-q"' in out and "t.in" in out and "app[svc-u]" in out
 
@@ -198,8 +198,8 @@ def test_skew_knob_shifts_rendered_kafka_times(logged_in, monkeypatch, capsys):
 
 def test_drop_and_malform_only_touch_non_critical_lines(logged_in, monkeypatch, capsys):
     world = load(SCENARIO)
-    critical_msgs = [l.msg for l in world.app_logs if l.app == "partner-pricing" and l.critical]
-    argv = ["kubectl", "logs", "deploy/partner-pricing", "--context", "cluster-a", "-n", "apps", "--timestamps"]
+    critical_msgs = [l.msg for l in world.app_logs if l.app == "product-service" and l.critical]
+    argv = ["kubectl", "logs", "deploy/product-service", "--context", "cluster-a", "-n", "apps", "--timestamps"]
     _, clean, _ = run(argv, capsys)
     monkeypatch.setenv("MOCKLOGS_KNOBS", json.dumps({"drop_rate": 0.5, "malformed_rate": 0.4}))
     _, noisy, _ = run(argv, capsys)
@@ -222,10 +222,10 @@ def test_ground_truth_shape():
     """Sanity check of the injected fault. Lives in tests, never in investigator."""
     w = load(SCENARIO)
     seed = w.incident.seed_record
-    assert seed.app == "order-api" and seed.level == "ERROR"
+    assert seed.app == "order-service" and seed.level == "ERROR"
     order_id = seed.keys["order_id"]
     assert not [m for m in w.messages if m.value.get("order_id") == order_id]  # pricing never arrived
-    upstream_errors = [l for l in w.app_logs if l.app == "partner-pricing" and l.level == "ERROR"
+    upstream_errors = [l for l in w.app_logs if l.app == "product-service" and l.level == "ERROR"
                        and l.keys.get("order_id") == order_id]
     assert upstream_errors and upstream_errors[0].correlation_id != seed.correlation_id
     assert any("Shrinking ISR" in l.text for l in w.kafka_logs)
@@ -273,3 +273,20 @@ def test_db_statements_carry_business_keys(logged_in, capsys):
     assert "order_id" in out and "'o-1000'" in out
     _, out, _ = run(["db", "logs", "--host", "db-a", "--db", "appdb", "--grep", order_id], capsys)
     assert out.splitlines() == [BANNER]  # the failed order never reached the DB
+
+
+def test_order_and_product_services_log_their_business_keys_with_own_correlation_ids():
+    """Domain rule (user): orders come from the OrderService, product inputs from the ProductService."""
+    w = load(SCENARIO)
+    order_lines = [l for l in w.app_logs if l.app == "order-service" and l.correlation_id]
+    product_lines = [l for l in w.app_logs if l.app == "product-service" and l.correlation_id]
+    assert order_lines and all(l.logger.rsplit(".", 1)[-1].startswith("Order") and "order_id" in l.keys
+                               for l in order_lines)
+    assert product_lines and all(l.logger.rsplit(".", 1)[-1].startswith("Product") and "product_id" in l.keys
+                                 for l in product_lines)
+    # inside one service, every line of one order has the same correlation ID
+    for lines in (order_lines, product_lines):
+        per_order = {}
+        for l in lines:
+            per_order.setdefault(l.keys["order_id"], set()).add(l.correlation_id)
+        assert all(len(ids) == 1 for ids in per_order.values())
