@@ -18,6 +18,7 @@ The user needs a real, unpolished record of how they work with AI. These rules a
 
 - **Python 3.9+** (the machine has 3.9.6; the user chose not to install 3.11, decision D1 on 2026-10-10). Type hints, dataclasses, **stdlib + pytest only**. **Ask before adding ANY other dependency.**
   - 3.9 compatibility: put `from __future__ import annotations` in every module; no `match`, no `X | Y` outside annotations (use `Optional`/`Union` in `isinstance` and type aliases), no `dataclass(slots=/kw_only=)`, no `tomllib`/`StrEnum`/`ExceptionGroup`. `datetime.fromisoformat` does not accept a `Z` suffix, so normalize it first.
+- **Environment:** always use the project venv: `.venv/bin/python`, `.venv/bin/pytest`. Never install into the system Python. `.venv/` is gitignored; recreate it with `python3 -m venv .venv && .venv/bin/pip install -U pip setuptools pytest`.
 - The SKILL.md command allowlist is a **fenced JSON block** (not TOML), so it can be read with stdlib `json` on 3.9.
 - Keep module boundaries clear: adapters, parsing/normalization, correlation, timeline, detectors, analysis, narration, report, CLI.
 - Handle malformed records, missing IDs, timestamp skew, duplicates, and out-of-order logs.

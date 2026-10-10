@@ -194,3 +194,27 @@ D11	When to push to  I dont have a key now, will provide later.
 - **Commands run:** a Python script appended this entry and updated the D10 row.
 - **Tests:** none (no code yet).
 - **Still open:** the OK for a project `.venv` (R11) and approval to start M1.
+
+---
+
+## Entry 009 — 2026-10-10T17:32:53Z (10:32 PDT) — Milestone: M0 (environment setup)
+
+### Prompt (verbatim)
+
+````text
+1. OK to create the project `.venv`? It upgrades pip and setuptools inside `.venv/` only and installs pytest there. Yes i need a .venv to keep the enivronemnt contanireresd
+````
+
+### Outcome
+
+- **Did:** Created the project venv and installed upgraded pip/setuptools plus pytest inside it only (the system Python is untouched). Marked R11 resolved in PROPOSAL.md and added an Environment rule to CLAUDE.md (always use `.venv/bin/...`). M1 has not been approved yet, so no M1 work was started. Finished at 2026-10-10T17:33:09Z.
+- **Files:** `CLAUDE.md`, `docs/design/PROPOSAL.md`, `docs/process/PROMPT_LOG.md` (`.venv/` is gitignored)
+- **Commands run:**
+  - `python3 -m venv .venv && .venv/bin/pip install -q -U pip setuptools pytest` → exit 0
+  - `.venv/bin/python --version` → `Python 3.9.6`
+  - `.venv/bin/pip --version` → `pip 26.0.1 ... (python 3.9)`
+  - setuptools version → `setuptools 82.0.1`
+  - `.venv/bin/pytest --version` → `pytest 8.4.2`
+  - `git status --short` → only `docs/process/PROMPT_LOG.md` modified (`.venv/` correctly ignored)
+- **Tests:** none (no code yet).
+- **Still open:** approval to start M1.

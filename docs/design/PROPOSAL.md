@@ -128,7 +128,7 @@ Each generator takes knobs: `seed`, `service_names` map, `t0`, `per_source_skew_
 | R8 | The HTTP client is stdlib `urllib` (no SDK). | Small provider and a mocked-transport test. The real API is used only in manual runs. |
 | R9 | Real-API runs are nondeterministic, so they aren't in CI. | Tests use ScriptedFakeLLM. Real runs are saved to `runs/`. |
 | R10 | Synthetic data accidentally resembling the employer's system. | Generic vocabulary only. The user reviews scenario names and log shapes in M2. |
-| R11 | System pip is 21.2.4 and setuptools 58.0.4. An editable install from a pyproject-only project (`pip install -e .`, PEP 660) needs pip ≥ 21.3 and setuptools ≥ 64, so it would fail on the system Python as-is. | Proposed: a project-local `.venv` (`python3 -m venv .venv`), with pip, setuptools and pytest upgraded/installed inside it only. The system Python is untouched and `.venv/` is gitignored. Needs user OK at M1. |
+| R11 | System pip is 21.2.4 and setuptools 58.0.4. An editable install from a pyproject-only project (`pip install -e .`, PEP 660) needs pip ≥ 21.3 and setuptools ≥ 64, so it would fail on the system Python as-is. | Proposed: a project-local `.venv` (`python3 -m venv .venv`), with pip, setuptools and pytest upgraded/installed inside it only. The system Python is untouched and `.venv/` is gitignored. **Resolved 2026-10-10:** user approved, and `.venv` was created (pip 26.0.1, setuptools 82.0.1, pytest 8.4.2 on Python 3.9.6). |
 
 Assumptions: all timestamps are normalized to UTC; a single host runs everything; scenario data is generated (not hand-written) so knobs can perturb it; event IDs are stable across re-runs of the same input.
 
