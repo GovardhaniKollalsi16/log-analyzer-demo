@@ -48,3 +48,13 @@ I need a real, unpolished record of how I work with AI for the interview. Put th
 
 Do not write implementation code yet. Wait for my approval.
 ````
+
+### Outcome
+
+- **Did:** Created CLAUDE.md with the process and engineering rules, the three docs/process files, `runs/README.md`, `.gitignore`, and the design proposal at `docs/design/PROPOSAL.md`. Logged this message verbatim before starting work. No implementation code was written.
+- **Files:** `CLAUDE.md`, `.gitignore`, `docs/process/PROMPT_LOG.md`, `docs/process/AI_NOTES.md`, `docs/process/SKILL_CHANGELOG.md`, `runs/README.md`, `docs/design/PROPOSAL.md`
+- **Commands run:**
+  - Python version check: only `/usr/bin/python3` → `Python 3.9.6`. `python3.11`, `python3.12` and `python3.13` were not found. Logged in AI_NOTES; this is decision D1.
+  - `git commit` ×2 → `b8a466a Set up process logging before any code exists`, `b8cf2c2 Propose architecture and milestones for review before coding`
+- **Tests:** none. No code exists yet.
+- **Status:** Waiting for the user to approve the proposal and answer decisions D1–D12.
