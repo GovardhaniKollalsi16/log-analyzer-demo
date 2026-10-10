@@ -758,3 +758,30 @@ what is M3?
 ````text
 Yes, that looks correct. Go with next step
 ````
+
+### Outcome
+
+- **Did:**
+  - Marked M2 approved and pushed (`a6ad787..ceb4b38`).
+  - Implemented M3:
+    - Models: `Event` gained cluster/namespace/logger/keys; `Seed` gained cluster/namespace/logger/keys/business_key; new `Incident` + `Location`; `LinkKind.BUSINESS_KEY`; `GapReason.MISSING_INPUT`.
+    - `adapters/` (`RawOutput`, `LogSource`, `FileSource` over `--save-dir` output).
+    - `normalize.py` (UTC for every emitted timestamp shape incl. kubectl nanoseconds; levels; content-hash event IDs; business keys only from structured `*_id` fields).
+    - `parsing/`: app logs, configmap, lag tables, offsets, console messages, Kafka log4j, DB logs, refusals → coverage gaps, the incident message.
+    - `correlation_keys.py` (reads the skill's JSON rule table), `dedupe.py`.
+  - Fixed two mock bugs that the tests exposed (structured outputs were perturbed; the noise seed depended on the save path).
+  - Added risks R23/R24. Not pushed (M3 awaits review). Finished at 2026-10-10T20:17:06Z.
+- **Files:**
+  - Code: `src/investigator/{models,normalize,correlation_keys,dedupe}.py`, `src/investigator/adapters/{__init__,base,files}.py`, `src/investigator/parsing/{__init__,app_logs,config,kafka,db,dispatch,incident}.py`, `src/mocklogs/cli.py`
+  - Tests: `tests/unit/test_models.py`, `tests/unit/test_normalize_and_parsers.py` (new), `tests/integration/test_parse_scenario.py` (new), `tests/mocklogs/test_cli.py`
+  - Docs: `docs/design/{PROPOSAL,MILESTONES}.md`, `docs/process/{AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` → `122 passed`; `git push` → `a6ad787..ceb4b38`
+  - After the model changes → `1 failed, 121 passed` (`test_rev2_enum_members`, expected: new gap reason); after updating → `124 passed`
+  - `pytest tests/unit/test_normalize_and_parsers.py` → `38 passed`
+  - `pytest tests/integration` → `3 failed, 9 passed`:
+    - dup/shuffle event-set mismatch, debugged to perturbation corrupting the configmap JSON;
+    - a wrong lag-sample expectation in the test.
+  - After fixes → `1 failed, 177 passed`, then `178 passed` twice (flaky)
+  - Root cause: the save-dir path changed the noise seed. After the fix and the prefix-rule test → 5 consecutive runs of `179 passed` (~0.92s each).
+  - Unused-import scan of `src/investigator` → none found.

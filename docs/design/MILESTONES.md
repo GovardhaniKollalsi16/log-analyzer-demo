@@ -50,7 +50,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M3 — Parsing + normalization + dedupe 🟡 (in progress)
+## M3 — Parsing + normalization + dedupe 🟡 (implemented 2026-10-10, awaiting review)
 **Scope**
 - **Model follow-up (from the per-component skills):** add `cluster` + `namespace` to `Event` and `Seed`; thread links scoped by cluster + app + instance.
 - **Model follow-up (D25):** `Event.keys: Dict[str, str]` for business keys (`order_id`, `product_id`, …); `LinkKind.BUSINESS_KEY`; `Seed.business_key`; correlation groups key on `(app, correlation_id)` within an app, and on the business key across apps.

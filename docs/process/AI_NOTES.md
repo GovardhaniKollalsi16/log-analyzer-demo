@@ -212,3 +212,13 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 - **Fixed:** The regex now captures the indentation and re-indents the generated body. Second `--write` → 0 placeholders; `--check` → exit 0.
 - **Also:** a stray `tests/.DS_Store` (macOS metadata) appeared untracked. It was deleted and `.DS_Store` gitignored.
 - **AI design note:** samples come from the scenario 1 world with every name overridden. To stop real scenario content from leaking through a future sample choice, a story-phrase guard (e.g. "Shrinking ISR from", "REQUEST_TIMED_OUT") now fails if such text appears in any skill. Canary-tested.
+
+## 2026-10-10 — M3 — self-caught issues
+
+1. **Dead/odd code removed before testing:** an unused `at()` helper in `normalize.py`, a junk `__all__ = {}` in `parsing/dispatch.py`, and a stray `Level` import/export in `parsing/app_logs.py`.
+2. **Dedupe counting bug (found in review, before tests):** the first `dedupe.py` counted occurrences per command string, so re-running the *same* command would have been reported as duplicates. It now counts distinct line numbers per command: repeats inside one output count, reruns don't.
+3. **Mock bug (found by the new integration test):** perturbation knobs shuffled/duplicated lines *inside* structured outputs. The multi-line configmap JSON became invalid (7 config events missing, 2 malformed issues), and lag-table headers could move. Real tools never do this, so structured outputs (configmap, consumer-group tables, offsets) are now exempt. Test added.
+4. **Flaky test → mock determinism bug:** the full suite passed 2 of 3 runs. The noise seed stripped the `--save-dir` flag but not its path value, so every test's temp directory changed the "random" noise. Fixed (`argv_without_save_dir`); test added; 5/5 runs → `179 passed`.
+5. **Two wrong test assumptions (AI's tests, not code):**
+   - The lag test expected only samples {1,2,3}, but the `--all-groups` snapshot legitimately adds untimed rows (`None`).
+   - The "nothing invented" assertion was too strict: a truncated plain-text DB line still parses, since it can't reveal it was cut. The rule is now that an unknown event must be a prefix of a real line.
