@@ -314,3 +314,35 @@ Changed somethings to the design plan, Are you defiing what an error is w.r.t ea
 - **Files:** `docs/design/PROPOSAL_REV2_DRAFT.md` (new), `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`. Not committed by me: the user's own edit to `docs/design/PROPOSAL.md`.
 - **Commands run:** `git status`/`git diff` (no design edits at first); `git fetch` + `git log main..origin/main` (no remote commits); `git diff -- docs/design/` after the write rejection (showed the user's one-line edit).
 - **Tests:** none (design only).
+
+---
+
+## Entry 015 — 2026-10-10T17:53:33Z (10:53 PDT) — Milestone: M0 design Rev 2 decisions (M1 on hold)
+
+### Prompt (verbatim)
+
+````text
+Q1. Data quality issues dont need it.  D13 partner pricing upstream is kafaka events,  D14 yes. D15 only one way upstreama nd downstram. D16 yes, D17 for application logs keep it 1 min. D18 is fine. D19 yes app log is given as agents first message. Dont need to check for config change histroy
+````
+
+### Outcome
+
+- **Did:**
+  - Committed the user's own 10:48 edit to `PROPOSAL.md` separately (`d15deee`) so it stays in history.
+  - Merged the Rev 2 draft plus the user's decisions into `PROPOSAL.md`:
+    - Q1: data-quality issues dropped.
+    - D13: `partner-pricing` is a Kafka upstream app; scenario 1 reworked with a proposed topic `pricing.events`.
+    - D14: DB server config dropped.
+    - D15: exactly 1 hop each way.
+    - D16: access list.
+    - D17: 1-min thread window.
+    - D18: deterministic planner.
+    - D19: seed = agent's first message.
+    - D20: no config history; scenario 2 now uses `config.inconsistent`.
+    - Added risks R17 (getting the seed into the planner) and R18 (no change history).
+  - Rewrote `MILESTONES.md` to Rev 2 (M0–M14 with kickoff prompts).
+  - Deleted the now-merged draft file. Logged the decision diffs in AI_NOTES.
+  - No code changed; M1 stays on hold. Finished at 2026-10-10T17:55:27Z.
+- **Files:** `docs/design/PROPOSAL.md`, `docs/design/MILESTONES.md`, `docs/design/PROPOSAL_REV2_DRAFT.md` (deleted), `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** `git status`/`git diff --stat` (only the user's one-line edit present); `git commit` of the user's edit → `d15deee`; `git rm` of the draft.
+- **Tests:** none (design only).

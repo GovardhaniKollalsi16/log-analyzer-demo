@@ -66,3 +66,17 @@ A factual log of corrections, rejected suggestions, scope redirects, and mistake
   - Revised models, scenarios, SKILL outline, risks R12–R16, and milestones M2–M14.
   - New open decisions D13–D20 and Q1.
 - **Process note:** The user's message said "Changed somethings to the design plan", but no file changes existed on disk or on GitHub at first. While the AI was preparing the rewrite, the user edited `PROPOSAL.md` at 10:48 (removed "data-quality issues" from the bundle description). The AI's full-file write was rejected because the file had changed since it was read. Rather than overwrite a file the user was actively editing, Rev 2 went into a separate draft file. The user's edit was left uncommitted and untouched, and a snapshot was kept in the session scratchpad.
+
+## 2026-10-10 — M0 Rev 2 — User decisions that changed the AI's proposals
+
+User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is kafaka events,  D14 yes. D15 only one way upstreama nd downstram. D16 yes, D17 for application logs keep it 1 min. D18 is fine. D19 yes app log is given as agents first message. Dont need to check for config change histroy"
+
+| # | AI proposed | User decided | What changed |
+|---|---|---|---|
+| Q1 | Keep `parse_issues` + the `data_quality` factor | Not needed | Removed from the bundle and confidence factors. Parsers still skip malformed lines (engineering rule); the parser return value is kept for tests only |
+| D13 | `partner-pricing` = an external HTTP dependency seen only via app logs | It's an upstream **Kafka** producer | `partner-pricing` becomes an app with its own logs. Scenario 1 was reworked around a new topic `pricing.events` (the AI's proposal, not yet confirmed) |
+| D15 | 1 hop each way, configurable up to 2 | Only one hop up and down | Fixed at exactly 1, not configurable |
+| D17 | Segment ends at a different correlation ID or a gap > skew tolerance | 1-min window for app logs | A 1-min window. The AI kept "stops early at a different correlation ID" since it wasn't rejected; flagged to the user |
+| D19 | `--seed-file` or first message | First message | The seed is the agent's first message. The AI added R17 (how the seed reaches the planner without the LLM retyping it) |
+| D20 | `mocklogs config history` for `config.recent_change` | Not needed | Command and rule removed. Scenario 2 is rebuilt on `config.inconsistent`. Added R18 |
+| D14, D16, D18 | as proposed | Accepted | — |

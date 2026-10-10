@@ -1,170 +1,279 @@
-# Design Proposal (M0, awaiting approval)
+# Design Proposal: Revision 2 (seed-driven traversal)
 
-Status: **M0 approved and pushed 2026-10-10.** M1 implemented, awaiting review.
+Status: **Rev 2 merged 2026-10-10 with the user's decisions (PROMPT_LOG entries 014–015); awaiting the user's final approval.** M1 code is on hold until then, and needs the model changes in §3.1. Rev 1 is in git history (`git show d15deee:docs/design/PROPOSAL.md`, which includes the user's own Rev 1 edit).
+
+## 0. What changed from Rev 1
+
+| Area | Rev 1 | Rev 2 |
+|---|---|---|
+| Components | app logs, HTTP upstream dependency, Kafka, DB logs + DB server config | **app logs, app config, Kafka logs, DB logs** (D13, D14) |
+| Entry point | Fan out to every source | **One seed: an app error log line, given as the agent's first message** (D19) |
+| Order | app → upstream → Kafka → DB | **seed app log → its config → Kafka in/out → related apps (1 hop up, 1 hop down) → downstream DB** (D15) |
+| Linking keys | correlation/trace/message/request IDs | Same IDs **+ thread number within one app instance, 1-min window** (D17) |
+| "Error" | Generic: level ERROR/CRITICAL | **Defined per component** (§2) |
+| Next fetch decided by | The LLM | **Deterministic `investigator plan`** (D18) |
+| Data-quality issues in the bundle | Yes | **No** (Q1) |
+| Config change history | n/a | **Not used** (D20) |
 
 ## 1. Architecture & data flow
 
 ```
-                ┌──────────────── agent runtime (either) ────────────────┐
-                │ (1) Claude Code subagent   (2) Python tool-use loop    │
-                │     + SKILL.md                 + LLMProvider (real/fake)│
-                └───────┬──────────────────────────────┬─────────────────┘
-                        │ allowlisted commands only    │ submit_report(json)
-                        ▼                              ▼
-  mocklogs CLI (MOCK-labeled raw text)      report validator ──► report.json + report.md
-     kubectl logs │ upstream │ kafka-* │ psql         ▲ (citations must exist,
-                        │                           │  confidence ≤ cap)
-                        ▼                           │
-  investigator correlate (deterministic, no LLM) ───┘
-     adapters → parse/normalize → dedupe → correlate (ID graph)
-              → timeline (skew-tolerant) → detectors → analysis bundle (JSON)
+ agent's first message = seed app error log line (names the app)
+   │
+   ▼
+ ┌─────────────────────────── traversal (ordered) ───────────────────────────┐
+ │ 1. SEED APP LOGS: same correlation ID + the seed's thread segment         │
+ │ 2. SEED APP CONFIG (only if access): topics consumed/produced, consumer   │
+ │    group, downstream DB, timeouts/retries/pool sizes                      │
+ │ 3. KAFKA for those topics: consumer-group lag, producer/consumer logs,     │
+ │    messages with headers (correlation ID, producing app)                   │
+ │ 4. RELATED APP LOGS, exactly 1 hop: upstream producers of consumed topics  │
+ │    + downstream consumers of produced topics, filtered by the common ID,   │
+ │    extended by thread segment                                              │
+ │ 5. DOWNSTREAM DB LOGS (only if the config declares a DB)                   │
+ └───────────────────────────────────────────────────────────────────────────┘
+   each step: agent runs the allowlisted `mocklogs ...` → raw output saved
+              → `investigator plan` (deterministic) emits the next fetches
+   │
+   ▼
+ investigator correlate (deterministic, no LLM)
+   parse/normalize → classify per component (§2) → dedupe → link
+   (IDs + thread segments) → timeline (skew-tolerant) → detectors
+   → hypotheses + confidence cap → ANALYSIS BUNDLE (JSON)
+   │
+   ▼
+ LLM reasons over the bundle only ─► submit_report ─► validator
+   (event IDs must exist, confidence ≤ cap, 3 retries then INSUFFICIENT)
+   ─► report.json + report.md; transcript ─► runs/<ts>-<scenario>.jsonl
 ```
 
-1. The agent reads SKILL.md and follows its investigation order: app services → upstream → Kafka → DB. It can **only** run commands in the JSON allowlist.
-2. `mocklogs` prints synthetic raw logs shaped like real tools. Every output starts with a `MOCK` banner, and each record carries a source tag.
-3. `investigator correlate` turns raw outputs into one **analysis bundle** (JSON). The bundle holds normalized events with stable `event_id`s, correlation groups, an ordered timeline with uncertainty flags, detector findings, source coverage, and a **confidence cap**.
-4. The LLM reasons only over the bundle, then calls `submit_report`. The validator rejects unknown event IDs, a confidence above the deterministic cap, a root cause without evidence, and missing required sections. On rejection the agent gets the errors back and can retry (bounded).
-5. Every turn and tool call is appended to `runs/<ts>-<scenario>.jsonl`.
+**Traversal rules**
+- **Step 1, seed.** The seed line is the agent's first message (D19). The runtime saves it verbatim to the run's workdir as `seed.log`, and `investigator plan` parses it. The LLM doesn't extract fields from it. From the seed, the code gets the app, instance, thread, timestamp, correlation ID and error code. Fetch that app's logs around the seed time, filtered by correlation ID, plus the seed's thread segment (§1.1).
+- **Step 2, config.** Fetch the seed app's config. If access is denied, it's recorded as a coverage gap that lowers the confidence cap (D16), not a crash. The config yields the topology: consumed topics + group, produced topics, downstream DB(s), timeouts/retries/pool sizes. **No change history is used** (D20).
+- **Step 3, Kafka.** For each topic in the topology:
+  - consumer-group lag for the app's group;
+  - producer/consumer logs;
+  - messages with the seed's correlation ID, with headers.
+  Headers on consumed topics name the **upstream producing app**. Consumer groups (CLIENT-ID) on produced topics name the **downstream consuming apps**. Upstream relationships are Kafka-only (D13).
+- **Step 4, related apps.** Exactly one hop upstream and one hop downstream (D15). Fetch their logs filtered by the common identifier, then extend each hit by its thread segment. Their configs are not fetched.
+- **Step 5, DB.** Only if the seed app's config declares a downstream DB. Fetch DB logs in the incident window, filtered by the app's DB user / application name where present.
+- **Stop conditions:**
+  - no remaining planned fetches;
+  - every remaining target is access-denied;
+  - the turn budget is spent.
 
-**Key principle:** chronology, parsing, and correlation are deterministic and testable. The LLM's job is reduced to *choosing among and explaining* evidence-backed hypotheses, or declaring INSUFFICIENT.
+### 1.1 Thread segments
 
-## 2. Module structure
+Thread numbers are not global IDs: pools reuse threads, and two apps can both have `worker-7`. A thread link is only valid within **one app + one instance**.
+
+The segment around an ID-carrying line covers the same `(app, instance, thread)` lines **within 1 minute** (D17). It stops early if that thread starts logging a **different** correlation ID. This picks up the ID-less lines (retry attempts, stack traces, "giving up") of the same unit of work. Such links are labeled `THREAD_LOCAL` and are weaker than an exact-ID match.
+
+## 2. Error definitions per component
+
+Every parsed record is classified deterministically into one of:
+- **ERROR**: the component failed to do its job;
+- **SYMPTOM**: degraded, but not failed;
+- **CONTEXT**: normal activity useful for chronology;
+- **ANOMALY**: config only.
+
+Each non-CONTEXT record gets a stable `error_code`. The rules live in `investigator/classify/`, keyed on structure and patterns, **never on app/topic names**. Thresholds are configurable. The user reviews these tables in M4.
+
+### 2.1 Application logs
+| Class | Rule | Example `error_code`s |
+|---|---|---|
+| ERROR | level ERROR/FATAL; exception + stack trace not followed by a success for the same correlation ID; "retries exhausted"/"giving up"; outbound call or publish failure after the final attempt; timed out waiting for an expected Kafka event | `app.exception`, `app.retries_exhausted`, `app.publish_failed`, `app.event_wait_timeout`, `app.db_call_failed` |
+| SYMPTOM | WARN with an exception that later succeeds (transient); individual retry attempts; slow call (> 0.8 × configured timeout); circuit breaker open; thread-pool / queue saturation | `app.retry_attempt`, `app.slow_call`, `app.circuit_open`, `app.pool_saturated` |
+| CONTEXT | INFO/DEBUG request start/end, message received/processed, config loaded | — |
+| Not an error | Business rejections explicitly marked as handled (e.g. validation failures returned to the caller) | — |
+
+### 2.2 Application config (ANOMALY only; no change history, D20)
+| Rule | `error_code` |
+|---|---|
+| Internal inconsistency, e.g. `retries × request_timeout` > the consumer max poll interval; DB pool size < worker concurrency; DB statement timeout below normal query durations seen in DB logs | `config.inconsistent` |
+| Reference to a resource the traversal couldn't find (topic absent in Kafka, DB never seen in logs) | `config.dangling_reference` |
+| Missing/invalid required key (unparseable duration, negative size) | `config.invalid_value` |
+| Access denied | *(coverage gap, not an anomaly)* |
+
+### 2.3 Kafka logs
+| Sub-component | ERROR | SYMPTOM |
+|---|---|---|
+| Producer | delivery failed after retries; record expired / delivery timeout; send buffer exhausted; authorization failure | individual send retry; request latency above threshold; recovered metadata refresh failure |
+| Broker | request rejected for the topic; partition offline / no leader | ISR shrink; under-replicated partition; leader election |
+| Consumer | processing exception without commit; deserialization failure; commit failure; message sent to dead-letter topic; max poll interval exceeded / removed from group | rebalance; redelivery of the same offset |
+| Consumer-group lag | lag growing across ≥ N consecutive samples **and** above threshold; or a partition stuck at one committed offset | lag above threshold but not growing |
+
+### 2.4 DB logs
+| Class | Rule | Example `error_code`s |
+|---|---|---|
+| ERROR | severity ERROR/FATAL/PANIC; connection refused / too many connections; authentication failure; deadlock detected; statement cancelled by timeout; transaction aborted | `db.connection_refused`, `db.too_many_connections`, `db.deadlock`, `db.statement_timeout`, `db.auth_failed` |
+| SYMPTOM | slow query above threshold; lock wait above threshold; connection count near limit | `db.slow_query`, `db.lock_wait`, `db.connections_high` |
+| CONTEXT | connections received/authorized, checkpoints, routine statements | — |
+
+### 2.5 Malformed records (Q1)
+Data-quality issues are **not** part of the bundle and are not a confidence factor. The engineering rule still holds: parsers must not crash on malformed, duplicate, or out-of-order records. Malformed lines are skipped. The parser returns them only so tests can assert they were handled.
+
+## 3. Module structure
 
 ```
-pyproject.toml                 # (pending decision D9) console scripts: mocklogs, investigator
+pyproject.toml
 src/
   mocklogs/                    # MOCK data side. Analysis code must NEVER import this.
-    cli.py                     # kubectl / upstream / kafka-* / psql-style subcommands
-    scenarios/                 # parameterized generators (seed, service names, t0, skew, drop%, dup%, shuffle)
-    render.py                  # emits text in each tool's native-looking format + MOCK banner
+    cli.py                     # kubectl logs / kubectl get configmap / kafka-consumer-groups /
+                               # kafka-console-consumer / kafka logs / db logs
+    access.py                  # mock access list (D16)
+    scenarios/                 # seeded, parameterized generators
+    render.py                  # native-looking formats + MOCK banner
   investigator/
-    models.py                  # dataclasses (below)
-    adapters/                  # LogSource protocol; MockCliSource runs allowlisted argv via subprocess (no shell)
-    parsing/                   # one parser per format → RawRecord → Event; ParseIssue for malformed
-    normalize.py               # UTC timestamps, level mapping, ID extraction, stable event_id
+    models.py
+    adapters/                  # LogSource protocol; MockCliSource (allowlisted argv, no shell)
+    parsing/                   # one parser per format → Event (malformed lines skipped)
+    normalize.py               # UTC, levels, IDs, app/instance/thread, stable event_id
+    classify/                  # §2 rule tables: app.py, config.py, kafka.py, db.py
+    config_model.py            # configmap JSON → ConfigEntry, AppTopology
+    planner.py                 # seed + topology + fetched data → FetchPlan
     dedupe.py
-    correlation.py             # union-find over correlation_id / trace_id / message_id (+ request_id)
-    timeline.py                # per-source skew estimation, tolerance-based ordering, uncertainty flags
-    detectors/                 # one module per rule; generic over service *roles*, never names
-    analysis.py                # bundle assembly: coverage, candidate chains, confidence cap
-    allowlist.py               # parses the fenced JSON allowlist block out of SKILL.md (stdlib json)
-    agent/
-      provider.py              # LLMProvider protocol, AnthropicProvider (urllib), ScriptedFakeLLM
-      loop.py                  # tool-use loop, turn budget, transcript writer
-      tools.py                 # run_command (allowlisted), correlate, submit_report
-    narration.py               # bundle → compact prompt context (deterministic summarization)
-    report/
-      model.py  validate.py  render_md.py
-    cli.py                     # investigator correlate | run | validate | replay
+    correlation.py             # union-find over IDs + THREAD_LOCAL segments
+    timeline.py                # skew estimation, 60 s tolerance (D2), uncertainty flags
+    detectors/                 # cross-record patterns over classified events (never names)
+    analysis.py                # hypotheses, confidence factors + cap, coverage gaps, bundle
+    allowlist.py               # fenced JSON allowlist in SKILL.md
+    agent/  provider.py  loop.py  tools.py
+    narration.py
+    report/  model.py  validate.py  render_md.py
+    cli.py                     # investigator plan | correlate | run | validate | replay
 .claude/
   skills/incident-logs/SKILL.md
   agents/incident-investigator.md
-  hooks/allowlist_guard.py     # (pending D7) PreToolUse hook enforcing the JSON allowlist for the subagent
+  hooks/allowlist_guard.py
 tests/  unit/  integration/  robustness/
-runs/   docs/process/   docs/design/
 ```
 
-## 3. Data models (dataclasses, sketch)
+### 3.1 Data models (★ = change from M1 code, applied once Rev 2 is approved)
 
-- `RawRecord(source, command, line_no, text)`: provenance of every raw line.
-- `ParseIssue(source, line_no, kind: malformed|bad_timestamp|unknown_format, text)`
-- `Event`: `event_id` (stable hash of source + raw text + occurrence index, e.g. `ev-7f3a9c`), `source` (app|upstream|kafka|db), `role`, `service`, `component`, `ts_raw`, `ts_utc`, `level`, `message`, `ids: Ids(correlation_id, trace_id, message_id, request_id)`, `attrs: dict`, `raw_refs: list[RawRecord]`, `duplicate_count`.
-- `CorrelationGroup(group_id, ids: set, event_ids, link_kinds)`: links are `exact_id` or `weak_temporal` (only when no ID exists, always labeled).
-- `TimelineEntry(event_id, adjusted_ts, skew_applied_ms, order_uncertain: bool, concurrent_with: list)`
-- `SkewEstimate(source, offset_ms, basis: causal_pairs|none, samples)`
-- `Finding(finding_id, detector, kind, event_ids, summary, attrs)`, e.g. `upstream_timeout`, `retry_amplification`, `kafka_produce_failure`, `consumer_lag_growth`, `consumer_processing_error`, `db_config_anomaly`, `db_error_burst`, `first_error_per_service`.
-- `Hypothesis(hyp_id, cause_finding_ids, effect_finding_ids, precedence_ok, id_linked)`: candidates only, unranked by "truth".
-- `ConfidenceFactors(id_linkage, source_coverage, temporal_precedence, competing_hypotheses, data_quality)`, each categorical. `confidence_cap: HIGH|MEDIUM|LOW|INSUFFICIENT` is computed from these.
-- `AnalysisBundle(bundle_id, sources_queried, coverage_gaps, events, groups, timeline, findings, hypotheses, parse_issues, confidence_cap, factors)`
-- `IncidentReport`: `summary`, `correlation_id | None`, `timeline[{event_id, ts, note}]`, `root_cause: {statement, event_ids} | "unknown"`, `evidence[{event_id, why}]`, `downstream_symptoms[{statement, event_ids}]`, `alternative_hypotheses[{statement, why_rejected_or_open, event_ids}]`, `confidence: {level, factors{name: value+reason}}`, `next_steps[]`.
+- ★ `Source`: `APP`, `APP_CONFIG`, `KAFKA`, `DB` (`UPSTREAM` removed).
+- ★ `Severity`: `ERROR | SYMPTOM | CONTEXT | ANOMALY`, separate from the log's `Level`.
+- `RawRecord`, `Ids(correlation_id, trace_id, message_id, request_id)`: unchanged.
+- ★ `ParseIssue`: kept only as a parser return value for tests; **not** in the bundle (Q1).
+- `Event`: ★ plus `app`, `instance`, `thread`, `severity`, `error_code`, `kafka: Optional[KafkaRef(topic, partition, offset, group, client_id, producer_app)]`.
+- ★ `Seed(event_id, app, instance, thread, ts_utc, correlation_id, error_code)`
+- ★ `ConfigEntry(app, key, value, raw_ref)` (no change history, D20)
+- ★ `AppTopology(app, consumes: [(topic, group)], produces: [topic], databases: [name], limits: {key: value})`
+- ★ `FetchStep(order, component, target, argv, reason, direction: seed|upstream|downstream)`, `FetchPlan(steps, done, stop_reason)`
+- ★ `CoverageGap(component, target, reason: access_denied | not_found | empty)`
+- ★ `LinkKind` gains `THREAD_LOCAL`.
+- `CorrelationGroup`, `TimelineEntry`, `SkewEstimate`, `Finding`, `Hypothesis`, `ConfidenceFactor`: unchanged.
+- `AnalysisBundle`: ★ plus `seed`, `topology`, `coverage_gaps`, `traversal`; ★ **minus `parse_issues`** (Q1).
+- `IncidentReport` (M9): unchanged sections; timeline/evidence rows also show `app/instance/thread`.
 
-## 4. Scenarios (data side only)
+**Confidence factors (★):**
+- `id_linkage`: exact vs thread-local vs weak;
+- `traversal_coverage`: steps completed vs denied/missing;
+- `temporal_precedence`;
+- `competing_hypotheses`.
 
-Generic names (proposal): `edge-gateway`, `order-api`, `fulfillment-worker`, `notification-worker`, upstream `partner-pricing` (fictional), topic `orders.events`, group `fulfillment-consumers`, DB `appdb`.
+`data_quality` is removed (Q1).
 
-1. **upstream-timeout:** upstream latency → `order-api` timeouts → retries with backoff → producer request backlog → Kafka `TimeoutException`/delivery failures.
-2. **db-config:** a config change (e.g. `max_connections` / pool size lowered, or `statement_timeout` too low) visible in the config dump → connection refusals / cancelled statements.
-3. **consumer-lag:** a poison message causes repeated consumer processing failures → lag grows on one partition → downstream symptoms (stale status, missing notifications).
-4. **ambiguous:** overlapping minor errors across sources, missing IDs, one source partially unavailable → expected conclusion INSUFFICIENT.
+## 4. Scenarios (seed-driven)
 
-Each generator takes knobs: `seed`, `service_names` map, `t0`, `per_source_skew_ms`, `drop_rate`, `dup_rate`, `shuffle`, `malformed_rate`.
+Generic names (D6): `edge-gateway`, `order-api`, `fulfillment-worker`, `notification-worker`, `partner-pricing` (★ now an upstream **app** that publishes to Kafka, D13), topic `orders.events`, group `fulfillment-consumers`, DB `appdb`. ★ Scenario 1 also needs an upstream topic; proposed: `pricing.events`.
+
+| # | Seed (agent's first message) | What the traversal should surface (generator ground truth; never visible to `investigator`) |
+|---|---|---|
+| 1 upstream-timeout | `order-api` ERROR: timed out waiting for the pricing event for an order | Config: `order-api` consumes `pricing.events`. Headers lead upstream to `partner-pricing`, whose logs (same correlation ID + thread segment) show Kafka producer timeouts and retries. Producer delivery failures on `pricing.events`. Downstream: `fulfillment-worker` never receives the order on `orders.events` |
+| 2 db-config | `fulfillment-worker` ERROR: DB call failed | Config: DB statement timeout far below normal query durations / pool size below worker concurrency (`config.inconsistent`). DB logs show statement timeouts / too many connections from that app |
+| 3 consumer-lag | `notification-worker` ERROR: entity not found (a downstream symptom) | Upstream via headers to `fulfillment-worker`: repeated processing failures on one offset (poison message), lag growing on one partition |
+| 4 ambiguous | an ERROR with **no correlation ID** | Config access denied; scattered SYMPTOMs; no ID chain → **INSUFFICIENT** |
+
+Knobs (D8): `seed`, `service_names` (apps, topics, groups, threads, instances), `t0`, `per_source_skew_ms`, `drop_rate`, `dup_rate`, `shuffle`, `malformed_rate`, `access_denied`.
 
 ## 5. SKILL.md outline
 
-1. Purpose & hard rules: never parse raw logs yourself; always run `investigator correlate`; cite event IDs only from the bundle; INSUFFICIENT is a valid and expected answer.
-2. Source → CLI map (which tool for which source).
-3. Exact command syntax per source, e.g.
-   `mocklogs kubectl logs deploy/<svc> -n <ns> --since=<dur> --timestamps`,
-   `mocklogs upstream access-log --dependency <name> --since=<dur>`,
-   `mocklogs kafka-consumer-groups --describe --group <g>`,
-   `mocklogs kafka logs --component producer|broker|consumer --since=<dur>`,
-   `mocklogs psql -c "SHOW ALL"` / `mocklogs db logs --since=<dur>`,
-   `investigator correlate --inputs <dir> --skew-tolerance-ms <n> --json`
-4. Output format per source, with a short annotated sample of each including the MOCK banner.
-5. Investigation order and stop conditions.
-6. How to read the analysis bundle (findings, hypotheses, confidence cap).
-7. Report contract: required sections, citation rules, confidence must be ≤ cap.
-8. **Allowlist (machine-readable):**
-   ```json
-   {"allow": [
-     {"tool": "mocklogs", "subcommand": ["kubectl", "logs"],
-      "flags": ["-n", "--since", "--timestamps", "--tail"]}
-   ]}
-   ```
-   One entry per command shape; anything else is rejected. (JSON rather than TOML: D1, Python 3.9 has no stdlib TOML reader.)
+1. Purpose & hard rules:
+   - the first message is the seed;
+   - never parse raw logs or config yourself;
+   - follow `investigator plan`, and skip a step only with a stated reason;
+   - cite bundle event IDs only;
+   - INSUFFICIENT is a valid answer.
+2. Traversal order (§1), the 1-hop limit, and stop conditions.
+3. Component → command map (exact syntax):
+   - app logs: `mocklogs kubectl logs deploy/<app> -n <ns> --since=<dur> --timestamps [--grep <id>] [--thread <t> --instance <pod>]`
+   - app config: `mocklogs kubectl get configmap <app>-config -n <ns> -o json`
+   - Kafka:
+     - `mocklogs kafka-consumer-groups --describe --group <g>`
+     - `mocklogs kafka-console-consumer --topic <t> --grep <id> --property print.headers=true`
+     - `mocklogs kafka logs --component producer|broker|consumer --topic <t> --since=<dur>`
+   - DB logs: `mocklogs db logs --db <name> --since=<dur> [--grep <app>]`
+   - deterministic: `investigator plan --workdir <dir>`, `investigator correlate --workdir <dir> --json`
+4. Output format per command, with annotated samples (MOCK banner, ACCESS DENIED message).
+5. What counts as an error per component: a pointer to §2. The code classifies; the agent doesn't.
+6. Reading the bundle: seed, traversal, coverage gaps, findings, hypotheses, cap.
+7. Report contract: required sections, citations, confidence ≤ cap.
+8. Allowlist: fenced JSON (D1), one entry per command shape above.
 
 ## 6. Technical risks & assumptions
 
 | # | Risk / assumption | Mitigation |
 |---|---|---|
-| R1 | Python 3.9.6 is the target (D1 resolved: stay on 3.9). Python 3.9 no longer gets updates, and some newer syntax is unavailable. | Allowlist is JSON (stdlib `json`). 3.9 compatibility rules are in CLAUDE.md. pytest still has to be installed (M1). |
-| R2 | Subagent frontmatter `skills:` field support and exact syntax depend on the Claude Code version. | Verify against current docs in that milestone and record the result in AI_NOTES. |
-| R3 | A subagent's Bash tool can't natively enforce a JSON allowlist. | PreToolUse hook script that parses the same JSON block (D7). |
-| R4 | Subagent transcripts live in `~/.claude/projects/...`, not `runs/`. | SubagentStop hook copies or converts them into `runs/`. Verify feasibility early. |
-| R5 | "Never hardcode root cause" can leak through scenario-specific detectors or names. | Detectors keyed on roles/patterns. A test asserts `investigator` never imports `mocklogs` and contains no scenario or service names. Robustness tests rename everything. |
-| R6 | Skew estimation from causal pairs can be wrong when there are few pairs. | Fall back to no correction plus wider uncertainty flags. Never reorder beyond tolerance. Mark `order_uncertain`. |
-| R6b | With a 60 s tolerance (D2), cross-source events less than 1 min apart and with no shared ID are `order_uncertain`. Short incidents could then lose clear temporal precedence, which lowers the confidence cap. Also, a Kafka *delivery delay* (event consumed about 1 min after it was produced) is a different thing from *clock skew* (hosts disagreeing on the time). | Within one ID chain, causal order (produce → broker → consume) wins over timestamps, so ordering there stays exact regardless of tolerance. The bundle reports how many events were order-uncertain so tuning is evidence-based. Lag/delay is a measured detector signal, not absorbed into skew. |
-| R7 | The LLM may still overclaim. | The validator enforces citations, confidence ≤ cap, and that the root cause cites ≥1 finding-backed event. Bounded retries (3, D12), then fail closed to INSUFFICIENT. |
-| R8 | The HTTP client is stdlib `urllib` (no SDK). | Small provider and a mocked-transport test. The real API is used only in manual runs. |
-| R9 | Real-API runs are nondeterministic, so they aren't in CI. | Tests use ScriptedFakeLLM. Real runs are saved to `runs/`. |
-| R10 | Synthetic data accidentally resembling the employer's system. | Generic vocabulary only. The user reviews scenario names and log shapes in M2. |
-| R11 | System pip is 21.2.4 and setuptools 58.0.4. An editable install from a pyproject-only project (`pip install -e .`, PEP 660) needs pip ≥ 21.3 and setuptools ≥ 64, so it would fail on the system Python as-is. | Proposed: a project-local `.venv` (`python3 -m venv .venv`), with pip, setuptools and pytest upgraded/installed inside it only. The system Python is untouched and `.venv/` is gitignored. **Resolved 2026-10-10:** user approved, and `.venv` was created (pip 26.0.1, setuptools 82.0.1, pytest 8.4.2 on Python 3.9.6). |
+| R1 | Python 3.9 target (D1). | JSON allowlist; 3.9 rules in CLAUDE.md; `.venv` (R11, resolved). |
+| R2 | Subagent frontmatter `skills:` syntax depends on the Claude Code version. | Verify against current docs in M13. |
+| R3 | The subagent's Bash tool can't enforce the allowlist by itself. | PreToolUse hook (D7). |
+| R4 | Subagent transcripts live outside `runs/`. | SubagentStop hook copies them; verify early. |
+| R5 | Root cause leaking into analysis code. | Boundary test (M1); rules on structure, not names; robustness renames incl. threads/instances. |
+| R6/R6b | Skew estimation; a 60 s tolerance blurs cross-source order; delivery delay ≠ skew. | Causal order inside ID chains wins; order-uncertain count reported; lag is its own signal. |
+| R7 | LLM overclaiming. | Validator + cap + 3 retries (D12). |
+| R8–R10 | urllib provider; nondeterministic real runs; synthetic data resembling the employer's. | Mocked-transport tests; fake LLM in tests; generic names + user review in M2. |
+| R12 | Thread reuse creates false links. | App+instance scope, 1-min window, stop at a different correlation ID, `THREAD_LOCAL` label; a test interleaves two requests on one thread. |
+| R13 | Real Kafka doesn't list a topic's producers. | Message headers carry the producing app + correlation ID. A missing header becomes a coverage gap, never a guess. |
+| R14 | Traversal fan-out. | Exactly 1 hop each way (D15); dedupe fetch targets; turn budget. |
+| R15 | Error rules are judgment calls. | One table per component, unit-tested, configurable thresholds, user review in M4. |
+| R16 | Seed without a correlation ID. | Thread segment + time window only; links labeled weak; cap ≤ LOW. |
+| ★ R17 | The seed reaches the planner as text. In the subagent path it must get from the chat into `seed.log` without the LLM re-typing or parsing it. | Python loop: the runtime writes `seed.log`. Subagent: an allowlisted `investigator seed --workdir <dir>` reading stdin, or the user passes it as a file. Decide in M10/M13. |
+| ★ R18 | Without change history, a "bad config" can only be found from inconsistencies against observed behavior, not from when it changed. | Accepted (D20). Scenario 2 is built on `config.inconsistent`. |
 
-Assumptions: all timestamps are normalized to UTC; a single host runs everything; scenario data is generated (not hand-written) so knobs can perturb it; event IDs are stable across re-runs of the same input.
+## 7. Milestone plan
 
-## 7. Milestone plan (each ends with tests run + stop for review)
+Detailed, editable version with kickoff prompts: `docs/design/MILESTONES.md`.
 
-Detailed, user-editable version with kickoff prompts: `docs/design/MILESTONES.md`.
-
-| M | Scope | Done when |
-|---|---|---|
-| M0 | Process docs, CLAUDE.md, this proposal | User approves |
-| M1 | Skeleton: pyproject, packages, `models.py`, pytest wiring, import-boundary test | `pytest` green (real output pasted). **Implemented 2026-10-10, awaiting review** |
-| M2 | `mocklogs` + scenario 1 generator, all four source formats, MOCK banners | Golden-output tests; user reviews log shapes |
-| M3 | Parsers + normalization + malformed handling + dedupe | Unit tests incl. malformed/duplicate fixtures |
-| M4 | Correlation (ID graph) + timeline with skew tolerance | Tests: shuffle, skew injection, missing IDs |
-| M5 | Detectors + `investigator correlate` CLI → bundle JSON | Scenario 1 bundle snapshot test |
-| M6 | Scenarios 2–4 + robustness harness (rename/shift/shuffle/drop) | Robustness suite green for all 4 |
-| M7 | Report model, validator (citations, cap), Markdown renderer | Validator rejection tests |
-| M8 | SKILL.md + JSON allowlist + `allowlist.py` | Allowlist parse/enforce tests; SKILL_CHANGELOG entry |
-| M9 | Provider interface, ScriptedFakeLLM, tool loop, transcript writer | End-to-end fake-LLM tests for all 4 scenarios |
-| M10 | Anthropic provider (env-var key), offline mode | Mock-transport test; one real run saved to `runs/` |
-| M11 | Claude Code subagent + allowlist hook + transcript capture | Real subagent run per scenario saved; changelog entries |
-| M12 | README + demo script | Clean-checkout walkthrough |
+| M | Scope |
+|---|---|
+| M0 ✅ | Process + design Rev 1; Rev 2 merged, awaiting final approval |
+| M1 🟡 | Skeleton + models; **update to §3.1 after Rev 2 approval** |
+| M2 | `mocklogs`: 4 components, access control, scenario 1 |
+| M3 | Parsing + normalization (incl. app/instance/thread) + dedupe |
+| M4 | Per-component error classification (§2); user reviews the rule tables |
+| M5 | Config → topology + `investigator plan` |
+| M6 | Correlation (IDs + thread segments) + timeline |
+| M7 | Detectors + `investigator correlate` → bundle |
+| M8 | Scenarios 2–4 + robustness matrix |
+| M9 | Report model + validator + Markdown |
+| M10 | SKILL.md + JSON allowlist + command runner |
+| M11 | Provider interface, fake LLM, tool loop, transcripts |
+| M12 | Anthropic provider + replay (needs API key) |
+| M13 | Claude Code subagent + hook + transcript capture |
+| M14 | README + demo |
 
 ## 8. Decisions
 
 | # | Decision | Status |
 |---|---|---|
-| D1 | Python version | **Resolved 2026-10-10:** stay on Python 3.9; the allowlist is JSON instead of TOML (user: "follow option 2 dont need to complciate it") |
-| D2 | Default clock-skew tolerance | **Resolved 2026-10-10:** 60 000 ms (1 min), configurable via `--skew-tolerance-ms`; to be tuned later. Rationale (user): Kafka events have been seen reflected about 1 min late |
-| D3 | Offline demo mode | **Resolved 2026-10-10:** replay recorded transcripts from `runs/`; the scripted fake LLM is test-only |
-| D4 | Report output | **Resolved 2026-10-10:** JSON is the validated source of truth; Markdown is rendered from it |
-| D5 | Mock log formats | **Resolved 2026-10-10:** JSON lines for app services; native-tool-style text for upstream/Kafka/DB |
-| D6 | Generic names | **Resolved 2026-10-10:** `order-api`, `fulfillment-worker`, `notification-worker`, `edge-gateway`, upstream `partner-pricing`, topic `orders.events`, group `fulfillment-consumers`, DB `appdb` |
-| D7 | Subagent allowlist enforcement | **Resolved 2026-10-10:** PreToolUse hook checks each Bash command against the same JSON allowlist |
-| D8 | Scenario data | **Resolved 2026-10-10:** seeded generators with knobs (rename, time shift, drop, shuffle, …); snapshot outputs checked in |
-| D9 | Packaging | **Resolved 2026-10-10:** `pyproject.toml`, setuptools as build backend only; console scripts `mocklogs`, `investigator` (see R11) |
-| D10 | Default model / API key env var | **Resolved 2026-10-10:** `claude-sonnet-5-5`; key read only from `ANTHROPIC_API_KEY`. The user has no key yet and will provide one later. Only the real-API runs in M10 need it; tests use the scripted fake LLM, and the M11 Claude Code subagent runs inside Claude Code |
-| D11 | Push cadence | **Resolved 2026-10-10:** push to GitHub after each approved milestone |
-| D12 | Validator retry limit | **Resolved 2026-10-10:** 3 retries, then fail closed to INSUFFICIENT; to be tuned from run data |
+| D1 | Python version | Resolved: 3.9; JSON allowlist |
+| D2 | Skew tolerance | Resolved: 60 000 ms, configurable, tune later |
+| D3 | Offline demo | Resolved: replay transcripts from `runs/` |
+| D4 | Report output | Resolved: JSON → Markdown |
+| D5 | Mock formats | Resolved, ★ amended: app logs JSON lines incl. `instance`, `thread`; Kafka/DB native-style text; app config as `kubectl get configmap -o json` |
+| D6 | Generic names | Resolved (§4), ★ plus `pricing.events` (proposed) |
+| D7 | Subagent allowlist enforcement | Resolved: PreToolUse hook |
+| D8 | Scenario data | Resolved: seeded generators + knobs + snapshots |
+| D9 | Packaging | Resolved: pyproject + setuptools backend |
+| D10 | Model / key | Resolved: `claude-sonnet-5-5`, `ANTHROPIC_API_KEY` (key later) |
+| D11 | Push cadence | Resolved: after each approved milestone |
+| D12 | Validator retries | Resolved: 3, then INSUFFICIENT |
+| Q1 | Data-quality issues | ★ Resolved: not needed. Removed from the bundle and confidence factors; parsers still skip malformed lines safely |
+| D13 | `partner-pricing` | ★ Resolved: an upstream app that publishes to Kafka; no HTTP upstream source |
+| D14 | DB server config | ★ Resolved: dropped; DB settings come from the app config |
+| D15 | Traversal depth | ★ Resolved: exactly one hop upstream and one hop downstream |
+| D16 | Access model | ★ Resolved: mock access list; denied → coverage gap → lower cap |
+| D17 | Thread segment | ★ Resolved: 1-minute window for app logs (stops early at a different correlation ID) |
+| D18 | Traversal planning | ★ Resolved: deterministic `investigator plan` |
+| D19 | Seed input | ★ Resolved: the app log line is the agent's first message |
+| D20 | Config change history | ★ Resolved: not used |
