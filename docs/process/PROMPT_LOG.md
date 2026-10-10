@@ -696,3 +696,39 @@ realistic, go ahead with snapshot tests and push
   - `.venv/bin/pytest` → `112 passed in 0.26s`
   - `git push` → see the next commit's push output (recorded in the chat reply)
   - Push result: `git push` → `ee5cf40..f4b4d79  main -> main`
+
+---
+
+## Entry 029 — 2026-10-10T19:50:34Z (12:50 PDT) — Milestone: M2 (real skill samples + exit 5; close-out)
+
+### Prompt (verbatim)
+
+````text
+Real samples in the skills: swap the illustrative examples for real mocklogs output, generated from a neutral fixture so no scenario names appear, and add what to do on exit 5 (not found or unreachable).
+
+Okay 
+
+1. Your correlation-key list: the table currently has `Order*` → `order_id` and `Product*` → `product_id`. Send the rest whenever you have it.
+
+
+
+For demo this is fine
+````
+
+### Outcome
+
+- **Did:**
+  - Added `src/mocklogs/skill_samples.py`, which renders real `mocklogs` output from a neutral fixture (all names `example-*`, benign lines and refusals only) into marker-delimited blocks in the skills (`--write` / `--check`).
+  - Replaced every illustrative sample in the four component skills with real output, and added exit-5 handling (`not_found`; no retry, no other values) to each, plus to coordinator rule 8.
+  - Recorded D25b (the correlation-key table is final for the demo).
+  - Added 10 tests: samples in sync and each used once; no story phrases; exit codes 3/4/5 documented.
+  - Gitignored `.DS_Store`. M2 scope complete; not pushed, awaiting M2 approval (D11). Finished at 2026-10-10T19:52:39Z.
+- **Files:**
+  - Code: `src/mocklogs/skill_samples.py` (new)
+  - Skills: `.claude/skills/{incident-logs,incident-app-logs,incident-app-config,incident-kafka,incident-db-logs}/SKILL.md`
+  - Tests: `tests/unit/_vocabulary.py`, `tests/unit/test_skill_neutrality.py`
+  - Other: `.gitignore`, `docs/design/{PROPOSAL,MILESTONES}.md`, `docs/process/{SKILL_CHANGELOG,AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - `python -m mocklogs.skill_samples --write` → 4 skills updated, but `grep -c PENDING` still 2–3 per file (regex bug). After the fix and a re-run → 0; `--check` → exit 0.
+  - `.venv/bin/pytest` → `122 passed in 0.30s`
+  - Canary: appended "Shrinking ISR from 1,2,3" to the Kafka skill and hand-edited a DB sample → `2 failed, 25 passed` (story-phrase and sync tests). Restored → `122 passed in 0.31s`

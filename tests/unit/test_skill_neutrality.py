@@ -67,3 +67,34 @@ def test_coordinator_correlation_key_table_is_machine_readable():
     assert by_prefix["Product"]["key"] == "product_id"
     for r in rules:
         assert set(r["stored_as"]) == {"app_logs", "kafka", "db"}
+
+
+@pytest.mark.parametrize("name", EXPECTED_SKILLS)
+def test_skill_never_contains_scenario_story_lines(name):
+    from _vocabulary import SCENARIO_STORY_PHRASES
+    text = (SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8")
+    found = [p for p in SCENARIO_STORY_PHRASES if p in text]
+    assert not found, f"{name}/SKILL.md contains scenario story text: {found}"
+
+
+def test_skill_samples_are_real_and_current():
+    """Samples must be exactly what mocklogs prints for the neutral fixture."""
+    from mocklogs import skill_samples
+    samples = skill_samples.generate()
+    used = []
+    for name in EXPECTED_SKILLS:
+        path = SKILLS_DIR / name / "SKILL.md"
+        text = path.read_text(encoding="utf-8")
+        used += skill_samples.used_keys(text)
+        assert skill_samples.apply(text, samples) == text, (
+            f"{name}/SKILL.md samples are stale; run: python -m mocklogs.skill_samples --write")
+    assert sorted(used) == sorted(samples), "every generated sample is used exactly once"
+    assert "PENDING" not in "".join((SKILLS_DIR / n / "SKILL.md").read_text() for n in EXPECTED_SKILLS)
+
+
+@pytest.mark.parametrize("name", EXPECTED_SKILLS[1:])
+def test_component_skills_document_exit_codes_3_4_5(name):
+    text = (SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8")
+    for code in ("exit code **3**", "exit code **4**", "exit code **5**"):
+        assert code in text, f"{name} doesn't document {code}"
+    assert "`not_found`" in text

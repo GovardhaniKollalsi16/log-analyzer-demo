@@ -205,3 +205,10 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - "correlation id in app should/will match" means one correlation ID per order within a service. The mock already did this; it's now pinned by a test.
 - **Changed:** mock seed app `order-api` → `order-service` (classes `orders.Order*`); upstream `partner-pricing` → `product-service` (classes `products.ProductPrice*`); coordinator skill domain note; D25a; vocabulary guard updated; new test → `90 passed`.
 - **Still ambiguous, asked again:** the user's "Yes" didn't say which of the two questions it answered (realistic formats vs. resembling the employer's systems). Until it's answered, nothing gets pushed.
+
+## 2026-10-10 — M2 close-out — self-caught: sample regex missed indented blocks
+
+- **Detected:** After the first `python -m mocklogs.skill_samples --write`, `grep -c PENDING` still found placeholders (2–3 per component skill). The marker regex only matched unindented blocks; the refusal samples sit inside list items and are indented.
+- **Fixed:** The regex now captures the indentation and re-indents the generated body. Second `--write` → 0 placeholders; `--check` → exit 0.
+- **Also:** a stray `tests/.DS_Store` (macOS metadata) appeared untracked. It was deleted and `.DS_Store` gitignored.
+- **AI design note:** samples come from the scenario 1 world with every name overridden. To stop real scenario content from leaking through a future sample choice, a story-phrase guard (e.g. "Shrinking ISR from", "REQUEST_TIMED_OUT") now fails if such text appears in any skill. Canary-tested.

@@ -7,7 +7,7 @@ description: Coordinator for investigating a distributed-system incident. The in
 
 > **v0.3 (M2).** The per-component details (logging in, required inputs, searching by time, cluster and topic, what to look for) live in **separate component skills**. This file holds the rules, the incident format, **which ID correlates across services**, the order, and which skill to use when.
 > Coming next: **v1 (M5)** adds the full traversal procedure with `investigator plan`. **v2 (M10)** adds the report contract and links each component skill's allowlist. Safeguards and rate limiting will be added later by the user.
-> All example names and values in these skills (`example-app`, `example-cluster`, `example.in`, …) are deliberately neutral and match no scenario.
+> All example names and values in these skills (`example-app`, `example-cluster`, `example.in`, …) are deliberately neutral and match no scenario. Component-skill samples are real `mocklogs` output from a neutral fixture.
 
 ## 1. Hard rules (apply to every component skill)
 
@@ -18,7 +18,7 @@ description: Coordinator for investigating a distributed-system incident. The in
 5. **Only run commands documented in a component skill, exactly as shown.** No pipes, redirects, `;`, `&&`, subshells or other tools.
 6. **Always pass `--save-dir <workdir>`.** Output that isn't saved can't be used as evidence.
 7. **You never log in.** Every component uses the **user's SSO session**. On an SSO error, stop and ask the user to run `mocklogs sso login`, then retry that command **once**. If the user declines or it still fails, record `auth_required` and continue.
-8. **Refusals are findings.** `Forbidden` → record `access_denied`, don't retry, continue.
+8. **Refusals are findings.** Exit **4** (`Forbidden`) → record `access_denied`. Exit **5** (not found or unreachable: wrong or stale cluster, namespace, app, topic, group, host or database) → record `not_found` naming the input. In both cases don't retry, don't try other values, and continue.
 9. **Don't look for or use the scenario name.** It's deliberately hidden, because it would give away the answer.
 10. **A `correlation_id` only works inside one app.** Every service and sub-service has its own correlation IDs. To follow a request **across** services, use the **business key** from §3, never a correlation ID.
 11. **"Insufficient evidence" is a valid conclusion.** Prefer it to a guess. Missing inputs, missing access and missing auth all reduce what you may conclude; say which ones applied.

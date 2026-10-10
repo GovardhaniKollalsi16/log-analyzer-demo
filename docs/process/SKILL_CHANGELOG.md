@@ -62,3 +62,12 @@ Format:
 - **Reason:** User: "For All product based inpusts comes from Product Service and Orders come from OrderService and it has logs of the whichbwill have the order_id and the the correlation id in app should/will match it"
 - **Triggering run transcript:** none (no agent runs yet).
 - **Change:** Coordinator §3 gains "Where the keys come from": the OrderService logs `order_id`, the ProductService logs `product_id`, each with its own correlation ID that's consistent within the service. Search by the business key first, then by the correlation ID found. The key table is unchanged.
+
+## 2026-10-10 — component skills — real neutral samples + exit-5 handling (M2 close-out)
+- **Reason:** User: "Real samples in the skills: swap the illustrative examples for real mocklogs output, generated from a neutral fixture so no scenario names appear, and add what to do on exit 5 (not found or unreachable)." / "Okay"
+- **Triggering run transcript:** none (no agent runs yet).
+- **Change:**
+  - Every sample block in the four component skills is now real `mocklogs` output (command, banner, output, exit code), rendered by `python -m mocklogs.skill_samples --write` from a neutral fixture: all names `example-*`, benign lines only (health check, healthy lag, routine broker/DB activity) plus the refusals.
+  - Blocks are delimited by `<!-- mocklogs-sample: <key> -->` markers.
+  - Each component skill documents exit **5** (not found / unreachable → `not_found`; don't retry, don't try other values). Coordinator rule 8 covers exit codes 4 and 5.
+  - New tests: samples must equal the generator's output, every sample is used exactly once, no scenario story phrases appear in any skill, and exit codes 3/4/5 are documented.
