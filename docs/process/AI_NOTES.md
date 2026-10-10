@@ -41,3 +41,7 @@ A factual log of corrections, rejected suggestions, scope redirects, and mistake
 ## 2026-10-10 — M0 — self-caught: table ordering slip
 
 - **Detected:** R11 was first inserted before R7 in the PROPOSAL.md risk table by a string-insert script. It was moved after R10 before committing.
+
+## 2026-10-10 — M0 — self-caught: wrong commit count
+
+- **Detected:** The AI told the user there were "12 local commits" to push. A `git log --oneline | wc -l` run afterwards showed 11 before entry 010's commit (12 including it). The count had been stated without checking. It was corrected in the next reply.
