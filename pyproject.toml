@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "incident-investigator-demo"
+version = "0.1.0"
+description = "Demo: AI-assisted incident investigation over synthetic (MOCK) distributed-system logs"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+# Console scripts (mocklogs, investigator) are added in the milestones that
+# implement those CLIs (M2, M5), so the entry points never reference missing code.
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
