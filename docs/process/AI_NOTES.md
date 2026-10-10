@@ -92,3 +92,9 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - the session marker never appears in outputs or transcripts.
   M2 and M10 scope were updated in MILESTONES.md.
 - **AI's own call, flagged to the user:** SSO is applied to Kafka only, as stated. The AI asked whether app logs, config and DB logs should also require it.
+
+## 2026-10-10 — M0 Rev 2 — SSO scope widened to all components
+
+- **AI asked:** whether SSO should apply only to Kafka (as first stated) or also to app logs, config and DB logs.
+- **User:** "Yes" (to the SSO question).
+- **Changed:** D21 and §1.2 now cover every `mocklogs` fetch command. The SKILL outline and M2 scope were updated to match.

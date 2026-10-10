@@ -55,7 +55,7 @@ Status: **Rev 2 merged 2026-10-10 with the user's decisions and confirmations (P
   - producer/consumer logs;
   - messages with the seed's correlation ID, with headers.
   Headers on consumed topics name the **upstream producing app**. Consumer groups (CLIENT-ID) on produced topics name the **downstream consuming apps**. Upstream relationships are Kafka-only (D13).
-  **Authentication (D21): Kafka commands run under the user's own SSO session.** There are no agent credentials. See §1.2.
+  **Authentication (D21):** every fetch (app logs, config, Kafka, DB logs) runs under the user's own SSO session. There are no agent credentials. See §1.2.
 - **Step 4, related apps.** Exactly one hop upstream and one hop downstream (D15). Fetch their logs filtered by the common identifier, then extend each hit by its thread segment. Their configs are not fetched (confirmed).
 - **Step 5, DB.** Only if the seed app's config declares a downstream DB. Fetch DB logs in the incident window, filtered by the app's DB user / application name where present.
 - **Stop conditions:**
@@ -69,12 +69,12 @@ Thread numbers are not global IDs: pools reuse threads, and two apps can both ha
 
 The segment around an ID-carrying line covers the same `(app, instance, thread)` lines **within 1 minute** (D17). It stops early if that thread starts logging a **different** correlation ID. This picks up the ID-less lines (retry attempts, stack traces, "giving up") of the same unit of work. Such links are labeled `THREAD_LOCAL` and are weaker than an exact-ID match.
 
-### 1.2 Kafka authentication via the user's SSO (D21)
+### 1.2 Authentication via the user's SSO (D21)
 
-There are no agent login credentials. Kafka commands authenticate with the **user's existing SSO session**:
+There are no agent login credentials. **Every** `mocklogs` fetch command (app logs, app config, Kafka, DB logs) authenticates with the **user's existing SSO session**:
 - **The user logs in, never the agent.** The user runs `mocklogs sso login` themselves. In the mock it writes a session file with an expiry and a MOCK, non-secret session marker. `sso login` is **not** in the agent's allowlist, so the agent can never start or complete a login and never sees or types credentials.
-- **Kafka commands check the session.** Before returning output, every `mocklogs kafka-*` command checks the session. If it's missing or expired, the command prints `SSO session expired or missing. Ask the user to run: mocklogs sso login` (MOCK) and exits non-zero.
-- **On that message the agent stops and asks the user** to re-authenticate. It never retries in a loop. If the user declines, the Kafka steps are recorded as `CoverageGap(reason=auth_required)`, which lowers the cap the same way an access denial does.
+- **Every fetch command checks the session.** Before returning output, `kubectl logs`, `kubectl get configmap`, `kafka-*` and `db logs` all check the session. If it's missing or expired, the command prints `SSO session expired or missing. Ask the user to run: mocklogs sso login` (MOCK) and exits non-zero.
+- **On that message the agent stops and asks the user** to re-authenticate. It never retries in a loop. If the user declines, the remaining steps are recorded as `CoverageGap(reason=auth_required)`, which lowers the cap the same way an access denial does.
 - **Permissions = the user's permissions.** The agent acts with the user's identity, so it can see exactly what the user can see. The D16 access list is modeled as the user's entitlements.
 - **No session material in artifacts.** The session marker is never printed by any command, never written to `runs/` transcripts or reports, and transcripts are scanned for it in tests.
 - **Real integration later:** the mock check is swapped for the real tool's SSO-backed auth (e.g. a CLI that uses the user's SSO token cache). The agent-side behavior stays the same.
@@ -132,7 +132,7 @@ src/
     cli.py                     # kubectl logs / kubectl get configmap / kafka-consumer-groups /
                                # kafka-console-consumer / kafka logs / db logs
     access.py                  # mock access list = the user's entitlements (D16)
-    sso.py                     # mock SSO session: `sso login` (user-only) + session check for kafka-* (D21)
+    sso.py                     # mock SSO session: `sso login` (user-only) + session check on every fetch command (D21)
     scenarios/                 # seeded, parameterized generators
     render.py                  # native-looking formats + MOCK banner
   investigator/
@@ -207,7 +207,7 @@ Knobs (D8): `seed`, `service_names` (apps, topics, groups, threads, instances), 
    - cite bundle event IDs only;
    - INSUFFICIENT is a valid answer.
 2. Traversal order (§1), the 1-hop limit, and stop conditions.
-   - Auth (D21): Kafka commands use the user's SSO session. On an `SSO session expired or missing` message, stop and ask the user to run `mocklogs sso login`. Never attempt a login.
+   - Auth (D21): all fetch commands use the user's SSO session. On an `SSO session expired or missing` message, stop and ask the user to run `mocklogs sso login`. Never attempt a login.
    - `sso login` is deliberately absent from the allowlist.
 3. Component → command map (exact syntax):
    - app logs: `mocklogs kubectl logs deploy/<app> -n <ns> --since=<dur> --timestamps [--grep <id>] [--thread <t> --instance <pod>]`
@@ -292,4 +292,4 @@ Detailed, editable version with kickoff prompts: `docs/design/MILESTONES.md`.
 | D18 | Traversal planning | ★ Resolved: deterministic `investigator plan` |
 | D19 | Seed input | ★ Resolved: the app log line is the agent's first message |
 | D20 | Config change history | ★ Resolved: not used |
-| D21 | Kafka authentication | ★ Resolved 2026-10-10 (user): use the **user's SSO session**; no agent credentials exist. Design in §1.2 |
+| D21 | Authentication | ★ Resolved 2026-10-10 (user): the **user's SSO session** for **all four components** (first stated for Kafka, extended to app logs, config and DB logs on confirmation); no agent credentials exist. Design in §1.2 |

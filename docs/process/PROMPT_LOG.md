@@ -402,3 +402,14 @@ For traversal to fetch the kafka logs, take user sso for authentication as there
 - **Commands run:** `git diff -- docs/design/` (found the user's one-line edit); a Python script with count-asserted replacements (all matched); `grep` confirmed D21/R19/`auth_required` in both files.
 - **Tests:** none (design only).
 - **Open:** does SSO apply only to Kafka, or to app logs / config / DB logs too? Go-ahead for the M1 model update.
+
+---
+
+## Entry 018 — 2026-10-10T18:05:21Z (11:05 PDT) — Milestone: M0 Rev 2 approved → M1 update to Rev 2 models
+
+### Prompt (verbatim)
+
+````text
+1. Does SSO apply only to Kafka, as you said, or also to app logs, config and DB logs? At work, app logs and configs would usually sit behind the same SSO. Yes
+2. Can I go ahead with the M1 data model update? It now also includes the "authentication required" gap reason. Yes
+````
