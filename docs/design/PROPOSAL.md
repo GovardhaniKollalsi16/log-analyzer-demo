@@ -124,10 +124,11 @@ Each generator takes knobs: `seed`, `service_names` map, `t0`, `per_source_skew_
 | R5 | "Never hardcode root cause" can leak through scenario-specific detectors or names. | Detectors keyed on roles/patterns. A test asserts `investigator` never imports `mocklogs` and contains no scenario or service names. Robustness tests rename everything. |
 | R6 | Skew estimation from causal pairs can be wrong when there are few pairs. | Fall back to no correction plus wider uncertainty flags. Never reorder beyond tolerance. Mark `order_uncertain`. |
 | R6b | With a 60 s tolerance (D2), cross-source events less than 1 min apart and with no shared ID are `order_uncertain`. Short incidents could then lose clear temporal precedence, which lowers the confidence cap. Also, a Kafka *delivery delay* (event consumed about 1 min after it was produced) is a different thing from *clock skew* (hosts disagreeing on the time). | Within one ID chain, causal order (produce → broker → consume) wins over timestamps, so ordering there stays exact regardless of tolerance. The bundle reports how many events were order-uncertain so tuning is evidence-based. Lag/delay is a measured detector signal, not absorbed into skew. |
-| R7 | The LLM may still overclaim. | The validator enforces citations, confidence ≤ cap, and that the root cause cites ≥1 finding-backed event. Bounded retries, then fail closed to INSUFFICIENT. |
+| R7 | The LLM may still overclaim. | The validator enforces citations, confidence ≤ cap, and that the root cause cites ≥1 finding-backed event. Bounded retries (3, D12), then fail closed to INSUFFICIENT. |
 | R8 | The HTTP client is stdlib `urllib` (no SDK). | Small provider and a mocked-transport test. The real API is used only in manual runs. |
 | R9 | Real-API runs are nondeterministic, so they aren't in CI. | Tests use ScriptedFakeLLM. Real runs are saved to `runs/`. |
 | R10 | Synthetic data accidentally resembling the employer's system. | Generic vocabulary only. The user reviews scenario names and log shapes in M2. |
+| R11 | System pip is 21.2.4 and setuptools 58.0.4. An editable install from a pyproject-only project (`pip install -e .`, PEP 660) needs pip ≥ 21.3 and setuptools ≥ 64, so it would fail on the system Python as-is. | Proposed: a project-local `.venv` (`python3 -m venv .venv`), with pip, setuptools and pytest upgraded/installed inside it only. The system Python is untouched and `.venv/` is gitignored. Needs user OK at M1. |
 
 Assumptions: all timestamps are normalized to UTC; a single host runs everything; scenario data is generated (not hand-written) so knobs can perturb it; event IDs are stable across re-runs of the same input.
 
@@ -160,4 +161,8 @@ Assumptions: all timestamps are normalized to UTC; a single host runs everything
 | D5 | Mock log formats | **Resolved 2026-10-10:** JSON lines for app services; native-tool-style text for upstream/Kafka/DB |
 | D6 | Generic names | **Resolved 2026-10-10:** `order-api`, `fulfillment-worker`, `notification-worker`, `edge-gateway`, upstream `partner-pricing`, topic `orders.events`, group `fulfillment-consumers`, DB `appdb` |
 | D7 | Subagent allowlist enforcement | **Resolved 2026-10-10:** PreToolUse hook checks each Bash command against the same JSON allowlist |
-| D8–D12 | Scenario data generation, packaging, default model/env var, push cadence, validator retry limit | Open |
+| D8 | Scenario data | **Resolved 2026-10-10:** seeded generators with knobs (rename, time shift, drop, shuffle, …); snapshot outputs checked in |
+| D9 | Packaging | **Resolved 2026-10-10:** `pyproject.toml`, setuptools as build backend only; console scripts `mocklogs`, `investigator` (see R11) |
+| D10 | Default model / API key env var | Open (proposed: `claude-sonnet-5-5`, `ANTHROPIC_API_KEY`) |
+| D11 | Push cadence | **Resolved 2026-10-10:** push to GitHub after each approved milestone |
+| D12 | Validator retry limit | **Resolved 2026-10-10:** 3 retries, then fail closed to INSUFFICIENT; to be tuned from run data |

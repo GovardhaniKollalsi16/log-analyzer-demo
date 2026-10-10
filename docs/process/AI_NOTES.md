@@ -26,3 +26,18 @@ A factual log of corrections, rejected suggestions, scope redirects, and mistake
 - **Proposed:** A default clock-skew tolerance of 2000 ms (D2), configurable per source.
 - **User:** "D2 keep thje clock skew tolereance as 1 min because we have seen kafak events reflected after a 1 min, we will keep 1 min than we will tune it"
 - **Changed:** The default is now 60 000 ms, to be tuned later. The AI raised one concern and recorded it as risk R6b in PROPOSAL.md: a 1-min tolerance makes cross-source events under 1 min apart order-uncertain unless they share an ID, and a Kafka delivery delay is not the same as clock skew. Mitigation: causal order within an ID chain overrides timestamps, and the bundle reports an order-uncertain count to guide tuning. The user's decision stands.
+
+## 2026-10-10 — M0 — Rejected suggestion: validator retry limit
+
+- **Proposed:** D12: at most 2 retries when the validator rejects a report, then fall back to INSUFFICIENT.
+- **User:** "for d12 keep it 3 we will tune it later based on data"
+- **Changed:** The retry limit is 3, to be tuned from run data. PROPOSAL.md D12 and R7 were updated.
+
+## 2026-10-10 — M0 — self-caught: editable install won't work on system pip
+
+- **Detected:** While recording D9 (pyproject + setuptools), a check showed the system has pip 21.2.4 and setuptools 58.0.4. An editable install of a pyproject-only project needs pip ≥ 21.3 and setuptools ≥ 64, so D9 as proposed would fail on the system Python. The AI had not checked this before recommending D9.
+- **Changed:** Added risk R11, which proposes a project-local `.venv` with upgraded pip/setuptools plus pytest. This is pending the user's OK.
+
+## 2026-10-10 — M0 — self-caught: table ordering slip
+
+- **Detected:** R11 was first inserted before R7 in the PROPOSAL.md risk table by a string-insert script. It was moved after R10 before committing.
