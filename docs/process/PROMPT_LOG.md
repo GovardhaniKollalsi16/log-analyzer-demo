@@ -346,3 +346,29 @@ Q1. Data quality issues dont need it.  D13 partner pricing upstream is kafaka ev
 - **Files:** `docs/design/PROPOSAL.md`, `docs/design/MILESTONES.md`, `docs/design/PROPOSAL_REV2_DRAFT.md` (deleted), `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`
 - **Commands run:** `git status`/`git diff --stat` (only the user's one-line edit present); `git commit` of the user's edit → `d15deee`; `git rm` of the draft.
 - **Tests:** none (design only).
+
+---
+
+## Entry 016 — 2026-10-10T17:58:07Z (10:58 PDT) — Milestone: M0 design Rev 2 confirmations (M1 on hold)
+
+### Prompt (verbatim)
+
+````text
+1. Topic name `pricing.events`: scenario 1 needs a topic for pricing events, and this is the name I made up. OK? Yes, make up the topic names.
+2. Thread link rule: you said keep it to 1 minute. I also kept "stop early if the thread starts logging a different correlation ID", so two requests sharing a thread don't get merged. Keep that, or use the 1-minute window only?  Yes that makes sense
+3. Related apps' configs: I fetch config only for the seed app, not for the upstream and downstream apps, which matches your flow. OK? Yes.
+4. Getting the seed to the planner: with the seed arriving in chat, the code has to save it to a file without the AI retyping or parsing it. My own Python loop can do that directly. For the Claude Code subagent I'll work out the mechanism in M10/M13, and it's logged as risk R17. Yes that works
+````
+
+### Outcome
+
+- **Did:** Recorded all four confirmations in PROPOSAL.md:
+  - `pricing.events` confirmed, and the AI may invent further generic topic names (D6, §4);
+  - thread segment = 1-min window + early stop at a different correlation ID (D17);
+  - configs fetched only for the seed app (§1 step 4);
+  - the R17 approach confirmed.
+  No AI_NOTES entry: these confirmed the AI's proposals rather than correcting them. No code changed. Finished at 2026-10-10T17:58:07Z.
+- **Files:** `docs/design/PROPOSAL.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** a Python script with assert-guarded string replacements (all 6 matched).
+- **Tests:** none (design only).
+- **Still open:** explicit go-ahead to update M1 models to Rev 2.

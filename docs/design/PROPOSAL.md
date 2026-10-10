@@ -1,6 +1,6 @@
 # Design Proposal: Revision 2 (seed-driven traversal)
 
-Status: **Rev 2 merged 2026-10-10 with the user's decisions (PROMPT_LOG entries 014–015); awaiting the user's final approval.** M1 code is on hold until then, and needs the model changes in §3.1. Rev 1 is in git history (`git show d15deee:docs/design/PROPOSAL.md`, which includes the user's own Rev 1 edit).
+Status: **Rev 2 merged 2026-10-10 with the user's decisions and confirmations (PROMPT_LOG entries 014–016); awaiting the user's explicit approval to proceed to the M1 update.** M1 code is on hold until then, and needs the model changes in §3.1. Rev 1 is in git history (`git show d15deee:docs/design/PROPOSAL.md`, which includes the user's own Rev 1 edit).
 
 ## 0. What changed from Rev 1
 
@@ -55,7 +55,7 @@ Status: **Rev 2 merged 2026-10-10 with the user's decisions (PROMPT_LOG entries 
   - producer/consumer logs;
   - messages with the seed's correlation ID, with headers.
   Headers on consumed topics name the **upstream producing app**. Consumer groups (CLIENT-ID) on produced topics name the **downstream consuming apps**. Upstream relationships are Kafka-only (D13).
-- **Step 4, related apps.** Exactly one hop upstream and one hop downstream (D15). Fetch their logs filtered by the common identifier, then extend each hit by its thread segment. Their configs are not fetched.
+- **Step 4, related apps.** Exactly one hop upstream and one hop downstream (D15). Fetch their logs filtered by the common identifier, then extend each hit by its thread segment. Their configs are not fetched (confirmed).
 - **Step 5, DB.** Only if the seed app's config declares a downstream DB. Fetch DB logs in the incident window, filtered by the app's DB user / application name where present.
 - **Stop conditions:**
   - no remaining planned fetches;
@@ -175,7 +175,7 @@ tests/  unit/  integration/  robustness/
 
 ## 4. Scenarios (seed-driven)
 
-Generic names (D6): `edge-gateway`, `order-api`, `fulfillment-worker`, `notification-worker`, `partner-pricing` (★ now an upstream **app** that publishes to Kafka, D13), topic `orders.events`, group `fulfillment-consumers`, DB `appdb`. ★ Scenario 1 also needs an upstream topic; proposed: `pricing.events`.
+Generic names (D6): `edge-gateway`, `order-api`, `fulfillment-worker`, `notification-worker`, `partner-pricing` (★ now an upstream **app** that publishes to Kafka, D13), topic `orders.events`, group `fulfillment-consumers`, DB `appdb`. ★ Scenario 1's upstream topic: `pricing.events` (confirmed; further topic names may be invented generically).
 
 | # | Seed (agent's first message) | What the traversal should surface (generator ground truth; never visible to `investigator`) |
 |---|---|---|
@@ -227,7 +227,7 @@ Knobs (D8): `seed`, `service_names` (apps, topics, groups, threads, instances), 
 | R14 | Traversal fan-out. | Exactly 1 hop each way (D15); dedupe fetch targets; turn budget. |
 | R15 | Error rules are judgment calls. | One table per component, unit-tested, configurable thresholds, user review in M4. |
 | R16 | Seed without a correlation ID. | Thread segment + time window only; links labeled weak; cap ≤ LOW. |
-| ★ R17 | The seed reaches the planner as text. In the subagent path it must get from the chat into `seed.log` without the LLM re-typing or parsing it. | Python loop: the runtime writes `seed.log`. Subagent: an allowlisted `investigator seed --workdir <dir>` reading stdin, or the user passes it as a file. Decide in M10/M13. |
+| ★ R17 | The seed reaches the planner as text. In the subagent path it must get from the chat into `seed.log` without the LLM re-typing or parsing it. | Python loop: the runtime writes `seed.log`. Subagent: an allowlisted `investigator seed --workdir <dir>` reading stdin, or the user passes it as a file. Decide in M10/M13 (approach confirmed by the user). |
 | ★ R18 | Without change history, a "bad config" can only be found from inconsistencies against observed behavior, not from when it changed. | Accepted (D20). Scenario 2 is built on `config.inconsistent`. |
 
 ## 7. Milestone plan
@@ -261,7 +261,7 @@ Detailed, editable version with kickoff prompts: `docs/design/MILESTONES.md`.
 | D3 | Offline demo | Resolved: replay transcripts from `runs/` |
 | D4 | Report output | Resolved: JSON → Markdown |
 | D5 | Mock formats | Resolved, ★ amended: app logs JSON lines incl. `instance`, `thread`; Kafka/DB native-style text; app config as `kubectl get configmap -o json` |
-| D6 | Generic names | Resolved (§4), ★ plus `pricing.events` (proposed) |
+| D6 | Generic names | Resolved (§4), ★ plus `pricing.events` (confirmed). The AI may invent further generic topic names as needed (user: "make up the topic names") |
 | D7 | Subagent allowlist enforcement | Resolved: PreToolUse hook |
 | D8 | Scenario data | Resolved: seeded generators + knobs + snapshots |
 | D9 | Packaging | Resolved: pyproject + setuptools backend |
@@ -273,7 +273,7 @@ Detailed, editable version with kickoff prompts: `docs/design/MILESTONES.md`.
 | D14 | DB server config | ★ Resolved: dropped; DB settings come from the app config |
 | D15 | Traversal depth | ★ Resolved: exactly one hop upstream and one hop downstream |
 | D16 | Access model | ★ Resolved: mock access list; denied → coverage gap → lower cap |
-| D17 | Thread segment | ★ Resolved: 1-minute window for app logs (stops early at a different correlation ID) |
+| D17 | Thread segment | ★ Resolved: 1-minute window for app logs, stopping early at a different correlation ID (both confirmed) |
 | D18 | Traversal planning | ★ Resolved: deterministic `investigator plan` |
 | D19 | Seed input | ★ Resolved: the app log line is the agent's first message |
 | D20 | Config change history | ★ Resolved: not used |
