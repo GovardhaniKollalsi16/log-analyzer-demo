@@ -58,3 +58,19 @@ Do not write implementation code yet. Wait for my approval.
   - `git commit` ×2 → `b8a466a Set up process logging before any code exists`, `b8cf2c2 Propose architecture and milestones for review before coding`
 - **Tests:** none. No code exists yet.
 - **Status:** Waiting for the user to approve the proposal and answer decisions D1–D12.
+
+---
+
+## Entry 002 — 2026-10-10T17:21:23Z (10:21 PDT) — Milestone: M0 (decisions pending)
+
+### Prompt (verbatim)
+
+````text
+For d1 is oython 3.11+ that important for the project to run, if not dont. need it
+````
+
+### Outcome
+
+- **Did:** Answered the question; no files changed other than this log. D1 is still open until the user picks an option.
+- **Commands run:** `/usr/bin/python3 -c "import tomllib"` → `ModuleNotFoundError: No module named 'tomllib'`. `/usr/bin/python3 -m pytest --version` → `No module named pytest`.
+- **Finding:** Under the current spec, the only hard dependency on 3.11 is `tomllib`, used to read the TOML allowlist in SKILL.md. Separately, pytest has to be installed whichever Python is used.
