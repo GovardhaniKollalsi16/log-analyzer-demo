@@ -3,7 +3,7 @@ name: incident-db-logs
 description: How to fetch database logs for an incident investigation - logging in via the user's SSO, the required inputs (DB host and database name from the incident, time window from the seed), searching by time window and app, and what to look for. Used by the incident-logs coordinator for step 5, only when the incident names a database. All data is synthetic (MOCK).
 ---
 
-# incident-db-logs (v0.1)
+# incident-db-logs (v0.2)
 
 > Part of the `incident-logs` investigation. Read that coordinator's hard rules first; they apply here.
 > Example values are deliberately neutral and match no scenario. Output samples are illustrative until `mocklogs` exists.
@@ -26,6 +26,7 @@ description: How to fetch database logs for an incident investigation - logging 
 | `--host` (DB cluster) | **Required** | The incident's `db: host=` line |
 | `--db` (database name) | **Required** | The incident's `db: name=` line |
 | time window | **Required** | Derived from the seed line's `ts` |
+| business key (`order_id`, `product_id`, …) | Optional (the main filter when present) | Chosen by the coordinator's correlation-key table (§3). DB statements store it in the column of the same name, so grep for its **value** |
 | `--grep <app>` | Optional | The seed line's `app`. DB sessions are tagged `app=<name>` |
 
 **If any required input is missing, don't run any command from this skill.** Record a `missing_input` gap that names what's missing (e.g. `missing_input: db host`) and continue with the next step. Never guess or substitute a value, and never reuse another app's or another source's value.
@@ -34,7 +35,13 @@ If the incident has no `db:` line, there is no DB step. Say so in the report; it
 
 ## 3. Commands
 
-**Search by time + app** (the main search):
+**Search by time + business key** (the main search when a business key exists):
+```
+mocklogs db logs --host <db-host> --db <name> \
+    --since-time=<rfc3339> --until-time=<rfc3339> --grep <business-key-value> --save-dir <workdir>
+```
+
+**Search by time + app** (no business key, or to see all of the app's sessions):
 ```
 mocklogs db logs --host <db-host> --db <name> \
     --since-time=<rfc3339> --until-time=<rfc3339> --grep <app> --save-dir <workdir>

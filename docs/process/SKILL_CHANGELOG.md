@@ -47,3 +47,13 @@ Format:
 - **Reason:** User approved the skills: "nice the skills are fine now. commit and goahead with next steps". The two open points were taken as approved as written: (a) the plain `app:` line = the seed app only, so related apps need `app[<name>]:`; (b) the config may supply topic direction and the consumer group.
 - **Triggering run transcript:** none (no agent runs yet).
 - **Change:** Removed the "pending user confirmation" markers in `incident-logs`, `incident-app-logs`, `incident-kafka` and `incident-app-config`. No rule changed.
+
+## 2026-10-10 — skills — cross-service correlation by business key (D25)
+- **Reason:** User: "So Correleantion ID is only for in app logs search, For different upstreams and different sub services inside in the service it has different correleation id accross distributed systems." … "if the error Log is from Order* file, fetch the order_id from the log and use it to correlate and if The log is from Product* the correlation shoudl be product id. In kafka and db logs the product id is stored in product_id and order_id is stored in order_id."
+- **Triggering run transcript:** none (no agent runs yet). This is a correction from the user's review.
+- **Change:**
+  - Coordinator v0.3: hard rule 10 (`correlation_id` is in-app only), and a new §3 "Which ID correlates across services" with a machine-readable `correlation_keys` JSON table (`Order` → `order_id`, `Product` → `product_id`; more rules to come from the user). The step table now uses the business key for Kafka, related apps and DB.
+  - `incident-app-logs` v0.2: business key required for related apps; a separate business-key search; `correlation_id` only for the same app.
+  - `incident-kafka` v0.2: message search by the business key in the value; the header `correlation_id` is the producer's own.
+  - `incident-db-logs` v0.2: a business-key search.
+  - A test checks that the JSON table parses and has both rules.

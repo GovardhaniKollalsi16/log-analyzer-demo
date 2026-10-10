@@ -1,9 +1,9 @@
 ---
 name: incident-kafka
-description: How to fetch Kafka data for an incident investigation (kafka-consumer-groups, kafka-get-offsets, kafka-console-consumer and broker/client log shapes) - logging in via the user's SSO, the required inputs (Kafka cluster and topics from the incident), searching by time window and correlation ID, finding upstream producers and downstream consumers, and what to look for. Used by the incident-logs coordinator for step 3. All data is synthetic (MOCK).
+description: How to fetch Kafka data for an incident investigation (kafka-consumer-groups, kafka-get-offsets, kafka-console-consumer and broker/client log shapes) - logging in via the user's SSO, the required inputs (Kafka cluster and topics from the incident), searching by time window and business key, finding upstream producers and downstream consumers, and what to look for. Used by the incident-logs coordinator for step 3. All data is synthetic (MOCK).
 ---
 
-# incident-kafka (v0.1)
+# incident-kafka (v0.2)
 
 > Part of the `incident-logs` investigation. Read that coordinator's hard rules first; they apply here.
 > Example values are deliberately neutral and match no scenario. Output samples are illustrative until `mocklogs` exists.
@@ -32,7 +32,7 @@ description: How to fetch Kafka data for an incident investigation (kafka-consum
 | `topic` | **Required** for message, offset and log commands | The incident's `kafka: topics=` line. **Only those topics** |
 | consumer `group` | **Required** for the lag command | The incident's `kafka: group=`, or `kafka.consumer.group` read verbatim from the seed app's config ** |
 | time window | **Required** for offset and log commands | Derived from the seed line's `ts` |
-| `correlation_id` | Optional | The seed line. Without it, read messages by time only |
+| business key (`order_id`, `product_id`, …) | **Required** for the message search | Chosen by the coordinator's correlation-key table (§3) from the seed record. Kafka stores it in the message **value** field of the same name. Without it, record `missing_input: business key` for the message search (lag and logs still run) |
 
 **If any required input is missing, don't run any command from this skill.** Record a `missing_input` gap that names what's missing (e.g. `missing_input: kafka bootstrap`) and continue with the next step. Never guess or substitute a value, and never reuse another app's or another source's value.
 If the cluster is present but a particular command's extra input is missing (e.g. no `group`), skip **only that command** and record which input was missing.
@@ -61,11 +61,12 @@ mocklogs kafka-console-consumer --bootstrap-server <servers> --topic <topic> \
     --partition <p> --offset <o> --max-messages <n> \
     --property print.headers=true --property print.timestamp=true \
     --property print.partition=true --property print.offset=true \
-    --grep <correlation-id> --save-dir <workdir>
+    --grep <business-key-value> --save-dir <workdir>
 ```
 - Run the consumer once per partition that `kafka-get-offsets` returned.
 - `--grep` is a mock extension (the real tool would be piped to grep).
 - On a topic the seed app **consumes**, the `producer_app` header names the **upstream** app.
+- The `correlation_id` header is the **producer's own** ID. It's only valid for searching the **producer app's** logs (`incident-app-logs`), never other apps or other topics.
 
 **Broker and client logs for a topic, by time:**
 ```
@@ -103,7 +104,7 @@ Broker and client logs (log4j style):
 
 You don't classify (`investigator` does). These signals help you choose what to fetch next:
 - **Lag:** growing across samples, or one partition whose `CURRENT-OFFSET` doesn't move while `LOG-END-OFFSET` grows.
-- **Messages:** whether a message with the correlation ID exists at all on the expected topic; its `producer_app`; its timestamp relative to the seed. A **missing** message is evidence too.
+- **Messages:** whether a message with the business key exists at all on the expected topic; its `producer_app`; its timestamp relative to the seed. A **missing** message is evidence too.
 - **Producer:** send retries, delivery or request timeouts, expired records, "buffer exhausted".
 - **Broker:** rejected requests, offline partitions or no leader, ISR shrink, under-replicated partitions.
 - **Consumer:** processing exceptions, the same offset redelivered over and over, dead-letter sends, rebalances, "max poll interval exceeded".

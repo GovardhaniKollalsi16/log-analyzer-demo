@@ -1,9 +1,9 @@
 ---
 name: incident-app-logs
-description: How to fetch application logs for an incident investigation (kubectl logs shape) - logging in via the user's SSO, the required inputs (cluster and namespace from the incident, app and time from the seed), searching by time window, correlation ID, and thread, and what to look for. Used by the incident-logs coordinator for steps 1 and 4. All data is synthetic (MOCK).
+description: How to fetch application logs for an incident investigation (kubectl logs shape) - logging in via the user's SSO, the required inputs (cluster and namespace from the incident, app and time from the seed), searching by time window, business key (across apps), correlation ID (within one app) and thread, and what to look for. Used by the incident-logs coordinator for steps 1 and 4. All data is synthetic (MOCK).
 ---
 
-# incident-app-logs (v0.1)
+# incident-app-logs (v0.2)
 
 > Part of the `incident-logs` investigation. Read that coordinator's hard rules first; they apply here.
 > Example values are deliberately neutral and match no scenario. Output samples are illustrative until `mocklogs` exists.
@@ -32,7 +32,8 @@ description: How to fetch application logs for an incident investigation (kubect
 | `namespace` | **Required** | Same as `cluster` |
 | `app` | **Required** | Seed app: the seed line's `app`. Related apps: the app name from Kafka output (`producer_app` header = upstream, `CLIENT-ID` = downstream) |
 | time window | **Required** | Derived from the seed line's `ts` (default −10 min / +2 min) |
-| `correlation_id` | Optional | The seed line. If absent, use the thread search or the time-only search |
+| business key (`order_id`, `product_id`, …) | **Required for related apps** | Chosen from the seed record by the coordinator's correlation-key table (§3). Its value is the seed record's field of that name. Without it, related apps' logs aren't fetched (`missing_input: business key`) |
+| `correlation_id` | Optional, **this app only** | Seed app: the seed line. Related app: the `correlation_id` on that app's **own** lines returned by the business-key search (or the Kafka header, if that app is the producer). Never use one app's correlation ID to search another app |
 | `instance` + `thread` | Optional (both or neither) | The seed line. Only for the **seed app's** own thread segment |
 
 **If any required input is missing, don't run any command from this skill.** Record a `missing_input` gap that names what's missing (e.g. `missing_input: app cluster`) and continue with the next step. Never guess or substitute a value, and never reuse another app's or another source's value.
@@ -41,7 +42,14 @@ description: How to fetch application logs for an incident investigation (kubect
 
 ## 3. Commands
 
-**Search by time + correlation ID** (the main search, for the seed app and for related apps):
+**Search by time + business key** (across apps: the first search for a **related** app):
+```
+mocklogs kubectl logs deploy/<app> --context <cluster> -n <namespace> --timestamps \
+    --since-time=<rfc3339> --until-time=<rfc3339> \
+    --grep <business-key-value> --save-dir <workdir>
+```
+
+**Search by time + that app's own correlation ID** (within one app: the seed app's first search, and a related app's second search):
 ```
 mocklogs kubectl logs deploy/<app> --context <cluster> -n <namespace> --timestamps \
     --since-time=<rfc3339> --until-time=<rfc3339> \
@@ -71,9 +79,9 @@ Notes:
 The first line is the MOCK banner. Then each line is an RFC 3339 prefix followed by one JSON object:
 ```
 # MOCK DATA — synthetic, not from any real system
-2026-01-01T00:00:01.250000000Z {"ts":"2026-01-01T00:00:01.250Z","level":"ERROR","cluster":"example-cluster","namespace":"apps","app":"example-app","instance":"example-app-5c6d7-0","thread":"worker-2","logger":"example.Handler","correlation_id":"c-0000","msg":"Request failed","error":{"type":"ExampleException","message":"example failure"}}
+2026-01-01T00:00:01.250000000Z {"ts":"2026-01-01T00:00:01.250Z","level":"ERROR","cluster":"example-cluster","namespace":"apps","app":"example-app","instance":"example-app-5c6d7-0","thread":"worker-2","logger":"example.Handler","correlation_id":"c-0000","example_id":"x-0000","msg":"Request failed","error":{"type":"ExampleException","message":"example failure"}}
 ```
-Fields: `ts`, `level`, `cluster`, `namespace`, `app`, `instance`, `thread`, `logger`, `correlation_id` (may be missing), `msg`, optional `error{type, message, stack}`.
+Fields: `ts`, `level`, `cluster`, `namespace`, `app`, `instance`, `thread`, `logger`, `correlation_id` (this app's own; may be missing), business keys such as `order_id` / `product_id` (when the code logs them), `msg`, optional `error{type, message, stack}`.
 
 Kafka **client** activity (producer sends, consumer processing) is logged here too, under a `logger` naming the Kafka client.
 
@@ -87,4 +95,4 @@ You don't classify (`investigator` does). These signals just help you choose fil
 - circuit breaker opened, thread pool or queue saturation;
 - the **first** error for the correlation ID, and what the same thread logged just before it.
 
-If a correlation-ID search returns only the seed line, run the thread search next. If both are empty, widen the window once before moving on.
+For a related app: search by the business key first, then by the `correlation_id` found on its returned lines, to get that app's whole unit of work. If a correlation-ID search returns only the seed line, run the thread search next. If both are empty, widen the window once before moving on.

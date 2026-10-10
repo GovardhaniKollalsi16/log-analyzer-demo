@@ -53,3 +53,17 @@ def test_coordinator_states_no_input_no_access():
     text = (SKILLS_DIR / "incident-logs" / "SKILL.md").read_text(encoding="utf-8")
     assert "**No input, no access.**" in text
     assert "INCIDENT\nseed:" in text  # the incident message format is documented
+
+
+def test_coordinator_correlation_key_table_is_machine_readable():
+    import json
+    import re
+    text = (SKILLS_DIR / "incident-logs" / "SKILL.md").read_text(encoding="utf-8")
+    block = re.search(r"```json\n(\{\"correlation_keys\".*?)\n```", text, re.S)
+    assert block, "correlation_keys JSON block missing"
+    rules = json.loads(block.group(1))["correlation_keys"]
+    by_prefix = {r["source_class_prefix"]: r for r in rules}
+    assert by_prefix["Order"]["key"] == "order_id"
+    assert by_prefix["Product"]["key"] == "product_id"
+    for r in rules:
+        assert set(r["stored_as"]) == {"app_logs", "kafka", "db"}

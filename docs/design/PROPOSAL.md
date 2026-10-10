@@ -65,6 +65,24 @@ Status: **Rev 2 approved 2026-10-10 (PROMPT_LOG entry 018).** M1 (models per §3
   - every remaining target is access-denied;
   - the turn budget is spent.
 
+### 1.0 Correlation keys (D25, user decision 2026-10-10)
+
+**`correlation_id` is per app, for in-app log search only.** Each service, and each sub-service inside a service, has its own correlation ID, so it never links records **across** services. Cross-service correlation uses a **business key**, chosen from the seed record by a rule table that the user maintains in the coordinator skill (`incident-logs` §3, machine-readable JSON block):
+
+| Seed record's source class (last segment of `logger`) | Business key |
+|---|---|
+| `Order*` | `order_id` |
+| `Product*` | `product_id` |
+| *(more rules to come from the user)* | |
+
+- The key's **value** is read from the seed record's structured field of the same name (e.g. `"order_id":"o-1008"`). No match, or a missing field, means no business key, and cross-service steps get `missing_input` (D22).
+- Where the key lives:
+  - app logs: a structured field (`order_id` / `product_id`);
+  - Kafka: the message value field of the same name;
+  - DB logs: the column of the same name in statements.
+- A Kafka message header `correlation_id` is the **producer's own** ID. It's only usable to search the **producer's** app logs, never as a cross-service key.
+- `investigator` links by `(app, correlation_id)` **within** an app and by the business key **across** apps.
+
 ### 1.1 Thread segments
 
 Thread numbers are not global IDs: pools reuse threads, and two apps can both have `worker-7`. A thread link is only valid within **one app + one instance**.
@@ -278,6 +296,7 @@ Built in stages (user decision 2026-10-10): **v0 in M2** (sections 1, 3, 4, 5 + 
 | ★ R18 | Without change history, a "bad config" can only be found from inconsistencies against observed behavior, not from when it changed. | Accepted (D20). Scenario 2 is built on `config.inconsistent`. |
 | ★ R19 | The agent acts under the **user's identity** (SSO, D21). Anything it runs is attributed to the user, and an expired session interrupts a run midway. | The allowlist contains read-only commands only; `sso login` is excluded so only the user can authenticate. On expiry: stop, ask the user, and record `auth_required` if they decline. The session marker is never logged (test-enforced). |
 | ★ R20 | **Answer leakage to the agent:** the scenario name (e.g. `upstream-timeout`) or scenario-specific examples in SKILL.md would hint at the root cause. | Scenario selection is set by the harness/user (env var), never shown in output or banners, and not available to agent commands. SKILL.md examples are neutral, enforced by `test_skill_neutrality.py`. |
+| ★ R22 | **Business keys aren't request-unique.** A `product_id` (and an `order_id` across retries or amendments) matches many unrelated records. | Business-key matches are always bounded by the incident time window. `investigator` labels them `BUSINESS_KEY` links, weaker than an in-app `correlation_id` match, and reports how many distinct requests matched |
 | ~~R21~~ | **Withdrawn 2026-10-10.** Assuming related apps run in the seed's cluster is a guess, which D22 forbids. Related apps need their own `app[<name>]:` line in the incident; otherwise `missing_input`. | — |
 
 ## 7. Milestone plan
@@ -331,3 +350,4 @@ Detailed, editable version with kickoff prompts: `docs/design/MILESTONES.md`.
 | D22 | Required inputs | ★ Resolved 2026-10-10 (user): **no input, no access**. Each skill lists its required inputs; if any is missing, none of that skill's commands run, and a `missing_input` gap is recorded |
 | D23 | Incident message | ★ Resolved 2026-10-10 (user approved the skills as written: "the skills are fine now"): `INCIDENT` / `seed:` / `app:` (seed app only) / `app[<name>]:` (per related app) / `kafka: bootstrap= topics= [group=]` / `db: host= name=`. The config may supply topic direction (consume vs. produce) and the consumer group when the incident gives none |
 | D24 | Safeguards & rate limiting | ★ Deferred 2026-10-10: the **user** will add these later. Not in any milestone's scope until then |
+| D25 | Correlation keys | ★ Resolved 2026-10-10 (user): `correlation_id` = in-app only; cross-service = business key by seed source class: `Order*` → `order_id`, `Product*` → `product_id` (stored as `order_id`/`product_id` in Kafka values and DB statements). The user will supply more rules. Design §1.0 |

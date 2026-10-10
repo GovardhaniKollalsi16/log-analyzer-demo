@@ -612,3 +612,38 @@ nice the skills are fine now. commit and goahead with next steps
     - `--save-dir` wrote 12 numbered `.txt` + `.meta.json` pairs.
   - `.venv/bin/pytest` → `1 failed, 82 passed` (`test_rename_knob_removes_every_default_name`: `'order-api'` left inside `group=order-api-pricing`). Fixed by deriving composite names → `83 passed in 0.22s`.
   - After extending the vocabulary guard: `.venv/bin/pytest` → `83 passed in 0.18s`
+
+---
+
+## Entry 026 — 2026-10-10T18:47:27Z (11:47 PDT) — Milestone: M2 (format review → correlation keys)
+
+### Prompt (verbatim)
+
+````text
+Realism: do these formats look like what you'd see at work? Do any names or log shapes resemble your employer's systems? Yes
+
+2. So Correleantion ID is only for in app logs search, For different upstreams and different sub services inside in the service it has different correleation id accross distributed systems. 
+3. Int he cindident management add a section which id to use to correate based on different api's. I will Give a list.
+4. for order based service it is OrderId. For now if the error Log is from Order* file, fetch the order_id from the log and use it to correlate and if The log is from Product* the correlation shoudl be product id. In kafka and db logs the product id is stored in product_id and order_id is stored in order_id. This is imoportant correlation
+````
+
+### Outcome
+
+- **Did:** Applied the correlation correction (D25) across design, skills, mock data and tests (details in AI_NOTES / SKILL_CHANGELOG):
+  - `correlation_id` is in-app only;
+  - business key by seed source class (`Order*` → `order_id`, `Product*` → `product_id`) in a machine-readable table in the coordinator skill, ready for the user's list;
+  - Kafka values and DB statements carry `order_id`/`product_id`.
+  Asked the user to clarify the ambiguous "Yes" and the "Order* file" meaning. Not pushed (M2 still under review). Finished at 2026-10-10T18:49:51Z.
+- **Files:**
+  - Skills: `.claude/skills/{incident-logs,incident-app-logs,incident-kafka,incident-db-logs}/SKILL.md`
+  - Code: `src/mocklogs/{world,render}.py`, `src/mocklogs/scenarios/upstream_timeout.py`
+  - Tests: `tests/mocklogs/test_cli.py`, `tests/unit/test_skill_neutrality.py`
+  - Docs: `docs/design/{PROPOSAL,MILESTONES}.md`, `docs/process/{SKILL_CHANGELOG,AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - `.venv/bin/pytest tests/unit` after the skill edits → `39 passed`
+  - `.venv/bin/pytest` after the mock change → `1 failed, 82 passed` (`test_ground_truth_shape`, which assumed a shared correlation ID, as expected)
+  - After rewriting it and adding 6 tests → `89 passed in 0.20s`
+  - Manual check:
+    - seed = `orders.OrderPricingAwaiter`, `correlation_id` `c-325b56`, `order_id` `o-1008`;
+    - `partner-pricing` logs `--grep o-1008` → 2 lines with **its own** `correlation_id` `c-2a7b94`;
+    - a `pricing.events` message header `correlation_id:c-d6d9ab,producer_app:partner-pricing` with `order_id`/`product_id` in the value.

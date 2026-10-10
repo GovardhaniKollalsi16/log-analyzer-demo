@@ -97,11 +97,12 @@ def generate(knobs: ScenarioKnobs) -> World:
     base_offsets.update({(n["out_topic"], p): 5200 + 300 * p for p in range(3)})
     next_offset = dict(base_offsets)
 
-    def app(sec, level, role, i, thread, logger, msg, corr=None, error=None, critical=False):
+    def app(sec, level, role, i, thread, logger, msg, corr=None, error=None, critical=False, keys=None):
         app_logs.append(AppLogLine(at(sec), level, n[role], inst(role, i), thread, logger, msg,
-                                   corr, error, critical))
+                                   corr, error, critical, dict(keys or {})))
 
     def produce(topic, partition, sec, corr, producer_role, value):
+        # The header correlation_id is the PRODUCER's own ID (D25); the business keys live in the value.
         off = next_offset[(topic, partition)]
         next_offset[(topic, partition)] = off + 1
         messages.append(KafkaMessage(topic, partition, off, at(sec),
@@ -143,18 +144,23 @@ def generate(knobs: ScenarioKnobs) -> World:
     produce_client = f"{n['upstream_app']}-producer-1"
     net_thread = f"kafka-producer-network-thread | {produce_client}"
     sender = "org.apache.kafka.clients.producer.internals.Sender"
+    products = [short_id(rng, "p-", 4) for _ in range(3)]  # shared by many orders (R22)
     for i in range(ORDER_COUNT):
         sec = FIRST_ORDER_S + ORDER_EVERY_S * i
-        corr = short_id(rng, "c-")
+        # Each app has its own correlation ID for the same order (D25): only order_id links them.
+        corr = {r: short_id(rng, "c-") for r in roles}
         order_id = f"o-{1000 + i}"
+        product_id = products[i % len(products)]
+        ok = {"order_id": order_id}
         p_in = i % 3
         wait_thread = f"pricing-wait-{i % 4 + 1}"
-        app(sec, "INFO", "gateway_app", i, f"http-nio-8080-exec-{i % 5 + 1}", "gateway.Access",
-            "POST /v1/orders -> 202 Accepted", corr)
-        app(sec + 0.05, "INFO", "seed_app", i, wait_thread, "orders.PricingAwaiter",
-            f"Order {order_id} received; awaiting pricing event", corr)
+        app(sec, "INFO", "gateway_app", i, f"http-nio-8080-exec-{i % 5 + 1}", "gateway.OrderAccessLog",
+            "POST /v1/orders -> 202 Accepted", corr["gateway_app"], keys=ok)
+        app(sec + 0.05, "INFO", "seed_app", i, wait_thread, "orders.OrderPricingAwaiter",
+            f"Order {order_id} received; awaiting pricing event", corr["seed_app"], keys=ok)
         app(sec + 0.15, "INFO", "upstream_app", i, f"pricer-{i % 3 + 1}", "pricing.PriceService",
-            f"Price computed for order {order_id}", corr)
+            f"Price computed for order {order_id}", corr["upstream_app"],
+            keys={"order_id": order_id, "product_id": product_id})
 
         if p_in == DEGRADED_PARTITION and sec >= DEGRADED_FROM_S:
             failed_orders.append(i)
@@ -172,31 +178,37 @@ def generate(knobs: ScenarioKnobs) -> World:
             app(sec + 0.3 + DELIVERY_TIMEOUT_S, "ERROR", "upstream_app", i, net_thread, sender, expire, critical=True)
             klog(sec + 0.3 + DELIVERY_TIMEOUT_S, "ERROR", "producer", n["in_topic"], expire, sender, critical=True)
             app(sec + 0.35 + DELIVERY_TIMEOUT_S, "ERROR", "upstream_app", i, f"pricer-{i % 3 + 1}",
-                "pricing.PricePublisher", f"Failed to publish pricing event for order {order_id}", corr,
+                "pricing.PricePublisher", f"Failed to publish pricing event for order {order_id}", corr["upstream_app"],
                 {"type": "org.apache.kafka.common.errors.TimeoutException", "message": expire.split("] ", 1)[1]},
-                critical=True)
-            app(sec + 0.05 + WAIT_TIMEOUT_S, "ERROR", "seed_app", i, wait_thread, "orders.PricingAwaiter",
-                "Timed out waiting for pricing event", corr,
+                critical=True, keys={"order_id": order_id, "product_id": product_id})
+            app(sec + 0.05 + WAIT_TIMEOUT_S, "ERROR", "seed_app", i, wait_thread, "orders.OrderPricingAwaiter",
+                "Timed out waiting for pricing event", corr["seed_app"],
                 {"type": "orders.PricingTimeoutException", "message": f"no pricing event within {WAIT_TIMEOUT_S * 1000} ms"},
-                critical=True)
+                critical=True, keys=ok)
             app(sec + 0.06 + WAIT_TIMEOUT_S, "WARN", "seed_app", i, wait_thread, "orders.OrderPublisher",
-                f"Order {order_id} not published: pricing unavailable", corr, critical=True)
+                f"Order {order_id} not published: pricing unavailable", corr["seed_app"], critical=True, keys=ok)
             continue
 
-        produce(n["in_topic"], p_in, sec + 0.3, corr, "upstream_app", {"order_id": order_id, "price": 10 + i})
+        produce(n["in_topic"], p_in, sec + 0.3, corr["upstream_app"], "upstream_app",
+                {"order_id": order_id, "product_id": product_id, "price": 10 + i})
         app(sec + 0.32, "INFO", "upstream_app", i, f"pricer-{i % 3 + 1}", "pricing.PricePublisher",
-            f"Published pricing event for order {order_id}", corr)
-        app(sec + 0.6, "INFO", "seed_app", i, wait_thread, "orders.PricingAwaiter", "Pricing event received", corr)
-        produce(n["out_topic"], i % 3, sec + 0.64, corr, "seed_app", {"order_id": order_id, "status": "PRICED"})
-        app(sec + 0.65, "INFO", "seed_app", i, wait_thread, "orders.OrderPublisher", f"Order {order_id} published", corr)
+            f"Published pricing event for order {order_id}", corr["upstream_app"],
+            keys={"order_id": order_id, "product_id": product_id})
+        app(sec + 0.6, "INFO", "seed_app", i, wait_thread, "orders.OrderPricingAwaiter", "Pricing event received",
+            corr["seed_app"], keys=ok)
+        produce(n["out_topic"], i % 3, sec + 0.64, corr["seed_app"], "seed_app",
+                {"order_id": order_id, "product_id": product_id, "status": "PRICED"})
+        app(sec + 0.65, "INFO", "seed_app", i, wait_thread, "orders.OrderPublisher", f"Order {order_id} published",
+            corr["seed_app"], keys=ok)
         app(sec + 0.9, "INFO", "downstream_app", i, f"consumer-{i % 2 + 1}", "fulfillment.OrderListener",
-            f"Order {order_id} received", corr)
+            f"Order {order_id} received", corr["downstream_app"], keys=ok)
         db_logs.append(DbLogLine(at(sec + 0.93), db_pid, n["downstream_app"], n["db_user"], n["db_name"], "LOG",
-                                 f"duration: {rng.uniform(2, 6):.3f} ms  statement: INSERT INTO shipments (order_id) VALUES ('{order_id}')"))
+                                 f"duration: {rng.uniform(2, 6):.3f} ms  statement: INSERT INTO shipments (order_id, product_id) "
+                                 f"VALUES ('{order_id}', '{product_id}')"))
         app(sec + 0.95, "INFO", "downstream_app", i, f"consumer-{i % 2 + 1}", "fulfillment.OrderListener",
-            f"Order {order_id} stored", corr)
-        app(sec + 1.0, "INFO", "notify_app", i, f"consumer-{i % 2 + 1}", "notify.Listener",
-            f"Notification queued for order {order_id}", corr)
+            f"Order {order_id} stored", corr["downstream_app"], keys=ok)
+        app(sec + 1.0, "INFO", "notify_app", i, f"consumer-{i % 2 + 1}", "notify.OrderNotifier",
+            f"Notification queued for order {order_id}", corr["notify_app"], keys=ok)
 
     seed_order = failed_orders[-1]
     seed_line = next(l for l in app_logs if l.app == n["seed_app"] and l.level == "ERROR"

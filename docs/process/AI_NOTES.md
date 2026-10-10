@@ -181,3 +181,17 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 - Exit codes 5 (not found/unreachable) and 6 (no scenario) aren't in the skills yet.
 - The upstream producer's retry/expiry lines are on Kafka's network thread, so they link to the request by partition and time, not by thread.
 - Kafka's internal "correlation id 8850" request number appears in producer logs; it's unrelated to the app correlation ID (a deliberate realism trap for the parser).
+
+## 2026-10-10 — M2 — Correction: one correlation ID across services was wrong
+
+- **What the AI had built:** the skills told the agent to follow the seed's `correlation_id` into Kafka, related apps and the DB. The scenario 1 mock data used **one** correlation ID for an order in every app and in the Kafka headers.
+- **User:** "So Correleantion ID is only for in app logs search, For different upstreams and different sub services inside in the service it has different correleation id accross distributed systems." / "Int he cindident management add a section which id to use to correate based on different api's. I will Give a list." / "for order based service it is OrderId. For now if the error Log is from Order* file, fetch the order_id from the log and use it to correlate and if The log is from Product* the correlation shoudl be product id. In kafka and db logs the product id is stored in product_id and order_id is stored in order_id. This is imoportant correlation"
+- **Changed:**
+  - Design: D25 + §1.0 + risk R22 (business keys aren't request-unique) + M3 model follow-up (`Event.keys`, `LinkKind.BUSINESS_KEY`).
+  - Skills: a correlation-key table in the coordinator; business-key searches in the app-logs, Kafka and DB skills.
+  - Mock data: per-app correlation IDs; the seed now logs from an `Order*` class with `order_id`; Kafka values carry `order_id` + `product_id`; the header `correlation_id` is the producer's own; DB statements carry both keys; three products shared across ten orders.
+  - The old ground-truth test (which assumed a shared correlation ID) failed as expected: `assert False` on the upstream-correlation check. It was rewritten, and 6 tests were added → `89 passed`.
+- **AI's own assessment:** the shared-ID assumption came from the original spec wording ("correlates logs by correlation/trace/message ID") and was never challenged. It's realistic only inside one service.
+- **Interpretations flagged to the user:**
+  - "Order* file" was taken as the record's **source class**, i.e. the last segment of `logger` (the mock has no separate `file` field);
+  - the user's "Yes" to "do these formats look like work? Do any … resemble your employer's systems?" answers two questions at once, so the AI asked which one it meant before treating it as resolved.

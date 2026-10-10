@@ -53,6 +53,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 ## M3 — Parsing + normalization + dedupe ⬜
 **Scope**
 - **Model follow-up (from the per-component skills):** add `cluster` + `namespace` to `Event` and `Seed`; thread links scoped by cluster + app + instance.
+- **Model follow-up (D25):** `Event.keys: Dict[str, str]` for business keys (`order_id`, `product_id`, …); `LinkKind.BUSINESS_KEY`; `Seed.business_key`; correlation groups key on `(app, correlation_id)` within an app, and on the business key across apps.
 - **Model follow-up (D22/D23):** `GapReason.MISSING_INPUT`; an `Incident` model (seed line + per-source inputs) parsed deterministically from the agent's first message.
 - `adapters/` with a `LogSource` protocol and a `FileSource` for tests.
 - `parsing/`: one parser per format. Malformed lines are skipped and never crash (Q1: not surfaced in the bundle).

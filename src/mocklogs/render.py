@@ -46,6 +46,7 @@ def app_json(world: World, line: AppLogLine) -> str:
     }
     if line.correlation_id:
         obj["correlation_id"] = line.correlation_id
+    obj.update(line.keys)
     obj["msg"] = line.msg
     if line.error:
         obj["error"] = line.error

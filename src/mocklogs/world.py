@@ -21,9 +21,10 @@ class AppLogLine:
     thread: str
     logger: str
     msg: str
-    correlation_id: Optional[str] = None
+    correlation_id: Optional[str] = None  # this app's own ID; never shared across apps (D25)
     error: Optional[Dict[str, str]] = None
     critical: bool = False
+    keys: Dict[str, str] = field(default_factory=dict)  # business keys logged by the code, e.g. order_id
 
 
 @dataclass

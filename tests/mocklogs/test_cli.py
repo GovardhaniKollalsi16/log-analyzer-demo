@@ -155,6 +155,7 @@ def test_incident_has_required_inputs_and_parseable_seed(logged_in, capsys):
     assert lines[:2] == [BANNER, "INCIDENT"]
     seed = json.loads(lines[2][len("seed: "):])
     assert seed["level"] == "ERROR" and seed["app"] == "order-api" and seed["correlation_id"]
+    assert seed["order_id"] and seed["logger"].rsplit(".", 1)[-1].startswith("Order")
     assert any(l.startswith("kafka:  bootstrap=kafka-a:9092 topics=") for l in lines)
     assert any(l.startswith("app[partner-pricing]:") for l in lines)
     assert not any(l.startswith("db:") for l in lines)  # the seed app has no database
@@ -222,7 +223,53 @@ def test_ground_truth_shape():
     w = load(SCENARIO)
     seed = w.incident.seed_record
     assert seed.app == "order-api" and seed.level == "ERROR"
-    corr = seed.correlation_id
-    assert not [m for m in w.messages if m.headers["correlation_id"] == corr]  # pricing never arrived
-    assert any(l.app == "partner-pricing" and l.correlation_id == corr and l.level == "ERROR" for l in w.app_logs)
+    order_id = seed.keys["order_id"]
+    assert not [m for m in w.messages if m.value.get("order_id") == order_id]  # pricing never arrived
+    upstream_errors = [l for l in w.app_logs if l.app == "partner-pricing" and l.level == "ERROR"
+                       and l.keys.get("order_id") == order_id]
+    assert upstream_errors and upstream_errors[0].correlation_id != seed.correlation_id
     assert any("Shrinking ISR" in l.text for l in w.kafka_logs)
+
+
+# --- correlation keys (D25) --------------------------------------------------------
+
+def test_seed_comes_from_an_order_class_and_carries_order_id():
+    seed = load(SCENARIO).incident.seed_record
+    assert seed.logger.rsplit(".", 1)[-1].startswith("Order")
+    assert seed.keys.get("order_id")
+
+
+def test_correlation_ids_are_per_app_and_business_keys_link_across_apps():
+    w = load(SCENARIO)
+    by_order = {}
+    for l in w.app_logs:
+        if "order_id" in l.keys:
+            by_order.setdefault(l.keys["order_id"], {}).setdefault(l.app, set()).add(l.correlation_id)
+    for order_id, apps in by_order.items():
+        assert all(len(ids) == 1 for ids in apps.values()), order_id       # one ID per app per order
+        flat = [next(iter(ids)) for ids in apps.values()]
+        assert len(set(flat)) == len(flat), order_id                       # never shared across apps
+
+
+def test_kafka_header_correlation_id_is_the_producers_own():
+    w = load(SCENARIO)
+    for m in w.messages:
+        producer = m.headers["producer_app"]
+        producer_ids = {l.correlation_id for l in w.app_logs
+                        if l.app == producer and l.keys.get("order_id") == m.value["order_id"]}
+        assert m.headers["correlation_id"] in producer_ids
+        assert "order_id" in m.value and "product_id" in m.value
+
+
+def test_product_ids_are_shared_across_orders():
+    w = load(SCENARIO)
+    products = [m.value["product_id"] for m in w.messages if m.topic == "pricing.events"]
+    assert len(set(products)) < len(products)  # R22: a business key isn't request-unique
+
+
+def test_db_statements_carry_business_keys(logged_in, capsys):
+    order_id = load(SCENARIO).incident.seed_record.keys["order_id"]
+    _, out, _ = run(["db", "logs", "--host", "db-a", "--db", "appdb", "--grep", "o-1000"], capsys)
+    assert "order_id" in out and "'o-1000'" in out
+    _, out, _ = run(["db", "logs", "--host", "db-a", "--db", "appdb", "--grep", order_id], capsys)
+    assert out.splitlines() == [BANNER]  # the failed order never reached the DB
