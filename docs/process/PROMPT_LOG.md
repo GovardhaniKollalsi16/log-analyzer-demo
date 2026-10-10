@@ -92,3 +92,21 @@ follow option 2 dont need to complciate it
 - **Commands run:** `sed` replacements of TOML→JSON references. A `grep -i "toml|3.11|tomllib"` afterwards showed only intentional mentions remaining (the 3.9 rule note, the "JSON rather than TOML" rationale, `pyproject.toml` for packaging).
 - **Tests:** none (no code yet).
 - **Still open:** D2–D12, then approval to start M1. pytest is not installed for Python 3.9 yet.
+
+---
+
+## Entry 004 — 2026-10-10T17:25:50Z (10:25 PDT) — Milestone: M0 (decisions pending)
+
+### Prompt (verbatim)
+
+````text
+D2 keep thje clock skew tolereance as 1 min because we have seen kafak events reflected after a 1 min, we will keep 1 min than we will tune it
+````
+
+### Outcome
+
+- **Did:** Recorded D2 = 60 000 ms (1 min) default skew tolerance, configurable, to be tuned. Added risk R6b (wide tolerance vs ordering precision; delivery delay vs clock skew) with mitigations. Logged the rejected 2000 ms suggestion in AI_NOTES. Finished at 2026-10-10T17:26:05Z.
+- **Files:** `docs/design/PROPOSAL.md`, `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** a Python string replace on PROPOSAL.md, then `grep` confirmed that the D2 row (line 157) and the R6b row (line 126) are present.
+- **Tests:** none (no code yet).
+- **Still open:** D3–D12, approval for M1.
