@@ -372,3 +372,33 @@ Q1. Data quality issues dont need it.  D13 partner pricing upstream is kafaka ev
 - **Commands run:** a Python script with assert-guarded string replacements (all 6 matched).
 - **Tests:** none (design only).
 - **Still open:** explicit go-ahead to update M1 models to Rev 2.
+
+---
+
+## Entry 017 — 2026-10-10T18:03:34Z (11:03 PDT) — Milestone: M0 design Rev 2 amendment (M1 on hold)
+
+### Prompt (verbatim; the user sent the first version, interrupted it, then sent the second)
+
+````text
+For traversal to fetch the kafka logs, take user as authenticator. user sso as there is no agent login vailaable.
+````
+
+_[Request interrupted by user]_
+
+````text
+For traversal to fetch the kafka logs, take user sso for authentication as there is no agent login credentials vaialbel.
+````
+
+### Outcome
+
+- **Did:**
+  - Committed the user's own uncommitted annotation in PROPOSAL.md §1 step 2 ("(Yes this is important)") separately as `b5016bc`.
+  - Added Kafka SSO auth to the design:
+    - D21, plus new §1.2 (user-only login, session check on `kafka-*` commands, stop-and-ask on expiry, `auth_required` coverage gap, no session material in artifacts);
+    - `mocklogs/sso.py` in the module tree; risk R19; the SKILL outline auth rules;
+    - M2 (mock SSO + tests) and M10 (`sso login` excluded from the allowlist) scope in MILESTONES.md.
+  - No code changed; M1 still on hold. Finished at 2026-10-10T18:04:14Z.
+- **Files:** `docs/design/PROPOSAL.md`, `docs/design/MILESTONES.md`, `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** `git diff -- docs/design/` (found the user's one-line edit); a Python script with count-asserted replacements (all matched); `grep` confirmed D21/R19/`auth_required` in both files.
+- **Tests:** none (design only).
+- **Open:** does SSO apply only to Kafka, or to app logs / config / DB logs too? Go-ahead for the M1 model update.

@@ -80,3 +80,15 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 | D19 | `--seed-file` or first message | First message | The seed is the agent's first message. The AI added R17 (how the seed reaches the planner without the LLM retyping it) |
 | D20 | `mocklogs config history` for `config.recent_change` | Not needed | Command and rule removed. Scenario 2 is rebuilt on `config.inconsistent`. Added R18 |
 | D14, D16, D18 | as proposed | Accepted | — |
+
+## 2026-10-10 — M0 Rev 2 — Scope addition: Kafka auth via the user's SSO
+
+- **Before:** The design had no authentication model for fetching Kafka data. Access was a mock access list only (D16).
+- **User:** "For traversal to fetch the kafka logs, take user sso for authentication as there is no agent login credentials vaialbel." (sent after interrupting a first version: "For traversal to fetch the kafka logs, take user as authenticator. user sso as there is no agent login vailaable.")
+- **Changed:** Added D21, PROPOSAL §1.2, R19 and `CoverageGap.auth_required`:
+  - Kafka commands run under the user's SSO session;
+  - only the user runs `mocklogs sso login` (excluded from the agent allowlist);
+  - an expired session means the agent stops and asks the user; if declined, it's a coverage gap;
+  - the session marker never appears in outputs or transcripts.
+  M2 and M10 scope were updated in MILESTONES.md.
+- **AI's own call, flagged to the user:** SSO is applied to Kafka only, as stated. The AI asked whether app logs, config and DB logs should also require it.

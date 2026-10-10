@@ -35,6 +35,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
   - `kafka-console-consumer` with headers;
   - DB log text.
 - `access.py`: a mock access list; denied → `Error from server (Forbidden): ... MOCK` style output.
+- `sso.py` (D21): `mocklogs sso login` (run by the **user** only) writes a mock session with an expiry. All `kafka-*` commands require a valid session; otherwise they print the SSO-expired message and exit non-zero. Tests: missing/expired session → message + non-zero exit; the session marker never appears in any output.
 - `cli.py`: the commands in PROPOSAL §5. Every output starts with a MOCK banner. Register the `mocklogs` console script.
 
 **Tests:** golden snapshots per command (seeded); MOCK banner everywhere; same seed gives identical output; knobs change output; access denial.
@@ -148,6 +149,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 - `allowlist.py`;
 - `MockCliSource` (subprocess argv, no shell);
 - resolve R17 (getting the seed into `seed.log`);
+- `sso login` excluded from the allowlist, with a test (D21);
 - first SKILL_CHANGELOG entry.
 
 **Tests:** allowed vs. rejected commands (pipes, `;`, `$(...)`, unknown flags); every SKILL.md example is allowlisted.
