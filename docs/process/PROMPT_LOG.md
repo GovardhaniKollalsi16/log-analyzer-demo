@@ -576,3 +576,39 @@ I need ton add afeguards and limiting but will add later. The incident will ment
 ````text
 nice the skills are fine now. commit and goahead with next steps
 ````
+
+### Outcome
+
+- **Did:**
+  1. Removed the skills' "pending confirmation" markers (the user approved the skills as written; the interpretation is logged in AI_NOTES). D23 resolved. Pushed (`7f0b26e..ee5cf40`).
+  2. Built `mocklogs`:
+     - `world.py` (synthetic world model with a `critical` flag per record);
+     - `scenarios/base.py` (knobs: seed, names, t0, skew, drop/dup/malformed, shuffle, access_denied, omit_inputs);
+     - `scenarios/upstream_timeout.py` (scenario 1 ground truth);
+     - `render.py` (kubectl JSON lines, configmap JSON, kafka-consumer-groups table, console-consumer lines, log4j Kafka logs, postgres-style DB logs, incident text, perturbation);
+     - `sso.py` (user-only login, wall-clock expiry, non-printed MOCK marker);
+     - `cli.py` (all skill-documented commands, exit codes 0/2/3/4/5/6, `--save-dir` raw + meta);
+     - the console script.
+  3. Ran every command manually to collect samples for the user's review.
+  4. Wrote 44 behavior tests. Snapshot tests are deferred until the formats are reviewed.
+  Not pushed (M2 not approved). Finished at 2026-10-10T18:36:21Z.
+- **Files:** `pyproject.toml`, `src/mocklogs/{world,render,sso,cli}.py`, `src/mocklogs/scenarios/{__init__,base,upstream_timeout}.py`, `tests/mocklogs/test_cli.py`, `tests/unit/_vocabulary.py`, `docs/design/MILESTONES.md`, `docs/process/AI_NOTES.md`, `docs/process/SKILL_CHANGELOG.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` after removing the markers → `39 passed`; `git push` → `7f0b26e..ee5cf40  main -> main`
+  - `.venv/bin/pip install -q -e .` → `.venv/bin/mocklogs` exists; `.venv/bin/pytest` → `39 passed`
+  - Manual samples:
+    - no SSO → exit 3; the first run printed the error before the banner, fixed with a flush, then the correct order;
+    - `sso login`, `scenario incident`;
+    - app logs by correlation ID (3 lines) and by thread (2 lines);
+    - configmap JSON;
+    - lag with 3 samples (partition 2 end offset flat at 1981);
+    - `--all-groups` (3 groups);
+    - offsets at the window start;
+    - console consumer p0 (3 messages) and p2 `--grep` seed ID → `Processed a total of 0 messages`;
+    - broker logs (ISR shrink + 2 replica timeouts); producer retries/expiry;
+    - upstream app logs by correlation ID (INFO + ERROR);
+    - DB logs;
+    - Forbidden config → exit 4; `omit_inputs` incident; wrong bootstrap → exit 5;
+    - `--save-dir` wrote 12 numbered `.txt` + `.meta.json` pairs.
+  - `.venv/bin/pytest` → `1 failed, 82 passed` (`test_rename_knob_removes_every_default_name`: `'order-api'` left inside `group=order-api-pricing`). Fixed by deriving composite names → `83 passed in 0.22s`.
+  - After extending the vocabulary guard: `.venv/bin/pytest` → `83 passed in 0.18s`

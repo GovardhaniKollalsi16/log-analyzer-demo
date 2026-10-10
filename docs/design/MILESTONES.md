@@ -25,7 +25,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M2 — SKILL.md v0, then `mocklogs`: 4 components + SSO + access control + scenario 1 ⬜
+## M2 — SKILL.md v0, then `mocklogs`: 4 components + SSO + access control + scenario 1 🟡 (skills ✅ pushed; mocklogs built, samples awaiting user review; snapshot tests pending)
 **Step 1, skills first (user decisions 2026-10-10):** write the skills as **one per component** (`incident-app-logs`, `incident-app-config`, `incident-kafka`, `incident-db-logs`) plus the `incident-logs` coordinator. It is the agent-facing contract for every `mocklogs` command: how to connect to each component (SSO, access), exact syntax, output formats, and how to handle refusals. **The user reviews v0 before any `mocklogs` code.** After `mocklogs` exists, the illustrative samples in v0 are replaced with real generated output (SKILL_CHANGELOG entry).
 
 **Step 2 scope**

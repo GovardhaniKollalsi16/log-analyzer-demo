@@ -168,3 +168,16 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 
 - **Context:** The AI had asked two questions: does `app:` cover only the seed app, and may the config supply topic direction and group? The user didn't answer them directly and said "nice the skills are fine now. commit and goahead with next steps".
 - **AI's interpretation:** Approval of the skills as written, which already encoded (a) seed-app-only `app:` and (b) config for direction/group. The markers were removed, and the user was told explicitly so they can object.
+
+## 2026-10-10 — M2 step 2 — self-caught issues while building mocklogs
+
+1. **Private-attribute hack:** the first generator draft set `world._seed_record` on a dataclass. It was replaced with a proper `Incident.seed_record` field before any test ran.
+2. **Dead code:** the first `cli.run()` draft had a leftover `if key != "scenario" or True: pass` and a muddled type conversion. Rewritten before the first run.
+3. **Banner after the error:** the first manual run of a refused command printed the error *before* the MOCK banner (stdout is buffered, stderr isn't). Fixed with an explicit flush; re-run showed the correct order.
+4. **Rename leak (caught by a test):** `test_rename_knob_removes_every_default_name` failed with `'order-api' is contained here: ... group=order-api-pricing`. Composite names (consumer groups, DB user) had the app name baked in, so renaming the app left the old name visible. That would have defeated the robustness renames. Fixed by deriving composite names from their parts after renames. Re-run: `83 passed`.
+
+**AI design choices in mocklogs, flagged to the user for review:**
+- `kubectl logs deploy/<app>` merges all pods (real kubectl picks one pod unless told otherwise).
+- Exit codes 5 (not found/unreachable) and 6 (no scenario) aren't in the skills yet.
+- The upstream producer's retry/expiry lines are on Kafka's network thread, so they link to the request by partition and time, not by thread.
+- Kafka's internal "correlation id 8850" request number appears in producer logs; it's unrelated to the app correlation ID (a deliberate realism trap for the parser).
