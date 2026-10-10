@@ -480,3 +480,18 @@ Yes, and in which step are you creating skill files for the agent to know how to
 ````text
 Yes, move skills earlier and start M2 with SKILL.md
 ````
+
+### Outcome
+
+- **Did:**
+  - Moved skill creation earlier in the plan (v0 in M2, v1 in M5, v2 in M10), commit `6605a91`.
+  - Wrote `.claude/skills/incident-logs/SKILL.md` v0: rules, SSO/access handling, the component → command map with exact syntax, illustrative formats, the error pointer, an order summary.
+  - Caught and fixed my own leak of scenario answers in the skill's examples, and added a test guard plus risk R20.
+  - Recorded the v0 syntax additions in PROPOSAL §5 for review (`--save-dir`, `--since-time`, mock extensions, exit codes).
+  - First SKILL_CHANGELOG entry.
+  - **Stopped before any `mocklogs` code** for the user to review v0. Finished at 2026-10-10T18:15:20Z.
+- **Files:** `.claude/skills/incident-logs/SKILL.md` (new), `tests/unit/_vocabulary.py` (new), `tests/unit/test_skill_neutrality.py` (new), `tests/unit/test_import_boundary.py`, `docs/design/PROPOSAL.md`, `docs/design/MILESTONES.md`, `docs/process/SKILL_CHANGELOG.md`, `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run (actual results):**
+  - Vocabulary scan of SKILL.md after the fix → `scenario vocabulary left in SKILL.md: none`
+  - `.venv/bin/pytest` → `collected 25 items` … `25 passed in 0.04s`
+  - Canary: appended `canary: order-api` to SKILL.md → `AssertionError: SKILL.md mentions scenario vocabulary: ['order-api']`, `1 failed, 1 passed`. Restored from backup (`grep -c canary` → `0`). `.venv/bin/pytest` → `25 passed in 0.02s`

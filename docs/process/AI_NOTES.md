@@ -121,3 +121,13 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - **v2 in M10:** allowlist + report contract.
   MILESTONES.md and PROPOSAL.md §5/§7 updated.
 - **AI's assessment:** having the skill only in M10 was a planning weakness. The skill is how the agent learns to reach each source, and it was scheduled after the code it describes.
+
+## 2026-10-10 — M2 step 1 — self-caught: SKILL.md examples leaked scenario answers
+
+- **Mistake:** The first SKILL.md v0 draft used scenario 1's real names and failure chain as its output examples: an `order-api` "Timed out waiting for pricing event" error, and `partner-pricing` producer `REQUEST_TIMED_OUT` retries on `pricing.events`. It also used a scenario 2 DB "statement timeout" line. The agent reads the skill, so this would have hinted the root causes and undermined the "never hardcode a root cause" rule.
+- **Caught:** On re-reading the draft before showing it to the user.
+- **Fixed:**
+  - All examples replaced with neutral `example-*` values and benign lines.
+  - Added `tests/unit/test_skill_neutrality.py`, which fails if SKILL.md mentions scenario vocabulary. Canary check: appending "order-api" made it fail; removing it made it pass.
+  - Moved the shared vocabulary list into `tests/unit/_vocabulary.py`.
+  - Added risk R20.

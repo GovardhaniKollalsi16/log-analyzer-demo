@@ -10,21 +10,10 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from _vocabulary import SCENARIO_VOCABULARY
+
 SRC = Path(__file__).resolve().parents[2] / "src"
 INVESTIGATOR = SRC / "investigator"
-
-# D6 synthetic names. These may appear in mocklogs and tests, never in investigator.
-SCENARIO_VOCABULARY = [
-    "order-api",
-    "fulfillment-worker",
-    "notification-worker",
-    "edge-gateway",
-    "partner-pricing",
-    "orders.events",
-    "pricing.events",
-    "fulfillment-consumers",
-    "appdb",
-]
 
 
 def _python_files() -> list[Path]:

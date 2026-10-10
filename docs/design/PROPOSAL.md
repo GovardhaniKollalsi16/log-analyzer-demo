@@ -207,6 +207,16 @@ Knobs (D8): `seed`, `service_names` (apps, topics, groups, threads, instances), 
 
 Built in stages (user decision 2026-10-10): **v0 in M2** (sections 1, 3, 4, 5 + auth), **v1 in M5** (section 2 traversal + 6), **v2 in M10** (sections 7, 8). Each version gets a SKILL_CHANGELOG entry.
 
+**The exact command syntax now lives in `.claude/skills/incident-logs/SKILL.md` (v0), which supersedes item 3 below.** Additions made in v0, pending user review:
+- `--save-dir <workdir>` on every fetch command, so output is saved without shell redirects (which the allowlist forbids). This works the same in both agent paths.
+- `--since-time`/`--until-time` (real `kubectl` flag names) instead of `--since=<dur>`, because scenario time is fixed in the past and relative durations would drift.
+- Mock-only extensions, labeled in the skill:
+  - `--grep` (the real tools would be piped to grep);
+  - `kafka-consumer-groups --samples N` (stands in for repeated polling, so growing lag is visible);
+  - `--describe --all-groups` for downstream discovery.
+- Refusal exit codes: 3 = SSO expired/missing, 4 = Forbidden. On SSO expiry, the agent asks the user and retries once.
+- Kafka **client** (producer/consumer) activity also appears in the owning app's logs under a Kafka-client logger.
+
 1. Purpose & hard rules:
    - the first message is the seed;
    - never parse raw logs or config yourself;
@@ -251,6 +261,7 @@ Built in stages (user decision 2026-10-10): **v0 in M2** (sections 1, 3, 4, 5 + 
 | ★ R17 | The seed reaches the planner as text. In the subagent path it must get from the chat into `seed.log` without the LLM re-typing or parsing it. | Python loop: the runtime writes `seed.log`. Subagent: an allowlisted `investigator seed --workdir <dir>` reading stdin, or the user passes it as a file. Decide in M10/M13 (approach confirmed by the user). |
 | ★ R18 | Without change history, a "bad config" can only be found from inconsistencies against observed behavior, not from when it changed. | Accepted (D20). Scenario 2 is built on `config.inconsistent`. |
 | ★ R19 | The agent acts under the **user's identity** (SSO, D21). Anything it runs is attributed to the user, and an expired session interrupts a run midway. | The allowlist contains read-only commands only; `sso login` is excluded so only the user can authenticate. On expiry: stop, ask the user, and record `auth_required` if they decline. The session marker is never logged (test-enforced). |
+| ★ R20 | **Answer leakage to the agent:** the scenario name (e.g. `upstream-timeout`) or scenario-specific examples in SKILL.md would hint at the root cause. | Scenario selection is set by the harness/user (env var), never shown in output or banners, and not available to agent commands. SKILL.md examples are neutral, enforced by `test_skill_neutrality.py`. |
 
 ## 7. Milestone plan
 
