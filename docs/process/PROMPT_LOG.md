@@ -110,3 +110,19 @@ D2 keep thje clock skew tolereance as 1 min because we have seen kafak events re
 - **Commands run:** a Python string replace on PROPOSAL.md, then `grep` confirmed that the D2 row (line 157) and the R6b row (line 126) are present.
 - **Tests:** none (no code yet).
 - **Still open:** D3–D12, approval for M1.
+
+---
+
+## Entry 005 — 2026-10-10T17:26:23Z (10:26 PDT) — Milestone: M0 (decisions pending)
+
+### Prompt (verbatim)
+
+````text
+Show me what decisisons are pending
+````
+
+### Outcome
+
+- **Did:** Listed the pending decisions D3–D12 in chat, with recommendations (copied from the M0 proposal message). No project files changed.
+- **Commands run:** none besides appending this entry.
+- **Tests:** none.
