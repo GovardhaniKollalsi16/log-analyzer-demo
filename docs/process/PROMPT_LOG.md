@@ -732,3 +732,19 @@ For demo this is fine
   - `python -m mocklogs.skill_samples --write` → 4 skills updated, but `grep -c PENDING` still 2–3 per file (regex bug). After the fix and a re-run → 0; `--check` → exit 0.
   - `.venv/bin/pytest` → `122 passed in 0.30s`
   - Canary: appended "Shrinking ISR from 1,2,3" to the Kafka skill and hand-edited a DB sample → `2 failed, 25 passed` (story-phrase and sync tests). Restored → `122 passed in 0.31s`
+
+---
+
+## Entry 030 — 2026-10-10T20:06:50Z (13:06 PDT) — Milestone: M2 (awaiting approval)
+
+### Prompt (verbatim)
+
+````text
+what is M3?
+````
+
+### Outcome
+
+- **Did:** Explained M3's scope in chat, from MILESTONES.md. No files changed besides this log. M2 is not pushed: the message was a question, not an approval.
+- **Commands run:** `awk` to print the M3 section of MILESTONES.md.
+- **Tests:** none.
