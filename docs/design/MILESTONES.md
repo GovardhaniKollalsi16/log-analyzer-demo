@@ -23,8 +23,10 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M2 — `mocklogs`: 4 components + access control + scenario 1 ⬜
-**Scope**
+## M2 — SKILL.md v0, then `mocklogs`: 4 components + SSO + access control + scenario 1 ⬜
+**Step 1, skill first (user decision 2026-10-10):** write `.claude/skills/incident-logs/SKILL.md` **v0**. It is the agent-facing contract for every `mocklogs` command: how to connect to each component (SSO, access), exact syntax, output formats, and how to handle refusals. **The user reviews v0 before any `mocklogs` code.** After `mocklogs` exists, the illustrative samples in v0 are replaced with real generated output (SKILL_CHANGELOG entry).
+
+**Step 2 scope**
 - `mocklogs/scenarios/base.py`: a `ScenarioKnobs` dataclass and a generator interface returning per-component raw data **plus the seed line**.
 - `scenarios/upstream_timeout.py` (scenario 1: `partner-pricing` producer timeouts on `pricing.events` → `order-api` waits time out).
 - `render.py`:
@@ -42,7 +44,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 **Done when:** tests green and **the user reviews a sample of every command's output**, including how closely it looks like real tools and any resemblance to the employer's systems.
 
-> **Kickoff prompt:** "Start M2 per MILESTONES.md. Show me one sample of each command's output before writing snapshot tests."
+> **Kickoff prompt:** "Start M2 per MILESTONES.md. Show me SKILL.md v0 first; then show me one sample of each command's output before writing snapshot tests."
 
 ---
 
@@ -77,6 +79,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
   - seed app logs → config → Kafka → 1 hop up/down → DB;
   - access-denied targets become `CoverageGap`s.
 - `investigator plan --workdir <dir>` prints the next allowlisted argv lists as JSON. Register the `investigator` console script.
+- **SKILL.md v1:** the traversal section. It explains how upstream apps are found (message headers on consumed topics), how downstream apps are found (consumer groups on produced topics), the 1-hop rule, and how to follow `investigator plan`. Logged in SKILL_CHANGELOG.
 
 **Tests:** plan sequence for scenario 1 step by step; access denied at config → Kafka steps can't be planned → gap recorded; no DB in config → no DB step; never more than 1 hop.
 
@@ -143,18 +146,18 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M10 — SKILL.md + allowlist + command runner ⬜
+## M10 — SKILL.md v2 (allowlist) + command runner ⬜
 **Scope:**
-- SKILL.md per PROPOSAL §5 with the fenced JSON allowlist;
+- **SKILL.md v2:** add the fenced JSON allowlist covering every command documented in v0/v1, plus the report contract section;
 - `allowlist.py`;
 - `MockCliSource` (subprocess argv, no shell);
 - resolve R17 (getting the seed into `seed.log`);
 - `sso login` excluded from the allowlist, with a test (D21);
-- first SKILL_CHANGELOG entry.
+- SKILL_CHANGELOG entry for v2.
 
 **Tests:** allowed vs. rejected commands (pipes, `;`, `$(...)`, unknown flags); every SKILL.md example is allowlisted.
 
-> **Kickoff prompt:** "Start M10 per MILESTONES.md. Show me the SKILL.md draft before wiring it in."
+> **Kickoff prompt:** "Start M10 per MILESTONES.md. Show me the SKILL.md v2 diff before wiring it in."
 
 ---
 

@@ -110,3 +110,14 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - `Seed` must name the app and use UTC.
 - **New small types not named in §3.1:** `TopicSubscription` (instead of a `(topic, group)` tuple, for readable JSON), the `Direction`/`GapReason`/`FactorName` enums, and the `THREAD_SEGMENT_WINDOW_MS` constant.
 - **Self-caught:** a garbled test comment ("ID-less of thread is fine") was fixed before committing.
+
+## 2026-10-10 — M2 — Redirect: write the skill earlier
+
+- **Proposed (Rev 2 plan):** SKILL.md only in M10, together with the allowlist. Upstream/downstream discovery lived only in the M5 planner code.
+- **User:** asked "in which step are you creating skill files for the agent to know how to connect to neach log source and how the agent will know to fetch the applicationn up streama dn downstream systems. In what step are we creating the skills that is important". After the AI proposed staging it, the user said: "Yes, move skills earlier and start M2 with SKILL.md"
+- **Changed:**
+  - **v0 in M2,** written *before* `mocklogs` as the agent-facing contract for the commands;
+  - **v1 in M5:** traversal (upstream via headers, downstream via consumer groups, following `investigator plan`);
+  - **v2 in M10:** allowlist + report contract.
+  MILESTONES.md and PROPOSAL.md §5/§7 updated.
+- **AI's assessment:** having the skill only in M10 was a planning weakness. The skill is how the agent learns to reach each source, and it was scheduled after the code it describes.

@@ -205,6 +205,8 @@ Knobs (D8): `seed`, `service_names` (apps, topics, groups, threads, instances), 
 
 ## 5. SKILL.md outline
 
+Built in stages (user decision 2026-10-10): **v0 in M2** (sections 1, 3, 4, 5 + auth), **v1 in M5** (section 2 traversal + 6), **v2 in M10** (sections 7, 8). Each version gets a SKILL_CHANGELOG entry.
+
 1. Purpose & hard rules:
    - the first message is the seed;
    - never parse raw logs or config yourself;
@@ -258,15 +260,15 @@ Detailed, editable version with kickoff prompts: `docs/design/MILESTONES.md`.
 |---|---|
 | M0 ✅ | Process + design Rev 1; Rev 2 merged, awaiting final approval |
 | M1 ✅ | Skeleton + models (Rev 2) |
-| M2 | `mocklogs`: 4 components, access control, scenario 1 |
+| M2 | **SKILL.md v0 first** (commands, connection/SSO, formats), then `mocklogs`: 4 components, SSO, access control, scenario 1 |
 | M3 | Parsing + normalization (incl. app/instance/thread) + dedupe |
 | M4 | Per-component error classification (§2); user reviews the rule tables |
-| M5 | Config → topology + `investigator plan` |
+| M5 | Config → topology + `investigator plan`; **SKILL.md v1** (traversal: upstream via headers, downstream via consumer groups) |
 | M6 | Correlation (IDs + thread segments) + timeline |
 | M7 | Detectors + `investigator correlate` → bundle |
 | M8 | Scenarios 2–4 + robustness matrix |
 | M9 | Report model + validator + Markdown |
-| M10 | SKILL.md + JSON allowlist + command runner |
+| M10 | **SKILL.md v2** (JSON allowlist + report contract) + command runner |
 | M11 | Provider interface, fake LLM, tool loop, transcripts |
 | M12 | Anthropic provider + replay (needs API key) |
 | M13 | Claude Code subagent + hook + transcript capture |
