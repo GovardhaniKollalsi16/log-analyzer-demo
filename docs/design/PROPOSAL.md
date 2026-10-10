@@ -134,6 +134,8 @@ Assumptions: all timestamps are normalized to UTC; a single host runs everything
 
 ## 7. Milestone plan (each ends with tests run + stop for review)
 
+Detailed, user-editable version with kickoff prompts: `docs/design/MILESTONES.md`.
+
 | M | Scope | Done when |
 |---|---|---|
 | M0 | Process docs, CLAUDE.md, this proposal | User approves |

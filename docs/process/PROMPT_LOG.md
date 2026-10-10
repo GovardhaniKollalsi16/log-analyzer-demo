@@ -259,3 +259,20 @@ yes push it and start m1
   - `.venv/bin/pytest` → `collected 11 items` … `11 passed in 0.02s` (Python 3.9.6, pytest-8.4.2)
   - Canary check: temporarily added `src/investigator/_canary_violation.py` (`import mocklogs` + `"order-api"`) → `2 failed` with `investigator imports mocklogs at: ['investigator/_canary_violation.py:1']` and `scenario vocabulary found in investigator: ['investigator/_canary_violation.py: order-api']`. Removed the file, then `.venv/bin/pytest` → `11 passed in 0.01s`.
 - **Not pushed:** M1 awaits review (D11: push after approval).
+
+---
+
+## Entry 012 — 2026-10-10T17:38:32Z (10:38 PDT) — Milestone: M1 (awaiting review)
+
+### Prompt (verbatim)
+
+````text
+Give all the steps planned, i will review the prompts and modify them and the design as well
+````
+
+### Outcome
+
+- **Did:** Wrote `docs/design/MILESTONES.md` for the user to review and edit. It expands every milestone M0–M12 with scope, tests, done-when, and a suggested kickoff prompt, and it marks status (M0 ✅, M1 🟡, rest ⬜). Linked it from PROPOSAL.md §7. No code changed. M1 is still awaiting review and is not pushed. Finished at 2026-10-10T17:39:17Z.
+- **Files:** `docs/design/MILESTONES.md` (new), `docs/design/PROPOSAL.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** `sed` to add the link, then `grep` to confirm it.
+- **Tests:** none run (no code changed since M1's `11 passed`).
