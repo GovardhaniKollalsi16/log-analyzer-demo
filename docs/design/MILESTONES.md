@@ -25,7 +25,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M2 — SKILL.md v0, then `mocklogs`: 4 components + SSO + access control + scenario 1 🟡 (all scope done 2026-10-10: skills, mocklogs, formats reviewed "realistic", snapshots, real neutral skill samples + exit 5; correlation keys final for demo. Awaiting M2 approval)
+## M2 — SKILL.md v0, then `mocklogs`: 4 components + SSO + access control + scenario 1 ✅ (approved and pushed 2026-10-10)
 **Step 1, skills first (user decisions 2026-10-10):** write the skills as **one per component** (`incident-app-logs`, `incident-app-config`, `incident-kafka`, `incident-db-logs`) plus the `incident-logs` coordinator. It is the agent-facing contract for every `mocklogs` command: how to connect to each component (SSO, access), exact syntax, output formats, and how to handle refusals. **The user reviews v0 before any `mocklogs` code.** After `mocklogs` exists, the illustrative samples in v0 are replaced with real generated output (SKILL_CHANGELOG entry).
 
 **Step 2 scope**
@@ -50,7 +50,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M3 — Parsing + normalization + dedupe ⬜
+## M3 — Parsing + normalization + dedupe 🟡 (in progress)
 **Scope**
 - **Model follow-up (from the per-component skills):** add `cluster` + `namespace` to `Event` and `Seed`; thread links scoped by cluster + app + instance.
 - **Model follow-up (D25):** `Event.keys: Dict[str, str]` for business keys (`order_id`, `product_id`, …); `LinkKind.BUSINESS_KEY`; `Seed.business_key`; correlation groups key on `(app, correlation_id)` within an app, and on the business key across apps.

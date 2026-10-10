@@ -748,3 +748,13 @@ what is M3?
 - **Did:** Explained M3's scope in chat, from MILESTONES.md. No files changed besides this log. M2 is not pushed: the message was a question, not an approval.
 - **Commands run:** `awk` to print the M3 section of MILESTONES.md.
 - **Tests:** none.
+
+---
+
+## Entry 031 — 2026-10-10T20:10:57Z (13:10 PDT) — Milestone: M2 approved → M3 (parsing + normalization + dedupe)
+
+### Prompt (verbatim)
+
+````text
+Yes, that looks correct. Go with next step
+````
