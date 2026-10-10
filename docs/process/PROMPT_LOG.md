@@ -218,3 +218,19 @@ D11	When to push to  I dont have a key now, will provide later.
   - `git status --short` → only `docs/process/PROMPT_LOG.md` modified (`.venv/` correctly ignored)
 - **Tests:** none (no code yet).
 - **Still open:** approval to start M1.
+
+---
+
+## Entry 010 — 2026-10-10T17:33:33Z (10:33 PDT) — Milestone: M0 (awaiting approval)
+
+### Prompt (verbatim)
+
+````text
+What is m0?
+````
+
+### Outcome
+
+- **Did:** Explained in chat what M0 is and what it delivered. No project files changed.
+- **Commands run:** `git log --oneline | wc -l` to count the commits so far.
+- **Tests:** none.
