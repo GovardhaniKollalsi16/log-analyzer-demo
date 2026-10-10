@@ -49,3 +49,20 @@ A factual log of corrections, rejected suggestions, scope redirects, and mistake
 ## 2026-10-10 — M1 — self-caught: shell exit-code check didn't work
 
 - **Detected:** The command that ran `pip install -e .` printed its exit code with `${PIPESTATUS[0]}`, which is bash-only. The shell is zsh, so it printed an empty value. Success was confirmed separately with `pip show` (editable location = project root) and by the imports resolving to `src/`.
+
+## 2026-10-10 — M0 Rev 2 — Redirect: seed-driven flow + per-component error definitions
+
+- **Proposed (Rev 1):**
+  - Fan out across four sources (app, upstream HTTP dependency, Kafka, DB logs + DB server config) in a fixed order.
+  - "Error" defined only generically: log level ERROR/CRITICAL, plus named detectors.
+  - The LLM decided what to fetch next, guided by SKILL.md.
+- **User:** "Are you defiing what an error is w.r.t each components, the components here are kafka logs, application logs, application config, db logs. The order should be that first you will give be given application log with the errros message than contains the application name, you have to go the config files for that application for which you have access and then go the kafka outputs/inputs to the applications, fetch the logs from kafka upstream downstram, related application logs using a common identifer and thread numbers and also if any downstream db is present that logs as well. This si the flow, modify the design accordingly"
+- **Answer to the question:** No. Rev 1 had no per-component error definition. That was a gap in the design.
+- **Changed:** Wrote `docs/design/PROPOSAL_REV2_DRAFT.md`:
+  - The flow is seed-driven: seed app log → app config → Kafka in/out → related apps → DB.
+  - Per-component error tables: ERROR/SYMPTOM/CONTEXT/ANOMALY with `error_code`s.
+  - Thread-segment linking (app + instance scoped).
+  - A deterministic traversal planner.
+  - Revised models, scenarios, SKILL outline, risks R12–R16, and milestones M2–M14.
+  - New open decisions D13–D20 and Q1.
+- **Process note:** The user's message said "Changed somethings to the design plan", but no file changes existed on disk or on GitHub at first. While the AI was preparing the rewrite, the user edited `PROPOSAL.md` at 10:48 (removed "data-quality issues" from the bundle description). The AI's full-file write was rejected because the file had changed since it was read. Rather than overwrite a file the user was actively editing, Rev 2 went into a separate draft file. The user's edit was left uncommitted and untouched, and a snapshot was kept in the session scratchpad.

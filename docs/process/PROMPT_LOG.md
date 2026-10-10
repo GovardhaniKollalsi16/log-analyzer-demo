@@ -292,3 +292,25 @@ Wait i am reviewing m0 the design
 - **Did:** Acknowledged and paused. No work done, no files changed besides this log. M1 stays unpushed. No M2 work.
 - **Commands run:** none besides appending this entry.
 - **Tests:** none.
+
+---
+
+## Entry 014 — 2026-10-10T17:46:42Z (10:46 PDT) — Milestone: M0 design revision (M1 on hold)
+
+### Prompt (verbatim)
+
+````text
+Changed somethings to the design plan, Are you defiing what an error is w.r.t each components, the components here are kafka logs, application logs, application config, db logs. The order should be that first you will give be given application log with the errros message than contains the application name, you have to go the config files for that application for which you have access and then go the kafka outputs/inputs to the applications, fetch the logs from kafka upstream downstram, related application logs using a common identifer and thread numbers and also if any downstream db is present that logs as well. This si the flow, modify the design accordingly
+````
+
+### Outcome
+
+- **Did:**
+  - Checked for the user's design edits: none were on disk or on GitHub at first (`git diff`, `git fetch` + compare). Treated the message as the change request.
+  - Answered the question: Rev 1 did not define errors per component.
+  - Wrote the Rev 2 design as `docs/design/PROPOSAL_REV2_DRAFT.md`: seed-driven traversal, per-component error definitions, thread segments, planner, revised models/scenarios/SKILL outline/risks/milestones, open decisions D13–D20 + Q1.
+  - Mid-task the user edited `PROPOSAL.md` (10:48, removed "data-quality issues" from §1 item 3). My write to `PROPOSAL.md` was rejected as stale, so I did not overwrite it. The user's edit is uncommitted and untouched.
+  - M1 code not changed; no M2 work. Finished at 2026-10-10T17:50:30Z.
+- **Files:** `docs/design/PROPOSAL_REV2_DRAFT.md` (new), `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`. Not committed by me: the user's own edit to `docs/design/PROPOSAL.md`.
+- **Commands run:** `git status`/`git diff` (no design edits at first); `git fetch` + `git log main..origin/main` (no remote commits); `git diff -- docs/design/` after the write rejection (showed the user's one-line edit).
+- **Tests:** none (design only).
