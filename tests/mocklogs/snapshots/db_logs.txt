@@ -1,0 +1,15 @@
+$ mocklogs db logs --host db-a --db appdb --since-time=2026-03-14T08:54:50Z --until-time=2026-03-14T09:06:50Z
+# exit=0
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+2026-03-14 09:00:02.000 UTC [41277] app=fulfillment-worker user=fulfillment db=appdb LOG:  connection authorized: user=fulfillment database=appdb
+2026-03-14 09:00:20.930 UTC [41277] app=fulfillment-worker user=fulfillment db=appdb LOG:  duration: 5.876 ms  statement: INSERT INTO shipments (order_id, product_id) VALUES ('o-1000', 'p-31cd')
+2026-03-14 09:00:50.930 UTC [41277] app=fulfillment-worker user=fulfillment db=appdb LOG:  duration: 2.191 ms  statement: INSERT INTO shipments (order_id, product_id) VALUES ('o-1001', 'p-0da8')
+2026-03-14 09:01:20.930 UTC [41277] app=fulfillment-worker user=fulfillment db=appdb LOG:  duration: 3.925 ms  statement: INSERT INTO shipments (order_id, product_id) VALUES ('o-1002', 'p-a62b')
+2026-03-14 09:01:50.930 UTC [41277] app=fulfillment-worker user=fulfillment db=appdb LOG:  duration: 2.264 ms  statement: INSERT INTO shipments (order_id, product_id) VALUES ('o-1003', 'p-31cd')
+2026-03-14 09:02:20.930 UTC [41277] app=fulfillment-worker user=fulfillment db=appdb LOG:  duration: 5.763 ms  statement: INSERT INTO shipments (order_id, product_id) VALUES ('o-1004', 'p-0da8')
+2026-03-14 09:03:00.000 UTC [100] app= user=postgres db=appdb LOG:  checkpoint starting: time
+2026-03-14 09:03:20.930 UTC [41277] app=fulfillment-worker user=fulfillment db=appdb LOG:  duration: 5.549 ms  statement: INSERT INTO shipments (order_id, product_id) VALUES ('o-1006', 'p-31cd')
+2026-03-14 09:03:50.930 UTC [41277] app=fulfillment-worker user=fulfillment db=appdb LOG:  duration: 3.476 ms  statement: INSERT INTO shipments (order_id, product_id) VALUES ('o-1007', 'p-0da8')
+2026-03-14 09:04:50.930 UTC [41277] app=fulfillment-worker user=fulfillment db=appdb LOG:  duration: 4.502 ms  statement: INSERT INTO shipments (order_id, product_id) VALUES ('o-1009', 'p-31cd')
+# --- stderr

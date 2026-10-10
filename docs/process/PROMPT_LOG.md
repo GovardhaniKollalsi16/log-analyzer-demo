@@ -669,3 +669,29 @@ Yes, one more thing For All product based inpusts comes from Product Service and
 - **Commands run (actual results):**
   - `.venv/bin/pytest` after the rename → `89 passed in 0.21s`; after the new test → `90 passed in 0.40s`
   - `mocklogs scenario incident` → seed from `order-service` / `orders.OrderPricingAwaiter` with `order_id`; `app[product-service]` line present
+
+---
+
+## Entry 028 — 2026-10-10T19:30:36Z (12:30 PDT) — Milestone: M2 (snapshot tests + push)
+
+### Prompt (verbatim)
+
+````text
+realistic, go ahead with snapshot tests and push
+````
+
+### Outcome
+
+- **Did:**
+  - The user confirmed the formats are realistic and resemble nothing at the employer.
+  - Added `tests/mocklogs/test_snapshots.py` with 21 golden files in `tests/mocklogs/snapshots/`: every command shape (incident, app logs by business key / thread / upstream, configmap, lag with samples, all groups, offsets, console consumer incl. the missing-message case, broker/producer/consumer logs, DB logs) plus refusals (SSO missing, Forbidden config/topic/DB, unknown bootstrap, unknown deployment) and the incident with omitted inputs. Each file records argv, exit code, stdout and stderr. Regenerate with `UPDATE_SNAPSHOTS=1`.
+  - Pushed M2 so far.
+  - Not done (outside "snapshot tests and push"): real neutral samples in the skills and exit-5 handling; the user's correlation-key list. Finished at 2026-10-10T19:31:23Z.
+- **Files:** `tests/mocklogs/test_snapshots.py`, `tests/mocklogs/snapshots/*.txt` (21), `docs/design/MILESTONES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run (actual results):**
+  - `UPDATE_SNAPSHOTS=1 .venv/bin/pytest tests/mocklogs/test_snapshots.py -q` → `22 passed in 0.08s`, 21 files written
+  - Leak scan (`grep -l "upstream-timeout\|MOCK-SESSION"`) → no matches
+  - Determinism: `PYTHONHASHSEED=0/123/9999 pytest tests/mocklogs/test_snapshots.py` → `22 passed` each time
+  - Canary: changed `"30000"` → `"30001"` in `configmap.txt` → `FAILED ...test_snapshot[configmap]`, `1 failed, 21 passed`. Restored.
+  - `.venv/bin/pytest` → `112 passed in 0.26s`
+  - `git push` → see the next commit's push output (recorded in the chat reply)

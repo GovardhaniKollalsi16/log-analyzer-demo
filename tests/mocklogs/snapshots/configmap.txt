@@ -1,0 +1,25 @@
+$ mocklogs kubectl get configmap order-service-config --context cluster-a -n apps -o json
+# exit=0
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+{
+    "apiVersion": "v1",
+    "kind": "ConfigMap",
+    "metadata": {
+        "name": "order-service-config",
+        "namespace": "apps",
+        "annotations": {
+            "cluster": "cluster-a"
+        }
+    },
+    "data": {
+        "kafka.bootstrap.servers": "kafka-a:9092",
+        "kafka.consumer.group": "order-service-pricing",
+        "kafka.consumer.topics": "pricing.events",
+        "kafka.producer.acks": "all",
+        "kafka.producer.topics": "orders.events",
+        "pricing.wait.timeout.ms": "30000",
+        "worker.threads": "4"
+    }
+}
+# --- stderr

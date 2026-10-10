@@ -1,0 +1,6 @@
+$ mocklogs kubectl logs deploy/nope --context cluster-a -n apps
+# exit=5
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+# --- stderr
+Error from server (NotFound): deployments.apps "nope" not found

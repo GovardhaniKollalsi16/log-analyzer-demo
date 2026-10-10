@@ -1,0 +1,12 @@
+$ mocklogs scenario incident
+# exit=0
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+INCIDENT
+seed: {"ts":"2026-03-14T09:04:50.050Z","level":"ERROR","cluster":"cluster-a","namespace":"apps","app":"order-service","instance":"order-service-ea716-0","thread":"pricing-wait-1","logger":"orders.OrderPricingAwaiter","correlation_id":"c-325b56","order_id":"o-1008","msg":"Timed out waiting for pricing event","error":{"type":"orders.PricingTimeoutException","message":"no pricing event within 30000 ms"}}
+app:    cluster=cluster-a namespace=apps
+app[fulfillment-worker]: cluster=cluster-a namespace=apps
+app[notification-worker]: cluster=cluster-a namespace=apps
+app[product-service]: cluster=cluster-a namespace=apps
+kafka:  bootstrap=kafka-a:9092 topics=pricing.events,orders.events group=order-service-pricing
+# --- stderr

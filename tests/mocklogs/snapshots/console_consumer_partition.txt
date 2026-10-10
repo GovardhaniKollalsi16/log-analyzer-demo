@@ -1,0 +1,10 @@
+$ mocklogs kafka-console-consumer --bootstrap-server kafka-a:9092 --topic pricing.events --partition 0 --offset 1180 --max-messages 5 --property print.headers=true --property print.timestamp=true --property print.partition=true --property print.offset=true
+# exit=0
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+CreateTime:1773478820300	Partition:0	Offset:1180	correlation_id:c-d6d9ab,producer_app:product-service	{"order_id":"o-1000","product_id":"p-31cd","price":10}
+CreateTime:1773478910300	Partition:0	Offset:1181	correlation_id:c-68c720,producer_app:product-service	{"order_id":"o-1003","product_id":"p-31cd","price":13}
+CreateTime:1773479000300	Partition:0	Offset:1182	correlation_id:c-7d1c8c,producer_app:product-service	{"order_id":"o-1006","product_id":"p-31cd","price":16}
+CreateTime:1773479090300	Partition:0	Offset:1183	correlation_id:c-129d9d,producer_app:product-service	{"order_id":"o-1009","product_id":"p-31cd","price":19}
+# --- stderr
+Processed a total of 4 messages

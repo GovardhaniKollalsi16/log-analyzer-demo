@@ -1,0 +1,7 @@
+$ mocklogs kubectl logs deploy/product-service --context cluster-a -n apps --timestamps --since-time=2026-03-14T08:54:50Z --until-time=2026-03-14T09:06:50Z --grep o-1008
+# exit=0
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+2026-03-14T09:04:20.150000000Z {"ts":"2026-03-14T09:04:20.150Z","level":"INFO","cluster":"cluster-a","namespace":"apps","app":"product-service","instance":"product-service-8be60-0","thread":"pricer-3","logger":"products.ProductPriceService","correlation_id":"c-2a7b94","order_id":"o-1008","product_id":"p-a62b","msg":"Price computed for order o-1008"}
+2026-03-14T09:04:40.350000000Z {"ts":"2026-03-14T09:04:40.350Z","level":"ERROR","cluster":"cluster-a","namespace":"apps","app":"product-service","instance":"product-service-8be60-0","thread":"pricer-3","logger":"products.ProductPricePublisher","correlation_id":"c-2a7b94","order_id":"o-1008","product_id":"p-a62b","msg":"Failed to publish pricing event for order o-1008","error":{"type":"org.apache.kafka.common.errors.TimeoutException","message":"Expiring 1 record(s) for pricing.events-2:20000 ms has passed since batch creation"}}
+# --- stderr

@@ -1,0 +1,6 @@
+$ mocklogs kubectl get configmap order-service-config --context cluster-a -n apps -o json
+# exit=3
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+# --- stderr
+error: SSO session expired or missing. Ask the user to run: mocklogs sso login

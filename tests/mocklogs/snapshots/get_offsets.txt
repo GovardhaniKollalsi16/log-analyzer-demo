@@ -1,0 +1,8 @@
+$ mocklogs kafka-get-offsets --bootstrap-server kafka-a:9092 --topic pricing.events --time 1773478490000
+# exit=0
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+pricing.events:0:1180
+pricing.events:1:1580
+pricing.events:2:1980
+# --- stderr

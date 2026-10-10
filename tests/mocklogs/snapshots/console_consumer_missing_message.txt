@@ -1,0 +1,6 @@
+$ mocklogs kafka-console-consumer --bootstrap-server kafka-a:9092 --topic pricing.events --partition 2 --offset 1980 --max-messages 50 --property print.headers=true --property print.timestamp=true --property print.partition=true --property print.offset=true --grep o-1008
+# exit=0
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+# --- stderr
+Processed a total of 0 messages

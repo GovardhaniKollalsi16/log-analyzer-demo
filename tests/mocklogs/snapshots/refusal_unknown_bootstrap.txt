@@ -1,0 +1,6 @@
+$ mocklogs kafka-get-offsets --bootstrap-server other:9092 --topic pricing.events --time 0
+# exit=5
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+# --- stderr
+Error: Timed out waiting for a node assignment (bootstrap other:9092).

@@ -1,0 +1,6 @@
+$ mocklogs kubectl get configmap order-service-config --context cluster-a -n apps -o json
+# exit=4
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+# --- stderr
+Error from server (Forbidden): configmaps "order-service-config" is forbidden: user "mock-user" cannot get resource "configmaps" in namespace "apps" on cluster "cluster-a"

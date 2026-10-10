@@ -1,0 +1,6 @@
+$ mocklogs db logs --host db-a --db appdb
+# exit=4
+# --- stdout
+# MOCK DATA — synthetic, not from any real system
+# --- stderr
+error: permission denied: user "mock-user" cannot read logs for database "appdb" on host "db-a"
