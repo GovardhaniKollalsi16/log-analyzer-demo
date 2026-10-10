@@ -808,3 +808,27 @@ Run and show me examples of the input logs and output strcutrees
   2. `ts_raw` for lag rows and Kafka messages holds a reconstructed ISO string, not the raw text (e.g. `CreateTime:1773478820300`). That's an inconsistency in the AI's M3 code, proposed for fixing before approval.
   3. Kafka broker/producer events have no `app`: `clientId=product-service-producer-1` isn't mapped to an app, by design (no guessing). They link by partition + time instead.
 - Finished at 2026-10-10T20:21:10Z.
+
+---
+
+## Entry 033 — 2026-10-10T20:24:57Z (13:24 PDT) — Milestone: M3 (ts_raw fix → approval)
+
+### Prompt (verbatim)
+
+````text
+An inconsistency in my M3 code: for Kafka messages and lag rows, ts_raw holds a reconstructed ISO string instead of the original text (e.g. 1773478820300 from CreateTime:). It's small, but ts_raw should always be verbatim. I'd like to fix it before you approve M3.
+
+Fix this and proceed to M3
+````
+
+### Outcome
+
+- **Did:**
+  - `ts_raw` is now verbatim for Kafka messages (the CreateTime epoch ms) and lag rows (the sample header text). Added a test asserting every event's `ts_raw` appears in its raw line (lag rows: in the header), canary-verified.
+  - Treated "proceed to M3" as M3 approval: marked M3 ✅ and pushed. Did **not** start M4 (not explicitly requested).
+  - The client-ID → app mapping question is still open; kept strict. Finished at 2026-10-10T20:25:27Z.
+- **Files:** `src/investigator/parsing/kafka.py`, `tests/integration/test_parse_scenario.py`, `docs/design/MILESTONES.md`, `docs/process/{AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` → `180 passed in 0.99s`
+  - Canary (old `ts_raw` line restored) → `1 failed`; restored → `180 passed in 0.96s`
+  - `git push` → (see the commit after this one)

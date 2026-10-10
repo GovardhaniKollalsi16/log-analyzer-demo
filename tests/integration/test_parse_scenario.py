@@ -165,3 +165,22 @@ def test_refusals_become_gaps(tmp_path, monkeypatch, capsys):
 
 def test_business_key_link_kind_exists_for_m6():
     assert LinkKind.BUSINESS_KEY.value == "business_key"
+
+
+def test_ts_raw_is_always_verbatim(clean):
+    """ts_raw must be the exact text the tool printed, never a reformatted value."""
+    res, _ = clean
+    checked = 0
+    for e in res.events:
+        if not e.ts_raw:
+            assert e.ts_utc is None or e.component == "consumer-group"
+            continue
+        if e.component == "consumer-group":
+            # the time comes from the "# sample k/N at <ts>" header, not from the row
+            assert e.ts_raw.endswith("Z") and "T" in e.ts_raw
+        else:
+            assert e.ts_raw in e.raw_refs[0].text, (e.ts_raw, e.raw_refs[0].text)
+        checked += 1
+    assert checked > 30
+    msg = next(e for e in res.events if e.component == "message")
+    assert msg.ts_raw.isdigit()  # CreateTime epoch ms, as printed

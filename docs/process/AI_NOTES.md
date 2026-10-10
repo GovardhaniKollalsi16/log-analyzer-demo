@@ -222,3 +222,10 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 5. **Two wrong test assumptions (AI's tests, not code):**
    - The lag test expected only samples {1,2,3}, but the `--all-groups` snapshot legitimately adds untimed rows (`None`).
    - The "nothing invented" assertion was too strict: a truncated plain-text DB line still parses, since it can't reveal it was cut. The rule is now that an unknown event must be a prefix of a real line.
+
+## 2026-10-10 — M3 — Fix: ts_raw wasn't verbatim (AI-found, user-approved fix)
+
+- **Found by:** the M3 demo the user asked for. For Kafka messages and lag rows, `ts_raw` held a reconstructed ISO string (`2026-03-14T09:00:20.300000+00:00`) instead of what the tool printed (`1773478820300` after `CreateTime:`, or the `# sample … at` header value).
+- **User:** "Fix this and proceed to M3"
+- **Changed:** `parsing/kafka.py` now keeps the printed text in `ts_raw`. New test `test_ts_raw_is_always_verbatim` (canary: restoring the old line made it fail; restored → `180 passed`).
+- **Open question left unanswered:** whether a Kafka client ID like `product-service-producer-1` may be mapped to an app by prefix. Kept strict (no mapping) until the user decides.

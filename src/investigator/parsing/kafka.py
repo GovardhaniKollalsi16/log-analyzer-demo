@@ -32,11 +32,12 @@ def _arg(argv, name) -> Optional[str]:
 def parse_groups(out: RawOutput) -> ParseResult:
     res = ParseResult()
     command = " ".join(out.argv)
-    sample_ts, sample_no = None, None
+    sample_ts, sample_no, sample_raw = None, None, ""
     for n, line in content_lines(out):
         m = _SAMPLE.match(line)
         if m:
-            sample_no, sample_ts = int(m.group(1)), normalize.parse_ts(m.group(3))
+            sample_no, sample_raw = int(m.group(1)), m.group(3)
+            sample_ts = normalize.parse_ts(sample_raw)
             continue
         cols = line.split()
         if cols == GROUP_COLUMNS:
@@ -55,7 +56,7 @@ def parse_groups(out: RawOutput) -> ParseResult:
             source=Source.KAFKA,
             level=Level.INFO,
             message=f"group {group} {topic}-{p} lag={lag_i}",
-            ts_raw=sample_ts.isoformat() if sample_ts else "",
+            ts_raw=sample_raw,  # verbatim from the "# sample k/N at <ts>" line; "" for an untimed snapshot
             ts_utc=sample_ts,
             app=client_id,
             component="consumer-group",
@@ -87,12 +88,14 @@ def parse_messages(out: RawOutput) -> ParseResult:
             continue
         fields = line.split("\t")
         ts = partition = offset = None
+        ts_raw = ""
         headers = {}
         try:
             value = json.loads(fields[-1])
             for f in fields[:-1]:
                 if f.startswith("CreateTime:"):
-                    ts = normalize.parse_ts(f.split(":", 1)[1])
+                    ts_raw = f.split(":", 1)[1]
+                    ts = normalize.parse_ts(ts_raw)
                 elif f.startswith("Partition:"):
                     partition = int(f.split(":", 1)[1])
                 elif f.startswith("Offset:"):
@@ -111,7 +114,7 @@ def parse_messages(out: RawOutput) -> ParseResult:
             source=Source.KAFKA,
             level=Level.INFO,
             message=f"message {topic}-{partition}@{offset}",
-            ts_raw=str(ts.isoformat() if ts else ""),
+            ts_raw=ts_raw,  # verbatim CreateTime value (epoch ms)
             ts_utc=ts,
             app=producer,  # a message belongs to the app that produced it
             component="message",
