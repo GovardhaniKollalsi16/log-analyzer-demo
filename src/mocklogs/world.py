@@ -64,7 +64,7 @@ class DbLogLine:
 class GroupInfo:
     group: str
     topic: str
-    client_id: str  # = consuming app
+    client_id: str  # the consumer's client.id (declared in app configs), NOT the app name
     consumer_id: str
     host: str
 

@@ -58,7 +58,7 @@ def parse_groups(out: RawOutput) -> ParseResult:
             message=f"group {group} {topic}-{p} lag={lag_i}",
             ts_raw=sample_raw,  # verbatim from the "# sample k/N at <ts>" line; "" for an untimed snapshot
             ts_utc=sample_ts,
-            app=client_id,
+            app=None,  # CLIENT-ID is a client.id; it maps to an app only via the seed app's config (D26)
             component="consumer-group",
             kafka=KafkaRef(topic=topic, partition=p, offset=cur, group=group, client_id=client_id),
             attrs={"current_offset": cur, "log_end_offset": end_i, "lag": lag_i, "consumer_id": consumer_id,

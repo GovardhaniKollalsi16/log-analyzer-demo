@@ -3,18 +3,18 @@ $ mocklogs kafka-consumer-groups --bootstrap-server kafka-a:9092 --describe --al
 # --- stdout
 # MOCK DATA — synthetic, not from any real system
 
-GROUP                  TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID               HOST        CLIENT-ID
-order-service-pricing  pricing.events  0          1184            1184            0    order-service-1-77302c53  /10.0.1.11  order-service
-order-service-pricing  pricing.events  1          1583            1583            0    order-service-1-77302c53  /10.0.1.11  order-service
-order-service-pricing  pricing.events  2          1981            1981            0    order-service-1-77302c53  /10.0.1.11  order-service
+GROUP                  TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID                        HOST        CLIENT-ID
+order-service-pricing  pricing.events  0          1184            1184            0    order-service-consumer-1-77302c53  /10.0.1.11  order-service-consumer-1
+order-service-pricing  pricing.events  1          1583            1583            0    order-service-consumer-1-77302c53  /10.0.1.11  order-service-consumer-1
+order-service-pricing  pricing.events  2          1981            1981            0    order-service-consumer-1-77302c53  /10.0.1.11  order-service-consumer-1
 
-GROUP                  TOPIC          PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID                    HOST        CLIENT-ID
-fulfillment-consumers  orders.events  0          5204            5204            0    fulfillment-worker-1-22fa959d  /10.0.1.12  fulfillment-worker
-fulfillment-consumers  orders.events  1          5503            5503            0    fulfillment-worker-1-22fa959d  /10.0.1.12  fulfillment-worker
-fulfillment-consumers  orders.events  2          5801            5801            0    fulfillment-worker-1-22fa959d  /10.0.1.12  fulfillment-worker
+GROUP                  TOPIC          PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID                             HOST        CLIENT-ID
+fulfillment-consumers  orders.events  0          5204            5204            0    fulfillment-worker-consumer-1-22fa959d  /10.0.1.12  fulfillment-worker-consumer-1
+fulfillment-consumers  orders.events  1          5503            5503            0    fulfillment-worker-consumer-1-22fa959d  /10.0.1.12  fulfillment-worker-consumer-1
+fulfillment-consumers  orders.events  2          5801            5801            0    fulfillment-worker-consumer-1-22fa959d  /10.0.1.12  fulfillment-worker-consumer-1
 
-GROUP                   TOPIC          PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID                     HOST        CLIENT-ID
-notification-consumers  orders.events  0          5204            5204            0    notification-worker-1-9d8afe13  /10.0.1.13  notification-worker
-notification-consumers  orders.events  1          5503            5503            0    notification-worker-1-9d8afe13  /10.0.1.13  notification-worker
-notification-consumers  orders.events  2          5801            5801            0    notification-worker-1-9d8afe13  /10.0.1.13  notification-worker
+GROUP                   TOPIC          PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID                              HOST        CLIENT-ID
+notification-consumers  orders.events  0          5204            5204            0    notification-worker-consumer-1-9d8afe13  /10.0.1.13  notification-worker-consumer-1
+notification-consumers  orders.events  1          5503            5503            0    notification-worker-consumer-1-9d8afe13  /10.0.1.13  notification-worker-consumer-1
+notification-consumers  orders.events  2          5801            5801            0    notification-worker-consumer-1-9d8afe13  /10.0.1.13  notification-worker-consumer-1
 # --- stderr

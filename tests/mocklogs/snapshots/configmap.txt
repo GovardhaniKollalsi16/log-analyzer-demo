@@ -13,12 +13,19 @@ $ mocklogs kubectl get configmap order-service-config --context cluster-a -n app
         }
     },
     "data": {
+        "downstream.apps": "fulfillment-worker,notification-worker",
+        "downstream.fulfillment-worker.kafka.client.ids": "fulfillment-worker-consumer-1",
+        "downstream.notification-worker.kafka.client.ids": "notification-worker-consumer-1",
         "kafka.bootstrap.servers": "kafka-a:9092",
+        "kafka.consumer.client.id": "order-service-consumer-1",
         "kafka.consumer.group": "order-service-pricing",
         "kafka.consumer.topics": "pricing.events",
         "kafka.producer.acks": "all",
+        "kafka.producer.client.id": "order-service-producer-1",
         "kafka.producer.topics": "orders.events",
         "pricing.wait.timeout.ms": "30000",
+        "upstream.apps": "product-service",
+        "upstream.product-service.kafka.client.ids": "product-service-producer-1",
         "worker.threads": "4"
     }
 }

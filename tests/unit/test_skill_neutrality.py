@@ -98,3 +98,10 @@ def test_component_skills_document_exit_codes_3_4_5(name):
     for code in ("exit code **3**", "exit code **4**", "exit code **5**"):
         assert code in text, f"{name} doesn't document {code}"
     assert "`not_found`" in text
+
+
+def test_coordinator_forbids_inferring_apps_from_names():
+    text = (SKILLS_DIR / "incident-logs" / "SKILL.md").read_text(encoding="utf-8")
+    assert "**Never infer an app from a name.**" in text
+    kafka = (SKILLS_DIR / "incident-kafka" / "SKILL.md").read_text(encoding="utf-8")
+    assert "is the app name" not in kafka and "Never derive an app from a client ID" in kafka

@@ -71,3 +71,17 @@ Format:
   - Blocks are delimited by `<!-- mocklogs-sample: <key> -->` markers.
   - Each component skill documents exit **5** (not found / unreachable → `not_found`; don't retry, don't try other values). Coordinator rule 8 covers exit codes 4 and 5.
   - New tests: samples must equal the generator's output, every sample is used exactly once, no scenario story phrases appear in any skill, and exit codes 3/4/5 are documented.
+
+## 2026-10-10 — skills — related apps and Kafka client IDs come only from the seed config (D26)
+- **Reason:** User: "Dont map like that, just map kafka client details from the config you get from kubectl for the application and then get access to kafak clients. In our application in config we define upstream/downstream consumers and dbs in a config file that is accessible from kubectl config,"
+- **Triggering run transcript:** none (no agent runs yet).
+- **Change:**
+  - Coordinator v0.4: new hard rule 11, "Never infer an app from a name". Step 4 targets are the config's `upstream.apps` / `downstream.apps`; no config → `missing_input`.
+  - `incident-app-config` v0.2: documents `kafka.*.client.id`, `upstream/downstream.apps` and `*.kafka.client.ids`.
+  - `incident-kafka` v0.3:
+    - removed "Its `CLIENT-ID` is the app name";
+    - `CLIENT-ID`/`clientId=` are attributed only via the config;
+    - the `producer_app` header attributes a single message, and a mismatch with the config is reported;
+    - removed the fallback "treat any producer other than the seed app as upstream".
+  - `incident-app-logs` v0.3: related apps come from the config.
+  - Real samples regenerated (configmap gains the declarations; `CLIENT-ID`s are now `<app>-consumer-1`).

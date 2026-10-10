@@ -2,5 +2,5 @@ $ mocklogs kafka logs --bootstrap-server kafka-a:9092 --component consumer --top
 # exit=0
 # --- stdout
 # MOCK DATA — synthetic, not from any real system
-[2026-03-14 09:00:01,178] INFO [Consumer clientId=order-service-1, groupId=order-service-pricing] Subscribed to topic(s): pricing.events (org.apache.kafka.clients.consumer.KafkaConsumer)
+[2026-03-14 09:00:01,178] INFO [Consumer clientId=order-service-consumer-1, groupId=order-service-pricing] Subscribed to topic(s): pricing.events (org.apache.kafka.clients.consumer.KafkaConsumer)
 # --- stderr

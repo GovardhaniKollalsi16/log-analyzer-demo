@@ -229,3 +229,17 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 - **User:** "Fix this and proceed to M3"
 - **Changed:** `parsing/kafka.py` now keeps the printed text in `ts_raw`. New test `test_ts_raw_is_always_verbatim` (canary: restoring the old line made it fail; restored → `180 passed`).
 - **Open question left unanswered:** whether a Kafka client ID like `product-service-producer-1` may be mapped to an app by prefix. Kept strict (no mapping) until the user decides.
+
+## 2026-10-10 — Between M3/M4 — Correction: Kafka client IDs must map via config, never by name
+
+- **AI asked:** whether `product-service-producer-1` may be attributed to `product-service` by prefix (the AI's default was strict, no mapping).
+- **User:** "Dont map like that, just map kafka client details from the config you get from kubectl for the application and then get access to kafak clients. In our application in config we define upstream/downstream consumers and dbs in a config file that is accessible from kubectl config,"
+- **Self-caught violations exposed by this rule** (both were the AI's own earlier choices):
+  1. The `incident-kafka` skill said a consumer group's "`CLIENT-ID` is the app name", and its fallback said "treat any producer other than the seed app as upstream". Both infer apps from names or headers.
+  2. M3's lag-table parser set `Event.app = CLIENT-ID`, the same guess in code. The mock also printed app names in the `CLIENT-ID` column, which hid the problem.
+- **Changed:**
+  - Mock: real client IDs (`<app>-producer-1` / `<app>-consumer-1`) in Kafka logs and lag tables. The seed configmap declares `upstream.apps`, `downstream.apps` and `*.kafka.client.ids`; other apps' configs declare their own IDs.
+  - Parser: lag rows now have `app=None`.
+  - Skills updated (see SKILL_CHANGELOG). D26 recorded; R13 superseded; M5 scope gains the config-based client-ID map.
+  - Snapshots regenerated (diff reviewed: only config keys, client IDs and the `CLIENT-ID` column changed). 3 tests added → `183 passed`.
+- **Open:** the user also said DBs are defined in the config. Under D22 the DB step's inputs come from the incident. The AI asked whether the config may also supply DB/related-app access inputs.

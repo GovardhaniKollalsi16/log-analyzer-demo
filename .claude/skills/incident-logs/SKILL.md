@@ -3,7 +3,7 @@ name: incident-logs
 description: Coordinator for investigating a distributed-system incident. The incident message gives one application error line plus the inputs for each source (app cluster/namespace, Kafka cluster and topics, database host and name). Defines the rules, the "no input, no access" rule, the investigation order, and which component skill to use at each step (incident-app-logs, incident-app-config, incident-kafka, incident-db-logs). All data in this project is synthetic (MOCK).
 ---
 
-# incident-logs: coordinator (v0.3)
+# incident-logs: coordinator (v0.4)
 
 > **v0.3 (M2).** The per-component details (logging in, required inputs, searching by time, cluster and topic, what to look for) live in **separate component skills**. This file holds the rules, the incident format, **which ID correlates across services**, the order, and which skill to use when.
 > Coming next: **v1 (M5)** adds the full traversal procedure with `investigator plan`. **v2 (M10)** adds the report contract and links each component skill's allowlist. Safeguards and rate limiting will be added later by the user.
@@ -21,7 +21,8 @@ description: Coordinator for investigating a distributed-system incident. The in
 8. **Refusals are findings.** Exit **4** (`Forbidden`) → record `access_denied`. Exit **5** (not found or unreachable: wrong or stale cluster, namespace, app, topic, group, host or database) → record `not_found` naming the input. In both cases don't retry, don't try other values, and continue.
 9. **Don't look for or use the scenario name.** It's deliberately hidden, because it would give away the answer.
 10. **A `correlation_id` only works inside one app.** Every service and sub-service has its own correlation IDs. To follow a request **across** services, use the **business key** from §3, never a correlation ID.
-11. **"Insufficient evidence" is a valid conclusion.** Prefer it to a guess. Missing inputs, missing access and missing auth all reduce what you may conclude; say which ones applied.
+11. **Never infer an app from a name.** Kafka client IDs, consumer IDs, hosts and pod names are not app names. Related apps and their Kafka client IDs come **only** from the seed app's config (`upstream.apps`, `downstream.apps`, `upstream.<app>.kafka.client.ids`, `downstream.<app>.kafka.client.ids`). A client ID that the config doesn't map stays unknown.
+12. **"Insufficient evidence" is a valid conclusion.** Prefer it to a guess. Missing inputs, missing access and missing auth all reduce what you may conclude; say which ones applied.
 
 ## 2. The incident message
 
@@ -66,7 +67,7 @@ db:     host=<db host> name=<database>
 | 1 | The seed app's logs: its `correlation_id` + the seed's thread on its instance | `incident-app-logs` | `app.cluster`, `app.namespace`, plus `app`, `ts` (and `correlation_id` if present) from the seed line |
 | 2 | The seed app's config (seed app **only**) | `incident-app-config` | `app.cluster`, `app.namespace`, plus `app` from the seed line |
 | 3 | Kafka: lag; messages carrying the **business key**; broker/client logs | `incident-kafka` | `kafka.bootstrap`, `kafka.topics` (plus `kafka.group` for lag, and the business key for message search) |
-| 4 | **One hop upstream** (the `producer_app` header on consumed topics) and **one hop downstream** (`CLIENT-ID`s of groups on produced topics): their app logs by the **business key**, then by **their own** `correlation_id` and thread from what that search returns | `incident-app-logs` | The app name from Kafka output, the business key, and that app's `app[<name>]:` line from the incident. No line → skip that app (`missing_input`). Never reuse the seed's cluster |
+| 4 | **One hop upstream and one hop downstream:** the apps the seed app's config declares in `upstream.apps` / `downstream.apps`. Search their app logs by the **business key**, then by **their own** `correlation_id` and thread from what that search returns | `incident-app-logs` | The seed app's config (for the app list), the business key, and that app's `app[<name>]:` line from the incident. No config → no related apps (`missing_input: upstream/downstream apps`). No `app[<name>]:` line → skip that app (`missing_input`). Never reuse the seed's cluster |
 | 5 | The database: statements carrying the **business key** | `incident-db-logs` | `db.host`, `db.name` (and the business key) |
 
 **Time window:** derived from the seed line's `ts`. By default, from 10 minutes before to 2 minutes after; widen once if a step finds nothing. (Defaults to be tuned; `investigator plan` will compute them in v1.)

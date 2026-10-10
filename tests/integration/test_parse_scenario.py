@@ -184,3 +184,26 @@ def test_ts_raw_is_always_verbatim(clean):
     assert checked > 30
     msg = next(e for e in res.events if e.component == "message")
     assert msg.ts_raw.isdigit()  # CreateTime epoch ms, as printed
+
+
+def test_client_ids_are_never_turned_into_apps_by_the_parser(clean):
+    """D26: client IDs map to apps only via the seed app's config, which is M5's job."""
+    res, _ = clean
+    lag = [e for e in res.events if e.component == "consumer-group"]
+    assert lag and all(e.app is None and e.kafka.client_id for e in lag)
+    kafka_logs = [e for e in res.events if e.component in ("broker", "producer", "consumer")]
+    assert all(e.app is None for e in kafka_logs)
+
+
+def test_seed_config_declares_related_apps_and_their_client_ids(clean):
+    res, _ = clean
+    cfg = {c.key: c.value for c in res.config if c.app == "order-service"}
+    upstream = cfg["upstream.apps"].split(",")
+    downstream = cfg["downstream.apps"].split(",")
+    declared_ids = {cid for app in upstream for cid in cfg[f"upstream.{app}.kafka.client.ids"].split(",")}
+    declared_ids |= {cid for app in downstream for cid in cfg[f"downstream.{app}.kafka.client.ids"].split(",")}
+    # every client ID Kafka printed for other apps is declared in the seed config (mock ground truth)
+    seen = {e.attrs["client_id"] for e in res.events if e.attrs.get("client_id")} | \
+           {e.kafka.client_id for e in res.events if e.component == "consumer-group"}
+    own = {cfg["kafka.consumer.client.id"], cfg["kafka.producer.client.id"]}
+    assert seen - own <= declared_ids

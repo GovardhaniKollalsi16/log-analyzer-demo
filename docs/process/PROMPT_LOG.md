@@ -832,3 +832,35 @@ Fix this and proceed to M3
   - `.venv/bin/pytest` → `180 passed in 0.99s`
   - Canary (old `ts_raw` line restored) → `1 failed`; restored → `180 passed in 0.96s`
   - `git push` → `ceb4b38..751d484  main -> main`
+
+---
+
+## Entry 034 — 2026-10-10T20:29:50Z (13:29 PDT) — Milestone: between M3 and M4 (Kafka client mapping via config)
+
+### Prompt (verbatim)
+
+````text
+One question is still open: should a Kafka client ID like product-service-producer-1 be treated as belonging to product-service, by prefix? Right now it isn't mapped, so producer logs link to the failed order only by partition and time. Keeping it strict is the safer default.
+
+Dont map like that, just map kafka client details from the config you get from kubectl for the application and then get access to kafak clients. In our application in config we define upstream/downstream consumers and dbs in a config file that is accessible from kubectl config,
+````
+
+### Outcome
+
+- **Did:** Implemented D26: Kafka client ↔ app mapping and the related-app list come only from the seed app's configmap, never from names or prefixes.
+  - Mock: configs declare client IDs and upstream/downstream apps; Kafka output uses real client IDs.
+  - Parser: stopped setting `app` from `CLIENT-ID`.
+  - Skills updated; samples and snapshots regenerated after reviewing the diff.
+  - Design: D26, R13 superseded, M5 scope updated.
+  - Fixed two earlier AI violations of this rule (details in AI_NOTES).
+  - Committed locally, not pushed. Asked about config as a source of DB access inputs. Finished at 2026-10-10T20:31:40Z.
+- **Files:**
+  - Code: `src/mocklogs/scenarios/upstream_timeout.py`, `src/mocklogs/world.py`, `src/investigator/parsing/kafka.py`
+  - Skills: `.claude/skills/{incident-logs,incident-app-logs,incident-app-config,incident-kafka}/SKILL.md`
+  - Tests: `tests/mocklogs/snapshots/{configmap,consumer_group_lag_samples,consumer_groups_all,kafka_logs_consumer}.txt`, `tests/integration/test_parse_scenario.py`, `tests/unit/test_skill_neutrality.py`
+  - Docs: `docs/design/{PROPOSAL,MILESTONES}.md`, `docs/process/{SKILL_CHANGELOG,AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` after the mock/parser change → `5 failed, 175 passed` (4 snapshots + the skill-samples sync test, all expected from the format change)
+  - `UPDATE_SNAPSHOTS=1 pytest tests/mocklogs/test_snapshots.py` → `22 passed`; `python -m mocklogs.skill_samples --write` → 2 skills updated
+  - `git diff` of the snapshots → only the new config keys, `clientId=<app>-consumer-1` and the `CLIENT-ID` column changed
+  - After the skill edits: `skill_samples --check` → exit 0; `.venv/bin/pytest` → `180 passed`; with 3 new tests → `183 passed in 1.05s`

@@ -92,6 +92,12 @@ def generate(knobs: ScenarioKnobs) -> World:
     def inst(role: str, i: int) -> str:
         return deployments[n[role]].instances[i % 2]
 
+    def producer_client(role: str) -> str:
+        return f"{n[role]}-producer-1"
+
+    def consumer_client(role: str) -> str:
+        return f"{n[role]}-consumer-1"
+
     app_logs: List[AppLogLine] = []
     kafka_logs: List[KafkaLogLine] = []
     db_logs: List[DbLogLine] = []
@@ -122,7 +128,7 @@ def generate(knobs: ScenarioKnobs) -> World:
     for role, group, topic in (("seed_app", "seed_group", "in_topic"),
                                ("downstream_app", "down_group", "out_topic"),
                                ("notify_app", "notify_group", "out_topic")):
-        client = f"{n[role]}-1"
+        client = consumer_client(role)
         klog(1 + rng.uniform(0, 1), "INFO", "consumer", n[topic],
              f"[Consumer clientId={client}, groupId={n[group]}] Subscribed to topic(s): {n[topic]}",
              "org.apache.kafka.clients.consumer.KafkaConsumer")
@@ -145,7 +151,7 @@ def generate(knobs: ScenarioKnobs) -> World:
 
     # --- orders ----------------------------------------------------------
     failed_orders = []
-    produce_client = f"{n['upstream_app']}-producer-1"
+    produce_client = producer_client("upstream_app")
     net_thread = f"kafka-producer-network-thread | {produce_client}"
     sender = "org.apache.kafka.clients.producer.internals.Sender"
     products = [short_id(rng, "p-", 4) for _ in range(3)]  # shared by many orders (R22)
@@ -225,6 +231,13 @@ def generate(knobs: ScenarioKnobs) -> World:
             "kafka.consumer.group": n["seed_group"],
             "kafka.producer.topics": n["out_topic"],
             "kafka.producer.acks": "all",
+            "kafka.consumer.client.id": consumer_client("seed_app"),
+            "kafka.producer.client.id": producer_client("seed_app"),
+            "upstream.apps": n["upstream_app"],
+            f"upstream.{n['upstream_app']}.kafka.client.ids": producer_client("upstream_app"),
+            "downstream.apps": f"{n['downstream_app']},{n['notify_app']}",
+            f"downstream.{n['downstream_app']}.kafka.client.ids": consumer_client("downstream_app"),
+            f"downstream.{n['notify_app']}.kafka.client.ids": consumer_client("notify_app"),
             "pricing.wait.timeout.ms": str(WAIT_TIMEOUT_S * 1000),
             "worker.threads": "4",
         },
@@ -233,11 +246,17 @@ def generate(knobs: ScenarioKnobs) -> World:
             "kafka.producer.topics": n["in_topic"],
             "kafka.producer.acks": "all",
             "kafka.producer.delivery.timeout.ms": str(DELIVERY_TIMEOUT_S * 1000),
+            "kafka.producer.client.id": producer_client("upstream_app"),
+            "downstream.apps": n["seed_app"],
+            f"downstream.{n['seed_app']}.kafka.client.ids": consumer_client("seed_app"),
         },
         n["downstream_app"]: {
             "kafka.bootstrap.servers": n["bootstrap"],
             "kafka.consumer.topics": n["out_topic"],
             "kafka.consumer.group": n["down_group"],
+            "kafka.consumer.client.id": consumer_client("downstream_app"),
+            "upstream.apps": n["seed_app"],
+            f"upstream.{n['seed_app']}.kafka.client.ids": producer_client("seed_app"),
             "db.host": n["db_host"],
             "db.name": n["db_name"],
             "db.pool.size": "10",
@@ -245,9 +264,13 @@ def generate(knobs: ScenarioKnobs) -> World:
         },
     }
     groups = [
-        GroupInfo(n["seed_group"], n["in_topic"], n["seed_app"], f"{n['seed_app']}-1-{short_id(rng, '', 8)}", "/10.0.1.11"),
-        GroupInfo(n["down_group"], n["out_topic"], n["downstream_app"], f"{n['downstream_app']}-1-{short_id(rng, '', 8)}", "/10.0.1.12"),
-        GroupInfo(n["notify_group"], n["out_topic"], n["notify_app"], f"{n['notify_app']}-1-{short_id(rng, '', 8)}", "/10.0.1.13"),
+        # CLIENT-ID is the client.id from each app's config, not the app name.
+        GroupInfo(n["seed_group"], n["in_topic"], consumer_client("seed_app"),
+                  f"{consumer_client('seed_app')}-{short_id(rng, '', 8)}", "/10.0.1.11"),
+        GroupInfo(n["down_group"], n["out_topic"], consumer_client("downstream_app"),
+                  f"{consumer_client('downstream_app')}-{short_id(rng, '', 8)}", "/10.0.1.12"),
+        GroupInfo(n["notify_group"], n["out_topic"], consumer_client("notify_app"),
+                  f"{consumer_client('notify_app')}-{short_id(rng, '', 8)}", "/10.0.1.13"),
     ]
 
     loc = (n["cluster"], n["namespace"])
