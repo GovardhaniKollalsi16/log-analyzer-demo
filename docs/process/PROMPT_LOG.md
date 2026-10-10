@@ -175,3 +175,22 @@ for d12 keep it 3 we will tune it later based on data
   - A Python script edited the decisions table, inserted R11 (initially before R7) and then moved it after R10. `grep` confirmed R1…R11 are in order and D1–D12 have the expected status.
 - **Tests:** none (no code yet).
 - **Still open:** D10, the OK for a project `.venv` (R11), and approval to start M1.
+
+---
+
+## Entry 008 — 2026-10-10T17:31:09Z (10:31 PDT) — Milestone: M0 (decisions pending)
+
+### Prompt (verbatim; tabs preserved)
+
+````text
+D10	Default model and API key variable	claude-sonnet-5-5, with the key read from ANTHROPIC_API_KEY.
+D11	When to push to  I dont have a key now, will provide later.
+````
+
+### Outcome
+
+- **Did:** Recorded D10 as resolved (`claude-sonnet-5-5`, `ANTHROPIC_API_KEY`), noting that no key is available yet and only the M10 real-API runs depend on one. The "D11 When to push to" fragment looked like a partial paste; D11 was already resolved in entry 007, so nothing changed for it. All D1–D12 are now resolved. Finished at 2026-10-10T17:31:09Z.
+- **Files:** `docs/design/PROPOSAL.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** a Python script appended this entry and updated the D10 row.
+- **Tests:** none (no code yet).
+- **Still open:** the OK for a project `.venv` (R11) and approval to start M1.

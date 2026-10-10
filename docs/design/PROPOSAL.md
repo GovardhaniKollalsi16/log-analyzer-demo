@@ -163,6 +163,6 @@ Assumptions: all timestamps are normalized to UTC; a single host runs everything
 | D7 | Subagent allowlist enforcement | **Resolved 2026-10-10:** PreToolUse hook checks each Bash command against the same JSON allowlist |
 | D8 | Scenario data | **Resolved 2026-10-10:** seeded generators with knobs (rename, time shift, drop, shuffle, …); snapshot outputs checked in |
 | D9 | Packaging | **Resolved 2026-10-10:** `pyproject.toml`, setuptools as build backend only; console scripts `mocklogs`, `investigator` (see R11) |
-| D10 | Default model / API key env var | Open (proposed: `claude-sonnet-5-5`, `ANTHROPIC_API_KEY`) |
+| D10 | Default model / API key env var | **Resolved 2026-10-10:** `claude-sonnet-5-5`; key read only from `ANTHROPIC_API_KEY`. The user has no key yet and will provide one later. Only the real-API runs in M10 need it; tests use the scripted fake LLM, and the M11 Claude Code subagent runs inside Claude Code |
 | D11 | Push cadence | **Resolved 2026-10-10:** push to GitHub after each approved milestone |
 | D12 | Validator retry limit | **Resolved 2026-10-10:** 3 retries, then fail closed to INSUFFICIENT; to be tuned from run data |
