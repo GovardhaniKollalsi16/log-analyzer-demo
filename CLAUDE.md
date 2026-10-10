@@ -16,7 +16,9 @@ The user needs a real, unpolished record of how they work with AI. These rules a
 
 ## Engineering rules
 
-- Python 3.11+, type hints, dataclasses, **stdlib + pytest only**. **Ask before adding ANY other dependency.**
+- **Python 3.9+** (the machine has 3.9.6; the user chose not to install 3.11, decision D1 on 2026-10-10). Type hints, dataclasses, **stdlib + pytest only**. **Ask before adding ANY other dependency.**
+  - 3.9 compatibility: put `from __future__ import annotations` in every module; no `match`, no `X | Y` outside annotations (use `Optional`/`Union` in `isinstance` and type aliases), no `dataclass(slots=/kw_only=)`, no `tomllib`/`StrEnum`/`ExceptionGroup`. `datetime.fromisoformat` does not accept a `Z` suffix, so normalize it first.
+- The SKILL.md command allowlist is a **fenced JSON block** (not TOML), so it can be read with stdlib `json` on 3.9.
 - Keep module boundaries clear: adapters, parsing/normalization, correlation, timeline, detectors, analysis, narration, report, CLI.
 - Handle malformed records, missing IDs, timestamp skew, duplicates, and out-of-order logs.
 - **Never hardcode a root cause for a scenario.** The analysis code must not know scenario names or the injected fault. Robustness tests rename services, shift times, shuffle order, and drop records.

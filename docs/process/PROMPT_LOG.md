@@ -74,3 +74,21 @@ For d1 is oython 3.11+ that important for the project to run, if not dont. need 
 - **Did:** Answered the question; no files changed other than this log. D1 is still open until the user picks an option.
 - **Commands run:** `/usr/bin/python3 -c "import tomllib"` → `ModuleNotFoundError: No module named 'tomllib'`. `/usr/bin/python3 -m pytest --version` → `No module named pytest`.
 - **Finding:** Under the current spec, the only hard dependency on 3.11 is `tomllib`, used to read the TOML allowlist in SKILL.md. Separately, pytest has to be installed whichever Python is used.
+
+---
+
+## Entry 003 — 2026-10-10T17:22:21Z (10:22 PDT) — Milestone: M0 (decisions pending)
+
+### Prompt (verbatim)
+
+````text
+follow option 2 dont need to complciate it
+````
+
+### Outcome
+
+- **Did:** Applied D1 option 2. The target is now Python 3.9+, and the SKILL.md allowlist is a fenced JSON block instead of TOML. Added 3.9 compatibility rules to CLAUDE.md. Updated PROPOSAL.md (data flow, module notes, SKILL outline sample, R1, R3, M8, new section 8 Decisions). Logged the redirect in AI_NOTES. Finished at 2026-10-10T17:22:49Z.
+- **Files:** `CLAUDE.md`, `docs/design/PROPOSAL.md`, `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** `sed` replacements of TOML→JSON references. A `grep -i "toml|3.11|tomllib"` afterwards showed only intentional mentions remaining (the 3.9 rule note, the "JSON rather than TOML" rationale, `pyproject.toml` for packaging).
+- **Tests:** none (no code yet).
+- **Still open:** D2–D12, then approval to start M1. pytest is not installed for Python 3.9 yet.

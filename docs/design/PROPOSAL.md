@@ -20,7 +20,7 @@ Status: **PROPOSED, not approved.** No implementation code exists yet.
               → timeline (skew-tolerant) → detectors → analysis bundle (JSON)
 ```
 
-1. The agent reads SKILL.md and follows its investigation order: app services → upstream → Kafka → DB. It can **only** run commands in the TOML allowlist.
+1. The agent reads SKILL.md and follows its investigation order: app services → upstream → Kafka → DB. It can **only** run commands in the JSON allowlist.
 2. `mocklogs` prints synthetic raw logs shaped like real tools. Every output starts with a `MOCK` banner, and each record carries a source tag.
 3. `investigator correlate` turns raw outputs into one **analysis bundle** (JSON). The bundle holds normalized events with stable `event_id`s, correlation groups, an ordered timeline with uncertainty flags, detector findings, data-quality issues, source coverage, and a **confidence cap**.
 4. The LLM reasons only over the bundle, then calls `submit_report`. The validator rejects unknown event IDs, a confidence above the deterministic cap, a root cause without evidence, and missing required sections. On rejection the agent gets the errors back and can retry (bounded).
@@ -47,7 +47,7 @@ src/
     timeline.py                # per-source skew estimation, tolerance-based ordering, uncertainty flags
     detectors/                 # one module per rule; generic over service *roles*, never names
     analysis.py                # bundle assembly: coverage, candidate chains, confidence cap
-    allowlist.py               # parses the TOML block out of SKILL.md (stdlib tomllib)
+    allowlist.py               # parses the fenced JSON allowlist block out of SKILL.md (stdlib json)
     agent/
       provider.py              # LLMProvider protocol, AnthropicProvider (urllib), ScriptedFakeLLM
       loop.py                  # tool-use loop, turn budget, transcript writer
@@ -59,7 +59,7 @@ src/
 .claude/
   skills/incident-logs/SKILL.md
   agents/incident-investigator.md
-  hooks/allowlist_guard.py     # (pending D7) PreToolUse hook enforcing the TOML allowlist for the subagent
+  hooks/allowlist_guard.py     # (pending D7) PreToolUse hook enforcing the JSON allowlist for the subagent
 tests/  unit/  integration/  robustness/
 runs/   docs/process/   docs/design/
 ```
@@ -105,21 +105,21 @@ Each generator takes knobs: `seed`, `service_names` map, `t0`, `per_source_skew_
 6. How to read the analysis bundle (findings, hypotheses, confidence cap).
 7. Report contract: required sections, citation rules, confidence must be ≤ cap.
 8. **Allowlist (machine-readable):**
-   ```toml
-   [[allow]]
-   tool = "mocklogs"
-   subcommand = ["kubectl", "logs"]
-   flags = ["-n", "--since", "--timestamps", "--tail"]
-   # ... one [[allow]] per command shape; anything else is rejected
+   ```json
+   {"allow": [
+     {"tool": "mocklogs", "subcommand": ["kubectl", "logs"],
+      "flags": ["-n", "--since", "--timestamps", "--tail"]}
+   ]}
    ```
+   One entry per command shape; anything else is rejected. (JSON rather than TOML: D1, Python 3.9 has no stdlib TOML reader.)
 
 ## 6. Technical risks & assumptions
 
 | # | Risk / assumption | Mitigation |
 |---|---|---|
-| R1 | **Only Python 3.9.6 is installed**; the project requires 3.11+ (`tomllib`, typing). | User decision D1. |
+| R1 | Python 3.9.6 is the target (D1 resolved: stay on 3.9). Python 3.9 no longer gets updates, and some newer syntax is unavailable. | Allowlist is JSON (stdlib `json`). 3.9 compatibility rules are in CLAUDE.md. pytest still has to be installed (M1). |
 | R2 | Subagent frontmatter `skills:` field support and exact syntax depend on the Claude Code version. | Verify against current docs in that milestone and record the result in AI_NOTES. |
-| R3 | A subagent's Bash tool can't natively enforce a TOML allowlist. | PreToolUse hook script that parses the same TOML (D7). |
+| R3 | A subagent's Bash tool can't natively enforce a JSON allowlist. | PreToolUse hook script that parses the same JSON block (D7). |
 | R4 | Subagent transcripts live in `~/.claude/projects/...`, not `runs/`. | SubagentStop hook copies or converts them into `runs/`. Verify feasibility early. |
 | R5 | "Never hardcode root cause" can leak through scenario-specific detectors or names. | Detectors keyed on roles/patterns. A test asserts `investigator` never imports `mocklogs` and contains no scenario or service names. Robustness tests rename everything. |
 | R6 | Skew estimation from causal pairs can be wrong when there are few pairs. | Fall back to no correction plus wider uncertainty flags. Never reorder beyond tolerance. Mark `order_uncertain`. |
@@ -142,8 +142,15 @@ Assumptions: all timestamps are normalized to UTC; a single host runs everything
 | M5 | Detectors + `investigator correlate` CLI → bundle JSON | Scenario 1 bundle snapshot test |
 | M6 | Scenarios 2–4 + robustness harness (rename/shift/shuffle/drop) | Robustness suite green for all 4 |
 | M7 | Report model, validator (citations, cap), Markdown renderer | Validator rejection tests |
-| M8 | SKILL.md + TOML allowlist + `allowlist.py` | Allowlist parse/enforce tests; SKILL_CHANGELOG entry |
+| M8 | SKILL.md + JSON allowlist + `allowlist.py` | Allowlist parse/enforce tests; SKILL_CHANGELOG entry |
 | M9 | Provider interface, ScriptedFakeLLM, tool loop, transcript writer | End-to-end fake-LLM tests for all 4 scenarios |
 | M10 | Anthropic provider (env-var key), offline mode | Mock-transport test; one real run saved to `runs/` |
 | M11 | Claude Code subagent + allowlist hook + transcript capture | Real subagent run per scenario saved; changelog entries |
 | M12 | README + demo script | Clean-checkout walkthrough |
+
+## 8. Decisions
+
+| # | Decision | Status |
+|---|---|---|
+| D1 | Python version | **Resolved 2026-10-10:** stay on Python 3.9; the allowlist is JSON instead of TOML (user: "follow option 2 dont need to complciate it") |
+| D2–D12 | See chat on 2026-10-10 / PROMPT_LOG entry 001 outcome | Open |
