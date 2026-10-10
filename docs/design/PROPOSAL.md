@@ -154,7 +154,11 @@ src/
     report/  model.py  validate.py  render_md.py
     cli.py                     # investigator plan | correlate | run | validate | replay
 .claude/
-  skills/incident-logs/SKILL.md
+  skills/incident-logs/SKILL.md         # coordinator: rules, order, which component skill when
+  skills/incident-app-logs/SKILL.md     # login, inputs, search by time/cluster/correlation ID/thread, signals
+  skills/incident-app-config/SKILL.md   # login, cluster/namespace, what to read (bootstrap, topics, DB, limits)
+  skills/incident-kafka/SKILL.md        # login, cluster (bootstrap), topic, time→offsets, lag, up/downstream discovery
+  skills/incident-db-logs/SKILL.md      # login, DB host/name, search by time/app, signals
   agents/incident-investigator.md
   hooks/allowlist_guard.py
 tests/  unit/  integration/  robustness/
@@ -207,7 +211,9 @@ Knobs (D8): `seed`, `service_names` (apps, topics, groups, threads, instances), 
 
 Built in stages (user decision 2026-10-10): **v0 in M2** (sections 1, 3, 4, 5 + auth), **v1 in M5** (section 2 traversal + 6), **v2 in M10** (sections 7, 8). Each version gets a SKILL_CHANGELOG entry.
 
-**The exact command syntax now lives in `.claude/skills/incident-logs/SKILL.md` (v0), which supersedes item 3 below.** Additions made in v0, pending user review:
+**Restructured 2026-10-10 (user decision):** one skill per component (`incident-app-logs`, `incident-app-config`, `incident-kafka`, `incident-db-logs`). Each covers logging in (user SSO), where its inputs come from, commands to search by time/cluster/topic etc., output format, and what to look for. `incident-logs` stays as a slim **coordinator** (hard rules, order, which skill per step). In M10 each component skill gets its own JSON allowlist block, and `allowlist.py` merges them. The subagent (M13) lists all five skills.
+
+**The exact command syntax now lives in the component skills, which supersede item 3 below.** Additions made in v0, pending user review:
 - `--save-dir <workdir>` on every fetch command, so output is saved without shell redirects (which the allowlist forbids). This works the same in both agent paths.
 - `--since-time`/`--until-time` (real `kubectl` flag names) instead of `--since=<dur>`, because scenario time is fixed in the past and relative durations would drift.
 - Mock-only extensions, labeled in the skill:
@@ -216,6 +222,14 @@ Built in stages (user decision 2026-10-10): **v0 in M2** (sections 1, 3, 4, 5 + 
   - `--describe --all-groups` for downstream discovery.
 - Refusal exit codes: 3 = SSO expired/missing, 4 = Forbidden. On SSO expiry, the agent asks the user and retries once.
 - Kafka **client** (producer/consumer) activity also appears in the owning app's logs under a Kafka-client logger.
+- Added in the per-component restructure, pending review:
+  - **Cluster** dimension:
+    - app logs/config use `--context <cluster> -n <namespace>`, taken from the seed line, which now carries `cluster` + `namespace` (Kubernetes metadata);
+    - Kafka uses `--bootstrap-server` from config `kafka.bootstrap.servers`;
+    - DB uses `--host`/`--db` from config `db.host`/`db.name`.
+  - **Kafka search by time** via `kafka-get-offsets --time <epoch-ms>`, then `kafka-console-consumer --partition --offset` (real tool shapes).
+  - **Default time window:** seed `ts` − 10 min to + 2 min, widened once if empty (to be computed by `investigator plan` in v1).
+  - **Model follow-up:** `Event` and `Seed` need `cluster` + `namespace`, and thread scoping becomes cluster + app + instance. Not yet in code; proposed for M3, when parsing first produces these fields.
 
 1. Purpose & hard rules:
    - the first message is the seed;
@@ -262,6 +276,7 @@ Built in stages (user decision 2026-10-10): **v0 in M2** (sections 1, 3, 4, 5 + 
 | ★ R18 | Without change history, a "bad config" can only be found from inconsistencies against observed behavior, not from when it changed. | Accepted (D20). Scenario 2 is built on `config.inconsistent`. |
 | ★ R19 | The agent acts under the **user's identity** (SSO, D21). Anything it runs is attributed to the user, and an expired session interrupts a run midway. | The allowlist contains read-only commands only; `sso login` is excluded so only the user can authenticate. On expiry: stop, ask the user, and record `auth_required` if they decline. The session marker is never logged (test-enforced). |
 | ★ R20 | **Answer leakage to the agent:** the scenario name (e.g. `upstream-timeout`) or scenario-specific examples in SKILL.md would hint at the root cause. | Scenario selection is set by the harness/user (env var), never shown in output or banners, and not available to agent commands. SKILL.md examples are neutral, enforced by `test_skill_neutrality.py`. |
+| ★ R21 | Related (upstream/downstream) apps are assumed to run in the **seed's cluster and namespace**. Kafka tells us *which* app, not *where* it runs. | Documented assumption in `incident-app-logs`. If the fetch returns nothing or Forbidden, it's a coverage gap, not a conclusion. Revisit if scenarios need multi-cluster |
 
 ## 7. Milestone plan
 

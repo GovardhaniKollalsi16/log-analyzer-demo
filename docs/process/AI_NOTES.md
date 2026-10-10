@@ -131,3 +131,18 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - Added `tests/unit/test_skill_neutrality.py`, which fails if SKILL.md mentions scenario vocabulary. Canary check: appending "order-api" made it fail; removing it made it pass.
   - Moved the shared vocabulary list into `tests/unit/_vocabulary.py`.
   - Added risk R20.
+
+## 2026-10-10 — M2 step 1 — Redirect: one skill per component
+
+- **Proposed:** a single `incident-logs` SKILL.md v0 covering all four components.
+- **User:** "I think it is better ton have skills for each component seperately on how to login and what to looks and command to search based on time, cluster, topic. for kafaka like wise for others, create sperate skills files"
+- **Changed:**
+  - Four component skills plus `incident-logs` kept as a slim coordinator. Keeping a coordinator was the AI's choice: the order, the hard rules, and "which skill when" don't belong to any one component. Flagged to the user for review.
+  - The neutrality guard was extended to every skill (canary on `incident-kafka` failed with `pricing.events`, then passed after restoring).
+- **New assumptions the AI introduced, flagged for review:**
+  - cluster/namespace now come from the seed line;
+  - related apps are assumed to be in the seed's cluster (R21);
+  - a default time window of −10/+2 min;
+  - Kafka time search via `kafka-get-offsets`;
+  - a model follow-up for `cluster`/`namespace`, deferred to M3.
+- **Gap the AI found:** the user's request for search "based on ... cluster" exposed that the design had no cluster dimension at all. Neither the models nor the commands named a cluster.

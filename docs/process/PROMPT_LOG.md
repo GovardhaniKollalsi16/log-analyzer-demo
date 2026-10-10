@@ -495,3 +495,30 @@ Yes, move skills earlier and start M2 with SKILL.md
   - Vocabulary scan of SKILL.md after the fix → `scenario vocabulary left in SKILL.md: none`
   - `.venv/bin/pytest` → `collected 25 items` … `25 passed in 0.04s`
   - Canary: appended `canary: order-api` to SKILL.md → `AssertionError: SKILL.md mentions scenario vocabulary: ['order-api']`, `1 failed, 1 passed`. Restored from backup (`grep -c canary` → `0`). `.venv/bin/pytest` → `25 passed in 0.02s`
+
+---
+
+## Entry 022 — 2026-10-10T18:17:29Z (11:17 PDT) — Milestone: M2 step 1 (skills, restructured per component)
+
+### Prompt (verbatim)
+
+````text
+I think it is better ton have skills for each component seperately on how to login and what to looks and command to search based on time, cluster, topic. for kafaka like wise for others, create sperate skills files
+````
+
+### Outcome
+
+- **Did:**
+  - Split the skill into four component skills (`incident-app-logs`, `incident-app-config`, `incident-kafka`, `incident-db-logs`). Each has: logging in via user SSO, where the inputs come from, commands to search by time/cluster/topic (plus correlation ID/thread/app where relevant), output format, and what to look for.
+  - Reduced `incident-logs` to a coordinator.
+  - Extended the neutrality/structure tests to all five skills.
+  - Recorded the new cluster dimension, Kafka time search, default window, R21 and the model follow-up (`cluster`/`namespace`, scheduled for M3) in PROPOSAL/MILESTONES.
+  - Logged SKILL_CHANGELOG and AI_NOTES.
+  - No `mocklogs` code. Stopped for the user's review of the skills. Finished at 2026-10-10T18:19:38Z.
+- **Files:**
+  - Skills: `.claude/skills/incident-logs/SKILL.md` (rewritten); new `incident-app-logs`, `incident-app-config`, `incident-kafka` and `incident-db-logs` SKILL.md files.
+  - Tests: `tests/unit/test_skill_neutrality.py`.
+  - Docs: `docs/design/PROPOSAL.md`, `docs/design/MILESTONES.md`, `docs/process/SKILL_CHANGELOG.md`, `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`.
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` → `collected 38 items` … `38 passed in 0.03s`
+  - Canary: appended `canary pricing.events` to `incident-kafka/SKILL.md` → `AssertionError: incident-kafka/SKILL.md mentions scenario vocabulary: ['pricing.events']`, `1 failed, 14 passed`. Restored (`grep -c canary` → `0`). `.venv/bin/pytest` → `38 passed in 0.03s`

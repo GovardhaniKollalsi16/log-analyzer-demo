@@ -24,7 +24,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 ---
 
 ## M2 — SKILL.md v0, then `mocklogs`: 4 components + SSO + access control + scenario 1 ⬜
-**Step 1, skill first (user decision 2026-10-10):** write `.claude/skills/incident-logs/SKILL.md` **v0**. It is the agent-facing contract for every `mocklogs` command: how to connect to each component (SSO, access), exact syntax, output formats, and how to handle refusals. **The user reviews v0 before any `mocklogs` code.** After `mocklogs` exists, the illustrative samples in v0 are replaced with real generated output (SKILL_CHANGELOG entry).
+**Step 1, skills first (user decisions 2026-10-10):** write the skills as **one per component** (`incident-app-logs`, `incident-app-config`, `incident-kafka`, `incident-db-logs`) plus the `incident-logs` coordinator. It is the agent-facing contract for every `mocklogs` command: how to connect to each component (SSO, access), exact syntax, output formats, and how to handle refusals. **The user reviews v0 before any `mocklogs` code.** After `mocklogs` exists, the illustrative samples in v0 are replaced with real generated output (SKILL_CHANGELOG entry).
 
 **Step 2 scope**
 - `mocklogs/scenarios/base.py`: a `ScenarioKnobs` dataclass and a generator interface returning per-component raw data **plus the seed line**.
@@ -50,6 +50,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ## M3 — Parsing + normalization + dedupe ⬜
 **Scope**
+- **Model follow-up (from the per-component skills):** add `cluster` + `namespace` to `Event` and `Seed`; thread links scoped by cluster + app + instance.
 - `adapters/` with a `LogSource` protocol and a `FileSource` for tests.
 - `parsing/`: one parser per format. Malformed lines are skipped and never crash (Q1: not surfaced in the bundle).
 - `normalize.py`: UTC (incl. `Z`, offsets, epoch ms), levels, IDs from fields/headers/text, app/instance/thread, stable `event_id`.
@@ -148,7 +149,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ## M10 — SKILL.md v2 (allowlist) + command runner ⬜
 **Scope:**
-- **SKILL.md v2:** add the fenced JSON allowlist covering every command documented in v0/v1, plus the report contract section;
+- **Skills v2:** a fenced JSON allowlist block **in each component skill**, merged by `allowlist.py`; the report contract in the coordinator;
 - `allowlist.py`;
 - `MockCliSource` (subprocess argv, no shell);
 - resolve R17 (getting the seed into `seed.log`);
@@ -190,7 +191,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ## M13 — Claude Code subagent + hook + transcripts ⬜
 **Scope:**
-- `.claude/agents/incident-investigator.md` with `skills: [incident-logs]` (verify the syntax first, R2);
+- `.claude/agents/incident-investigator.md` listing all five skills (`incident-logs`, `incident-app-logs`, `incident-app-config`, `incident-kafka`, `incident-db-logs`) in its frontmatter (verify the syntax first, R2);
 - the allowlist PreToolUse hook;
 - transcript capture into `runs/`;
 - SKILL_CHANGELOG entries per run-triggered change.
