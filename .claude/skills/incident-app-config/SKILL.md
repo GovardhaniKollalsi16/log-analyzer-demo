@@ -1,9 +1,9 @@
 ---
 name: incident-app-config
-description: How to fetch an application's config for an incident investigation (kubectl get configmap shape) - logging in via the user's SSO, picking the cluster/namespace, and what to read from it (Kafka bootstrap servers, topics, consumer group, database, timeouts/retries/pool sizes). Used by the incident-logs coordinator for step 2, seed app only. All data is synthetic (MOCK).
+description: How to fetch the seed application's config for an incident investigation (kubectl get configmap shape) - logging in via the user's SSO, the required inputs (cluster, namespace, app from the incident), and what the config is used for (which topics the app consumes vs produces, its consumer group, and limits such as timeouts/retries/pool sizes). Used by the incident-logs coordinator for step 2, seed app only. All data is synthetic (MOCK).
 ---
 
-# incident-app-config (v0)
+# incident-app-config (v0.1)
 
 > Part of the `incident-logs` investigation. Read that coordinator's hard rules first; they apply here.
 > Example values are deliberately neutral and match no scenario. Output samples are illustrative until `mocklogs` exists.
@@ -17,15 +17,19 @@ description: How to fetch an application's config for an incident investigation 
   # MOCK DATA — synthetic, not from any real system
   Error from server (Forbidden): configmaps "example-app-config" is forbidden: user cannot get resource in namespace "apps" on cluster "example-cluster"
   ```
-  Record `access_denied`. **This matters:** without the config, you can't find the app's topics or database, so the Kafka and DB steps can't be planned, and the confidence you may claim drops. Say so explicitly in the report.
+  Record `access_denied`. **This matters:** without the config, you can't tell which incident topics the app consumes vs. produces, and you can't check its limits. That lowers the confidence you may claim. Say so explicitly in the report. (Kafka and DB access don't depend on it: their inputs come from the incident.)
 
-## 2. Where the inputs come from
+## 2. Required inputs
 
-| Input | Source |
-|---|---|
-| `cluster`, `namespace`, `app` | The seed line |
+| Input | Required? | Where it must come from |
+|---|---|---|
+| `cluster` | **Required** | The incident's `app: cluster=` line |
+| `namespace` | **Required** | The incident's `app: namespace=` line |
+| `app` | **Required** | The seed line's `app` (seed app only) |
 
-Fetch config for the **seed app only**. Never fetch config for upstream or downstream apps.
+**If any required input is missing, don't run any command from this skill.** Record a `missing_input` gap that names what's missing (e.g. `missing_input: app namespace`) and continue with the next step. Never guess or substitute a value, and never reuse another app's or another source's value.
+
+Fetch config for the **seed app only**. Never for upstream or downstream apps.
 
 ## 3. Command
 ```
@@ -53,14 +57,13 @@ Config has no time dimension: it's the current config. There is no change histor
 
 ## 5. What to read from it
 
-These keys are what the next steps need:
+**Config is never a source of access inputs.** The Kafka cluster and topics and the DB host and name come from the **incident** (no input, no access). The config is used for:
 
 | Key | Used for |
 |---|---|
-| `kafka.bootstrap.servers` | The Kafka **cluster** for every `incident-kafka` command |
-| `kafka.consumer.topics` + `kafka.consumer.group` | Topics the app **consumes** → where to find **upstream** producers; the group to check for lag |
-| `kafka.producer.topics` | Topics the app **produces** → where to find **downstream** consumers |
-| `db.host` + `db.name` | Whether there's a downstream DB, and where (`incident-db-logs`). Empty or absent → no DB step |
+| `kafka.consumer.topics` | Which incident topics the app **consumes** → the producers on them are **upstream** *(pending user confirmation)* |
+| `kafka.producer.topics` | Which incident topics the app **produces** → the consumers of them are **downstream** *(pending user confirmation)* |
+| `kafka.consumer.group` | The group for the lag check, if the incident gave no `group=` *(pending user confirmation)* |
 | timeouts, retries, pool sizes, thread counts | Limits that `investigator` checks for inconsistencies (e.g. pool size below worker threads, retries × timeout longer than a consumer can wait). You don't judge these yourself |
 
-Missing keys aren't errors on your part. Record that the step couldn't be planned (e.g. "no consumed topics in config") and move on.
+Topics in the config that **aren't** in the incident are **not** fetched (no input, no access). The config may also name a Kafka cluster or DB that differs from the incident. Don't use the config's value. Note the mismatch in the report.

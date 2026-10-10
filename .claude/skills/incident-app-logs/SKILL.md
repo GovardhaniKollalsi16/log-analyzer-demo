@@ -1,9 +1,9 @@
 ---
 name: incident-app-logs
-description: How to fetch application logs for an incident investigation (kubectl logs shape) - logging in via the user's SSO, picking the cluster/namespace/app, searching by time window, correlation ID, and thread, and what to look for. Used by the incident-logs coordinator for steps 1 and 4. All data is synthetic (MOCK).
+description: How to fetch application logs for an incident investigation (kubectl logs shape) - logging in via the user's SSO, the required inputs (cluster and namespace from the incident, app and time from the seed), searching by time window, correlation ID, and thread, and what to look for. Used by the incident-logs coordinator for steps 1 and 4. All data is synthetic (MOCK).
 ---
 
-# incident-app-logs (v0)
+# incident-app-logs (v0.1)
 
 > Part of the `incident-logs` investigation. Read that coordinator's hard rules first; they apply here.
 > Example values are deliberately neutral and match no scenario. Output samples are illustrative until `mocklogs` exists.
@@ -24,16 +24,20 @@ description: How to fetch application logs for an incident investigation (kubect
   ```
   Record `access_denied` for this app. Don't retry.
 
-## 2. Where the inputs come from
+## 2. Required inputs
 
-| Input | Source |
-|---|---|
-| `cluster` (kube context) | The seed line's `cluster`. Related apps: assume the seed's cluster unless their data says otherwise |
-| `namespace` | The seed line's `namespace` (same assumption for related apps) |
-| `app` | Seed: the seed line's `app`. Related apps: from Kafka (`producer_app` header = upstream, `CLIENT-ID` = downstream) |
-| time window | Default: seed `ts` − 10 min to seed `ts` + 2 min |
-| `correlation_id` | The seed line (may be missing; then search by thread only) |
-| `instance` + `thread` | The seed line. Only for the seed app's own thread segment |
+| Input | Required? | Where it must come from |
+|---|---|---|
+| `cluster` (kube context) | **Required** | Seed app: the incident's `app:` line. Related app: the incident's `app[<name>]:` line |
+| `namespace` | **Required** | Same as `cluster` |
+| `app` | **Required** | Seed app: the seed line's `app`. Related apps: the app name from Kafka output (`producer_app` header = upstream, `CLIENT-ID` = downstream) |
+| time window | **Required** | Derived from the seed line's `ts` (default −10 min / +2 min) |
+| `correlation_id` | Optional | The seed line. If absent, use the thread search or the time-only search |
+| `instance` + `thread` | Optional (both or neither) | The seed line. Only for the **seed app's** own thread segment |
+
+**If any required input is missing, don't run any command from this skill.** Record a `missing_input` gap that names what's missing (e.g. `missing_input: app cluster`) and continue with the next step. Never guess or substitute a value, and never reuse another app's or another source's value.
+
+**Related apps need their own location.** Use an `app[<name>]: cluster=… namespace=…` line from the incident for that app. If the incident has no such line, record `missing_input: cluster/namespace for <name>` and **don't fetch** that app's logs. Never reuse the seed app's cluster for another app *(pending user confirmation: see the coordinator, §2)*.
 
 ## 3. Commands
 

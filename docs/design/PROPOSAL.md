@@ -47,6 +47,8 @@ Status: **Rev 2 approved 2026-10-10 (PROMPT_LOG entry 018).** M1 (models per §3
    ─► report.json + report.md; transcript ─► runs/<ts>-<scenario>.jsonl
 ```
 
+> **Amended 2026-10-10 (user, D22/D23):** the agent's first message is an **incident**: the seed error line **plus the inputs for each source** (app cluster/namespace, Kafka bootstrap + topics, DB host + name). **No input, no access:** a step whose required inputs aren't in the incident isn't run; it's recorded as a `missing_input` coverage gap. The config is **no longer a source of access inputs**. It's used for topic direction (consume vs. produce), the consumer group, and limits *(pending confirmation)*. Where the step text below says the config supplies topics or the DB, read it as "the incident supplies them". The skills are authoritative.
+
 **Traversal rules**
 - **Step 1, seed.** The seed line is the agent's first message (D19). The runtime saves it verbatim to the run's workdir as `seed.log`, and `investigator plan` parses it. The LLM doesn't extract fields from it. From the seed, the code gets the app, instance, thread, timestamp, correlation ID and error code. Fetch that app's logs around the seed time, filtered by correlation ID, plus the seed's thread segment (§1.1).
 - **Step 2, config.** Fetch the seed app's config. If access is denied, it's recorded as a coverage gap that lowers the confidence cap (D16)(Yes this is important), not a crash. The config yields the topology: consumed topics + group, produced topics, downstream DB(s), timeouts/retries/pool sizes. **No change history is used** (D20).
@@ -180,7 +182,7 @@ tests/  unit/  integration/  robustness/
 - ★ `ConfigEntry(app, key, value, raw_ref)` (no change history, D20)
 - ★ `AppTopology(app, consumes: [(topic, group)], produces: [topic], databases: [name], limits: {key: value})`
 - ★ `FetchStep(order, component, target, argv, reason, direction: seed|upstream|downstream)`, `FetchPlan(steps, done, stop_reason)`
-- ★ `CoverageGap(component, target, reason: access_denied | auth_required | not_found | empty)`
+- ★ `CoverageGap(component, target, reason: access_denied | auth_required | missing_input | not_found | empty)` (`missing_input`: D22, added to code in M3)
 - ★ `LinkKind` gains `THREAD_LOCAL`.
 - `CorrelationGroup`, `TimelineEntry`, `SkewEstimate`, `Finding`, `Hypothesis`, `ConfidenceFactor`: unchanged.
 - `AnalysisBundle`: ★ plus `seed`, `topology`, `coverage_gaps`, `traversal`; ★ **minus `parse_issues`** (Q1).
@@ -276,7 +278,7 @@ Built in stages (user decision 2026-10-10): **v0 in M2** (sections 1, 3, 4, 5 + 
 | ★ R18 | Without change history, a "bad config" can only be found from inconsistencies against observed behavior, not from when it changed. | Accepted (D20). Scenario 2 is built on `config.inconsistent`. |
 | ★ R19 | The agent acts under the **user's identity** (SSO, D21). Anything it runs is attributed to the user, and an expired session interrupts a run midway. | The allowlist contains read-only commands only; `sso login` is excluded so only the user can authenticate. On expiry: stop, ask the user, and record `auth_required` if they decline. The session marker is never logged (test-enforced). |
 | ★ R20 | **Answer leakage to the agent:** the scenario name (e.g. `upstream-timeout`) or scenario-specific examples in SKILL.md would hint at the root cause. | Scenario selection is set by the harness/user (env var), never shown in output or banners, and not available to agent commands. SKILL.md examples are neutral, enforced by `test_skill_neutrality.py`. |
-| ★ R21 | Related (upstream/downstream) apps are assumed to run in the **seed's cluster and namespace**. Kafka tells us *which* app, not *where* it runs. | Documented assumption in `incident-app-logs`. If the fetch returns nothing or Forbidden, it's a coverage gap, not a conclusion. Revisit if scenarios need multi-cluster |
+| ~~R21~~ | **Withdrawn 2026-10-10.** Assuming related apps run in the seed's cluster is a guess, which D22 forbids. Related apps need their own `app[<name>]:` line in the incident; otherwise `missing_input`. | — |
 
 ## 7. Milestone plan
 
@@ -326,3 +328,6 @@ Detailed, editable version with kickoff prompts: `docs/design/MILESTONES.md`.
 | D19 | Seed input | ★ Resolved: the app log line is the agent's first message |
 | D20 | Config change history | ★ Resolved: not used |
 | D21 | Authentication | ★ Resolved 2026-10-10 (user): the **user's SSO session** for **all four components** (first stated for Kafka, extended to app logs, config and DB logs on confirmation); no agent credentials exist. Design in §1.2 |
+| D22 | Required inputs | ★ Resolved 2026-10-10 (user): **no input, no access**. Each skill lists its required inputs; if any is missing, none of that skill's commands run, and a `missing_input` gap is recorded |
+| D23 | Incident message | ★ Proposed 2026-10-10, pending user review: `INCIDENT` / `seed:` / `app:` / `app[<name>]:` / `kafka: bootstrap= topics= [group=]` / `db: host= name=` (format in the `incident-logs` skill §2). Open sub-questions: (a) does plain `app:` cover only the seed app? (b) may the config supply the consumer group and topic direction? |
+| D24 | Safeguards & rate limiting | ★ Deferred 2026-10-10: the **user** will add these later. Not in any milestone's scope until then |

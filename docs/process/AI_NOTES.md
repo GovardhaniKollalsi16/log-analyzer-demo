@@ -146,3 +146,20 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - Kafka time search via `kafka-get-offsets`;
   - a model follow-up for `cluster`/`namespace`, deferred to M3.
 - **Gap the AI found:** the user's request for search "based on ... cluster" exposed that the design had no cluster dimension at all. Neither the models nor the commands named a cluster.
+
+## 2026-10-10 — M2 step 1 — Redirect: inputs come from the incident; "no input, no access"
+
+- **Before:** The skills derived Kafka cluster/topics and the DB host from the seed app's **config**, and assumed related apps run in the seed's cluster (R21, the AI's own assumption).
+- **User:** "I need ton add afeguards and limiting but will add later. The incident will mention the what will be inouts for each siource, i.e. we need kafka server cluster and topic and for each db same as well. Make it cler in the skills what is the inouts required to execute the skills, if the required inout is not present we will not try to access the logs."
+- **Changed:**
+  - Every component skill has a "Required inputs" table and a don't-run-if-missing rule (→ `missing_input` gap).
+  - The coordinator has rule 1 "No input, no access" and a proposed `INCIDENT` format.
+  - The config was demoted to direction/group/limits only.
+  - R21 withdrawn.
+  - D22 recorded; D23 (incident format) proposed; D24 (safeguards/limiting) deferred to the user and kept out of scope.
+- **Self-caught:**
+  1. After the section swap, the `incident-app-config` "what to read" table and Forbidden note, and the `incident-db-logs`/`incident-kafka`/`incident-app-logs` descriptions, still said inputs came from the config. Found by grep and fixed.
+  2. The structure test still required the old "Where the inputs come from" heading. 4 tests failed (`4 failed, 34 passed`) until the test was updated to the new rule. The failure was expected from the heading change, but the AI ran the tests before updating them.
+- **AI interpretations flagged to the user, not yet confirmed:**
+  - the plain `app:` line covers only the seed app, so related apps need `app[<name>]:`;
+  - the config may still supply the consumer group and the consume/produce direction.

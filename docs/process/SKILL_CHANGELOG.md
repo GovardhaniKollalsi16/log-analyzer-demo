@@ -32,3 +32,13 @@ Format:
     - `cluster`/`namespace` in the app log format;
     - DB/Kafka-specific Forbidden messages.
   - `test_skill_neutrality.py` now covers all five skills and checks that component skills have the required sections.
+
+## 2026-10-10 — skills — required inputs ("no input, no access") + incident format
+- **Reason:** User: "The incident will mention the what will be inouts for each siource, i.e. we need kafka server cluster and topic and for each db same as well. Make it cler in the skills what is the inouts required to execute the skills, if the required inout is not present we will not try to access the logs."
+- **Triggering run transcript:** none (no agent runs yet). This is a design decision from review.
+- **Change:**
+  - Coordinator v0.2: hard rule 1 "No input, no access"; a proposed `INCIDENT` message format (seed + `app:` / `app[<name>]:` / `kafka:` / `db:` lines); the step table now lists the required inputs per step.
+  - Component skills v0.1: section 2 is now "Required inputs" (input | required? | where it must come from), followed by the rule "If any required input is missing, don't run any command from this skill" → `missing_input` gap.
+  - The config is no longer a source of Kafka/DB access inputs. It's only used for direction/group/limits (pending confirmation), and mismatches against the incident get reported.
+  - Removed the "assume the seed's cluster" guidance for related apps (R21 withdrawn).
+  - The structure test now enforces the Required-inputs section and the rule in every component skill, plus the rule and the format in the coordinator.

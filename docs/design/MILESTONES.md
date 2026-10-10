@@ -4,6 +4,8 @@ Matches `PROPOSAL.md` Rev 2. **The user reviews and edits this file.** Each mile
 
 Status: ✅ approved · 🟡 implemented, awaiting review · ⬜ not started
 
+**Deferred, owned by the user (D24):** safeguards and rate limiting, to be added later. Not in any milestone until the user schedules them.
+
 ---
 
 ## M0 — Process + design ✅ (Rev 2 approved 2026-10-10)
@@ -51,6 +53,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 ## M3 — Parsing + normalization + dedupe ⬜
 **Scope**
 - **Model follow-up (from the per-component skills):** add `cluster` + `namespace` to `Event` and `Seed`; thread links scoped by cluster + app + instance.
+- **Model follow-up (D22/D23):** `GapReason.MISSING_INPUT`; an `Incident` model (seed line + per-source inputs) parsed deterministically from the agent's first message.
 - `adapters/` with a `LogSource` protocol and a `FileSource` for tests.
 - `parsing/`: one parser per format. Malformed lines are skipped and never crash (Q1: not surfaced in the bundle).
 - `normalize.py`: UTC (incl. `Z`, offsets, epoch ms), levels, IDs from fields/headers/text, app/instance/thread, stable `event_id`.
@@ -76,7 +79,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 ## M5 — Config → topology + `investigator plan` ⬜
 **Scope**
 - `config_model.py`: configmap JSON → `ConfigEntry`s + `AppTopology`.
-- `planner.py`: the seed (`seed.log`) + fetched outputs in the workdir → `FetchPlan` following PROPOSAL §1:
+- `planner.py`: the **incident** (seed + per-source inputs) + fetched outputs in the workdir → `FetchPlan` following PROPOSAL §1. **No input, no access (D22):** a step with a missing required input becomes a `missing_input` gap, never a guessed command:
   - seed app logs → config → Kafka → 1 hop up/down → DB;
   - access-denied targets become `CoverageGap`s.
 - `investigator plan --workdir <dir>` prints the next allowlisted argv lists as JSON. Register the `investigator` console script.

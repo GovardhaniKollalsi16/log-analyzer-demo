@@ -1,9 +1,9 @@
 ---
 name: incident-kafka
-description: How to fetch Kafka data for an incident investigation (kafka-consumer-groups, kafka-get-offsets, kafka-console-consumer and broker/client log shapes) - logging in via the user's SSO, picking the cluster (bootstrap servers) and topic, searching by time window and correlation ID, finding upstream producers and downstream consumers, and what to look for. Used by the incident-logs coordinator for step 3. All data is synthetic (MOCK).
+description: How to fetch Kafka data for an incident investigation (kafka-consumer-groups, kafka-get-offsets, kafka-console-consumer and broker/client log shapes) - logging in via the user's SSO, the required inputs (Kafka cluster and topics from the incident), searching by time window and correlation ID, finding upstream producers and downstream consumers, and what to look for. Used by the incident-logs coordinator for step 3. All data is synthetic (MOCK).
 ---
 
-# incident-kafka (v0)
+# incident-kafka (v0.1)
 
 > Part of the `incident-logs` investigation. Read that coordinator's hard rules first; they apply here.
 > Example values are deliberately neutral and match no scenario. Output samples are illustrative until `mocklogs` exists.
@@ -24,15 +24,20 @@ description: How to fetch Kafka data for an incident investigation (kafka-consum
   ```
   Record `access_denied` for that topic or group. Don't retry.
 
-## 2. Where the inputs come from
+## 2. Required inputs
 
-| Input | Source |
-|---|---|
-| cluster = `--bootstrap-server` | The seed app's config: `kafka.bootstrap.servers` |
-| topics | Config: `kafka.consumer.topics` (consumed → **upstream**), `kafka.producer.topics` (produced → **downstream**) |
-| consumer group | Config: `kafka.consumer.group` |
-| time window | Same window as the coordinator (default: seed `ts` − 10 min to + 2 min) |
-| `correlation_id` | The seed line |
+| Input | Required? | Where it must come from |
+|---|---|---|
+| Kafka cluster = `--bootstrap-server` | **Required** for every command | The incident's `kafka: bootstrap=` line |
+| `topic` | **Required** for message, offset and log commands | The incident's `kafka: topics=` line. **Only those topics** |
+| consumer `group` | **Required** for the lag command | The incident's `kafka: group=`, or `kafka.consumer.group` read verbatim from the seed app's config *(config as a source: pending user confirmation)* |
+| time window | **Required** for offset and log commands | Derived from the seed line's `ts` |
+| `correlation_id` | Optional | The seed line. Without it, read messages by time only |
+
+**If any required input is missing, don't run any command from this skill.** Record a `missing_input` gap that names what's missing (e.g. `missing_input: kafka bootstrap`) and continue with the next step. Never guess or substitute a value, and never reuse another app's or another source's value.
+If the cluster is present but a particular command's extra input is missing (e.g. no `group`), skip **only that command** and record which input was missing.
+
+**Upstream vs. downstream** depends on whether the seed app **consumes** or **produces** a topic. That comes from the seed app's config (`kafka.consumer.topics` / `kafka.producer.topics`) *(pending user confirmation)*. Without the config, the `producer_app` header still identifies who produced a message. Treat any producer other than the seed app as upstream, and report that the direction of the remaining topics is unknown.
 
 ## 3. Commands
 

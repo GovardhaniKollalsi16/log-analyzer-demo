@@ -1,9 +1,9 @@
 ---
 name: incident-db-logs
-description: How to fetch database logs for an incident investigation - logging in via the user's SSO, picking the DB host (cluster) and database name from the app config, searching by time window and app, and what to look for. Used by the incident-logs coordinator for step 5, only when the seed app's config declares a database. All data is synthetic (MOCK).
+description: How to fetch database logs for an incident investigation - logging in via the user's SSO, the required inputs (DB host and database name from the incident, time window from the seed), searching by time window and app, and what to look for. Used by the incident-logs coordinator for step 5, only when the incident names a database. All data is synthetic (MOCK).
 ---
 
-# incident-db-logs (v0)
+# incident-db-logs (v0.1)
 
 > Part of the `incident-logs` investigation. Read that coordinator's hard rules first; they apply here.
 > Example values are deliberately neutral and match no scenario. Output samples are illustrative until `mocklogs` exists.
@@ -19,16 +19,18 @@ description: How to fetch database logs for an incident investigation - logging 
   ```
   Record `access_denied`. Don't retry.
 
-## 2. Where the inputs come from
+## 2. Required inputs
 
-| Input | Source |
-|---|---|
-| `--host` (DB cluster) | The seed app's config: `db.host` |
-| `--db` | The seed app's config: `db.name` |
-| `--grep <app>` | The seed app's name. DB sessions are tagged `app=<name>` |
-| time window | Same window as the coordinator |
+| Input | Required? | Where it must come from |
+|---|---|---|
+| `--host` (DB cluster) | **Required** | The incident's `db: host=` line |
+| `--db` (database name) | **Required** | The incident's `db: name=` line |
+| time window | **Required** | Derived from the seed line's `ts` |
+| `--grep <app>` | Optional | The seed line's `app`. DB sessions are tagged `app=<name>` |
 
-**Run this step only if the config declares a database** (`db.name` non-empty). Otherwise skip it and say so.
+**If any required input is missing, don't run any command from this skill.** Record a `missing_input` gap that names what's missing (e.g. `missing_input: db host`) and continue with the next step. Never guess or substitute a value, and never reuse another app's or another source's value.
+
+If the incident has no `db:` line, there is no DB step. Say so in the report; it isn't an error.
 
 ## 3. Commands
 

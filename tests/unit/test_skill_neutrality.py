@@ -39,8 +39,17 @@ def test_skill_never_mentions_scenario_names(name):
 @pytest.mark.parametrize("name", EXPECTED_SKILLS[1:])
 def test_component_skills_cover_login_inputs_commands_and_signals(name):
     text = (SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8")
-    for heading in ("## 1. Logging in", "## 2. Where the inputs come from", "## 3. Command",
+    for heading in ("## 1. Logging in", "## 2. Required inputs", "## 3. Command",
                     "## 4. Output format", "## 5. What to"):
         assert heading in text, f"{name} is missing section {heading!r}"
     assert "never run `mocklogs sso login`" in text
     assert "--save-dir <workdir>" in text
+    # "No input, no access" (user rule, 2026-10-10)
+    assert "**If any required input is missing, don't run any command from this skill.**" in text
+    assert "`missing_input`" in text
+
+
+def test_coordinator_states_no_input_no_access():
+    text = (SKILLS_DIR / "incident-logs" / "SKILL.md").read_text(encoding="utf-8")
+    assert "**No input, no access.**" in text
+    assert "INCIDENT\nseed:" in text  # the incident message format is documented

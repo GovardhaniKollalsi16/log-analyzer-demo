@@ -538,3 +538,31 @@ Let me verifyh the skills file and then we can go ahead with a commint and next 
 - **Did:** Paused for the user's review of the skill files. No work done, no files changed besides this log. Nothing pushed. No `mocklogs` code.
 - **Commands run:** none besides appending this entry.
 - **Tests:** none.
+
+---
+
+## Entry 024 — 2026-10-10T18:24:05Z (11:24 PDT) — Milestone: M2 step 1 (skills: required inputs)
+
+### Prompt (verbatim)
+
+````text
+I need ton add afeguards and limiting but will add later. The incident will mention the what will be inouts for each siource, i.e. we need kafka server cluster and topic and for each db same as well. Make it cler in the skills what is the inouts required to execute the skills, if the required inout is not present we will not try to access the logs.
+````
+
+### Outcome
+
+- **Did:**
+  - Added "no input, no access" to the skills. Each component skill's section 2 is now **Required inputs** (input / required? / source), plus the rule that a missing required input means none of that skill's commands run (→ `missing_input` gap).
+  - Coordinator v0.2 got the hard rule and a proposed `INCIDENT` message format carrying per-source inputs.
+  - Config is no longer a source of Kafka/DB inputs. Withdrew the R21 same-cluster assumption.
+  - Recorded D22 (resolved), D23 (proposed, two sub-questions), D24 (safeguards/limiting deferred to the user).
+  - Scheduled model follow-ups for M3 (`MISSING_INPUT`, an `Incident` model). Updated tests, SKILL_CHANGELOG, AI_NOTES.
+  - Committed locally; not pushed. Finished at 2026-10-10T18:26:00Z.
+- **Files:**
+  - Skills: `.claude/skills/{incident-logs,incident-app-logs,incident-app-config,incident-kafka,incident-db-logs}/SKILL.md`
+  - Tests: `tests/unit/test_skill_neutrality.py`
+  - Docs: `docs/design/PROPOSAL.md`, `docs/design/MILESTONES.md`, `docs/process/SKILL_CHANGELOG.md`, `docs/process/AI_NOTES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run (actual results):**
+  - `grep` for leftover config-as-source wording → found 4 descriptions + the app-config section; fixed.
+  - `.venv/bin/pytest` (before updating the test) → `4 failed, 34 passed`, each `AssertionError: <skill> is missing section '## 2. Where the inputs come from'`
+  - `.venv/bin/pytest` (after updating the test) → `39 passed in 0.03s`
