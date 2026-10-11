@@ -1006,3 +1006,13 @@ we can add lag later
 - **Did:** Recorded D29: consumer-lag collection is deferred. Until it's added, scenario 3 is a consumer processing failure with retries, observable through the D28 collections. Updated the PROPOSAL scenario table and the MILESTONES deferred list and M8 scope. Lag code stays (the `mocklogs` command, the M4 lag rules), unused by the skill. Nothing else changed. The question about parking M4 is still open. Finished at 2026-10-11T02:50:08Z.
 - **Files:** `docs/design/{PROPOSAL,MILESTONES}.md`, `docs/process/PROMPT_LOG.md`
 - **Commands run:** a Python edit + `grep` confirming the D29 rows. No tests (docs only).
+
+---
+
+## Entry 042 — 2026-10-11T02:50:48Z (19:50 PDT) — Milestone: M4 step 2 (tests for the classification rules)
+
+### Prompt (verbatim)
+
+````text
+finish M4
+````
