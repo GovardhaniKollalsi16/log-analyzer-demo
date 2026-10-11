@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from typing import Callable, Dict
 
-from mocklogs.scenarios import upstream_timeout
+from mocklogs.scenarios import ambiguous, consumer_processing, db_config, upstream_timeout
 from mocklogs.scenarios.base import ScenarioKnobs
 from mocklogs.world import World
 
 SCENARIOS: Dict[str, Callable[[ScenarioKnobs], World]] = {
     "upstream-timeout": upstream_timeout.generate,
+    "db-config": db_config.generate,
+    "consumer-processing": consumer_processing.generate,
+    "ambiguous": ambiguous.generate,
 }
 
 

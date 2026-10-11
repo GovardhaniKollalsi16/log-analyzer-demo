@@ -213,9 +213,9 @@ class _Planner:
         if self.bk:
             self.want(Source.DB, f"{inc.db_host}/{inc.db_name}", argv + ["--grep", self.bk],
                       f"DB statements with {self.bk_name}={self.bk}")
-        else:
-            self.want(Source.DB, f"{inc.db_host}/{inc.db_name}", argv + ["--grep", inc.seed.app],
-                      "DB sessions of the seed app (no business key)")
+        # Connection/session errors carry no business key; collect the seed app's sessions too.
+        self.want(Source.DB, f"{inc.db_host}/{inc.db_name}", argv + ["--grep", inc.seed.app],
+                  "DB sessions of the seed app (connection errors, timeouts)")
 
     def client_logs(self, app: str, loc, topo: AppTopology, direction: Direction) -> None:
         """An app's own Kafka client lines (retries, timeouts, expiries) carry its client ID but

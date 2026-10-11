@@ -206,7 +206,8 @@ def build_bundle(incident: Incident, cor: CorrelationResult, topology: Optional[
     hypotheses = build_hypotheses(findings, ctx, gaps)
     cited = {e for f in findings for e in f.event_ids} | {h.cause_event_id for h in hypotheses}
     config = {e.event_id for e in cor.events if e.source is Source.APP_CONFIG and e.app == incident.seed.app}
-    keep = (ctx.seed_group | cited | config) - set(cor.copies)
+    # copies are dropped to avoid double counting, unless a finding or hypothesis cites them
+    keep = (ctx.seed_group | cited | config) - (set(cor.copies) - cited)
     events = [e for e in cor.events if e.event_id in keep]
     groups = [g for g in cor.groups if g.group_id == cor.seed_group or set(g.event_ids) & cited]
     best = max(hypotheses, key=lambda h: h.ceiling.rank, default=None)

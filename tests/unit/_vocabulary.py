@@ -14,6 +14,7 @@ SCENARIO_VOCABULARY = [
     "partner-pricing",
     "orders.events",
     "pricing.events",
+    "fulfillment.events",
     "fulfillment-consumers",
     "appdb",
     "notification-consumers",

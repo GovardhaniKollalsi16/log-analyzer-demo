@@ -138,9 +138,12 @@ def missing_message(ctx: Context) -> List[Finding]:
 # --- D-4 poison_message ----------------------------------------------------------------------
 
 def poison_message(ctx: Context) -> List[Finding]:
+    """Reads the Kafka-side consumer lines: they carry topic/partition/offset. (When the same line is
+    also in the app's logs, that app-side copy is the canonical one elsewhere; here only the Kafka side
+    is counted, so each occurrence still counts once.)"""
     by_offset: Dict[str, List[Event]] = defaultdict(list)
-    for e in ctx.events:
-        if e.error_code in POISON_CODES and ctx.in_window(e):
+    for e in ctx.cor.events:
+        if e.source is Source.KAFKA and e.error_code in POISON_CODES and ctx.in_window(e):
             topic = e.kafka.topic if e.kafka else None
             partition = e.kafka.partition if e.kafka else None
             m = _OFFSET.search(e.message)
