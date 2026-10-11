@@ -148,7 +148,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M8b — Guardrail commands for an investigating AI (D31) 🟡 (implemented 2026-10-10; user: "i will fix it later"; awaiting review)
+## M8b — Guardrail commands for an investigating AI (D31) ✅ (approved and pushed 2026-10-10)
 **Scope:**
 - `investigator check --workdir <dir> -- <argv…>`: allow/deny one proposed command. Clusters, namespaces, apps, topics, groups, hosts and DBs must come from the incident (where) or the seed config (who); the command shape must be one the skills document. Deny reasons are machine-readable.
 - `investigator score --workdir <dir> --cause <event_id>`: the four factors and the ceiling for any bundle event the AI proposes as the cause (the M7 code, exposed for one event).
@@ -159,7 +159,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M9 — Report model + validator + Markdown ⬜
+## M9 — Report model + validator + Markdown 🟡 (in progress)
 - **D31:** the report may name an AI-proposed cause; the validator checks it exists in the bundle and that the claimed confidence ≤ its `investigator score` ceiling. AI interpretations of unclassified errors are labeled and never raise confidence.
 
 **Scope:**
