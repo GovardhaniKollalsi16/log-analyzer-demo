@@ -1138,3 +1138,13 @@ Yeah the clock drift between machines is not an issue, since the window is big. 
   - `pytest tests/mocklogs/test_snapshots.py` → `22 passed` (unchanged); `skill_samples --check` → exit 0
   - `.venv/bin/pytest` → `282 passed` (×3 across the steps)
 - Finished at 2026-10-11T05:12:31Z. Not pushed (M6 still awaiting review).
+
+---
+
+## Entry 047 — 2026-10-11T05:13:45Z (22:13 PDT) — Milestone: M6 approved → M7 step 1 (detector list + confidence-cap rules for approval)
+
+### Prompt (verbatim)
+
+````text
+Yes approve M6
+````

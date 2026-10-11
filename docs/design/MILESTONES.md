@@ -94,7 +94,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M6 — Correlation (IDs + thread segments) + timeline 🟡 (implemented 2026-10-10; skew handling removed per D30; awaiting review)
+## M6 — Correlation (IDs + thread segments) + timeline ✅ (approved and pushed 2026-10-10)
 **Scope**
 - `correlation.py`: links, each labeled with its kind and strength:
   - `EXACT_ID`: same app + same in-app `correlation_id` (D25: never across apps);
@@ -112,7 +112,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M7 — Detectors + `investigator correlate` ⬜
+## M7 — Detectors + `investigator correlate` 🟡 (step 1: detector list + confidence-cap rules awaiting approval)
 **Scope**
 - `detectors/`: cross-record patterns over classified events:
   - retry amplification
