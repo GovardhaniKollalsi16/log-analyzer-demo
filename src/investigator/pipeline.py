@@ -61,3 +61,20 @@ def score_in_workdir(workdir: Union[str, Path], rules: List[KeyRule], cause_even
     if cause_event_id not in ctx.by_id:
         raise KeyError(cause_event_id)
     return score_cause(ctx, p.gaps, cause_event_id, bundle.hypotheses)
+
+
+def validate_report_in_workdir(workdir: Union[str, Path], rules: List[KeyRule], report) -> "ReportCheck":
+    """Validate an AI report against the evidence collected in `workdir` (M9)."""
+    from investigator.report.validate import validate
+    p = prepare(workdir, rules)
+    bundle = build_bundle(p.incident, p.cor, p.topology, p.outputs, p.gaps)
+    ctx = Context(p.incident, p.cor, p.topology, p.outputs)
+    errors = validate(report, bundle, ctx.by_id, lambda eid: score_cause(ctx, p.gaps, eid, bundle.hypotheses))
+    return ReportCheck(bundle=bundle, events=ctx.by_id, errors=errors)
+
+
+@dataclass
+class ReportCheck:
+    bundle: AnalysisBundle
+    events: dict
+    errors: list

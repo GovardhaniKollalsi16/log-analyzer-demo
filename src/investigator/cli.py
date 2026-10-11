@@ -10,6 +10,10 @@
       Allow/deny one command the AI wants to run (D31). Exit 0 = allowed, 1 = denied; JSON reasons.
   investigator score --workdir <dir> --cause <event_id>
       The confidence factors and ceiling for an AI-proposed cause (D31).
+  investigator validate --workdir <dir> --report <report.json>
+      Check an AI report against the evidence. Exit 0 = valid, 1 = invalid (JSON errors).
+  investigator render --workdir <dir> --report <report.json>
+      Render a report as Markdown.
 """
 
 from __future__ import annotations
@@ -103,6 +107,31 @@ def cmd_score(a) -> int:
     return 0
 
 
+def cmd_validate(a) -> int:
+    from investigator.pipeline import validate_report_in_workdir
+    try:
+        report = json.loads(Path(a.report).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        print(json.dumps({"valid": False, "errors": [{"code": "missing_section", "path": "$",
+                                                       "detail": f"not readable JSON: {e}"}]}, indent=2))
+        return 1
+    result = validate_report_in_workdir(Path(a.workdir), load_rules(a.rules), report)
+    print(json.dumps({"valid": not result.errors, "errors": to_jsonable(result.errors)}, indent=2))
+    return 0 if not result.errors else 1
+
+
+def cmd_render(a) -> int:
+    from investigator.pipeline import validate_report_in_workdir
+    from investigator.report.render_md import render
+    report = json.loads(Path(a.report).read_text(encoding="utf-8"))
+    result = validate_report_in_workdir(Path(a.workdir), load_rules(a.rules), report)
+    if result.errors:
+        print("error: the report doesn't validate; run `investigator validate` first", file=sys.stderr)
+        return 1
+    print(render(report, result.events), end="")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="investigator", description="Deterministic incident investigation (no LLM).")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -120,12 +149,19 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--workdir", required=True)
     s.add_argument("--rules", default=str(DEFAULT_RULES))
     s.add_argument("--cause", required=True, help="event_id of the proposed cause")
+    for name, helptext in (("validate", "check an AI report against the evidence"),
+                           ("render", "render a validated report as Markdown")):
+        s = sub.add_parser(name, help=helptext)
+        s.add_argument("--workdir", required=True)
+        s.add_argument("--rules", default=str(DEFAULT_RULES))
+        s.add_argument("--report", required=True)
     return p
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     a = build_parser().parse_args(argv)
-    return {"plan": cmd_plan, "correlate": cmd_correlate, "check": cmd_check, "score": cmd_score}[a.cmd](a)
+    return {"plan": cmd_plan, "correlate": cmd_correlate, "check": cmd_check, "score": cmd_score,
+            "validate": cmd_validate, "render": cmd_render}[a.cmd](a)
 
 
 if __name__ == "__main__":
