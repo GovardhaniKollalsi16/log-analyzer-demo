@@ -1096,3 +1096,21 @@ Yeah M5 looks fine for now. Go ahead with M6
   - `pytest tests/unit/test_correlation_timeline.py tests/integration/test_planner.py` → `29 passed`; canary (2 rules disabled) → `2 failed, 13 passed`; restored → `15 passed`
   - `pytest tests/integration/test_correlate_scenario.py` → `4 passed`
   - Full suite ×3 → `286 passed` (~2.2s); `skill_samples --check` → exit 0
+
+---
+
+## Entry 045 — 2026-10-11T05:08:33Z (22:08 PDT) — Milestone: M6 (awaiting review; R26 explanation)
+
+### Prompt (verbatim)
+
+````text
+Not done (R26): the design said "causal order within a correlation chain overrides timestamps". M6 orders by skew-adjusted time plus uncertainty flags only. I'd revisit it in M7 if a detector needs it.
+
+What is this give explain clearly
+````
+
+### Outcome
+
+- **Did:** Explained R26 (causal ordering vs. timestamp ordering) in chat with a concrete example. No files changed besides this log.
+- **Commands run:** none besides appending this entry.
+- **Tests:** none.
