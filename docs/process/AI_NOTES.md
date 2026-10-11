@@ -384,3 +384,13 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 4. **Sloppiness caught before running:** the fake set an undeclared `own_cause_overclaim` attribute via `getattr`. It's now a declared field.
 - **Canary:** making the loop accept any submitted report failed the invented-ID and over-claim tests; restored.
 - **Note:** the full suite now takes about 30 s, because the agent tests spawn real `mocklogs` subprocesses.
+
+## 2026-10-11 — Before M12 — Redirect: use the Claude account, not an API key (D32)
+
+- **AI had planned (D10, from the brief):** an Anthropic API provider using `ANTHROPIC_API_KEY`.
+- **User:** "YEah i want this application to run with the my claude account not with api key", then "Pathj 2"
+- **Interpretation (flagged):** "Pathj 2" = build the command-line path (Python launches Claude Code headless) first. Whether the interactive path (talking to the subagent in Claude Code) is still wanted will be asked at the end of M12.
+- **Verified before designing, not assumed (R2):**
+  - local `claude` v2.1.296 has `-p`, `--agent`, `--allowedTools`, `--output-format stream-json` and `--permission-mode`;
+  - the docs (sub-agents, permissions, authentication) confirm the `skills:` frontmatter, `PreToolUse` hooks with exit 2, `Bash(investigator *)` prefix rules with compound-command splitting, `dontAsk`, `Edit(//abs/**)`, and that `-p` uses the `/login` subscription unless `ANTHROPIC_API_KEY` is set.
+- **Changed:** D32 (supersedes D10); R2 resolved; M12 rescoped.

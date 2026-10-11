@@ -203,7 +203,18 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M12 — Anthropic provider + replay ⬜ (needs `ANTHROPIC_API_KEY`)
+## M12 — Claude Code on the user's account (D32, path 2: command line) 🟡 (in progress)
+**Scope (replaces the API-key provider):**
+- `.claude/agents/incident-investigator.md`: all five skills in `skills:`; `tools: Bash, Read, Write`; a `PreToolUse` hook.
+- `.claude/hooks/allowlist_guard.py` (D7): Bash may only run `investigator …`, with no shell operators.
+- `investigator agent --provider claude-code`:
+  - launches `claude -p --agent incident-investigator` headless (`dontAsk`, `--allowedTools "Bash(investigator *)" "Edit(//<workdir>/**)"`), with the API-key variables removed, so it runs on the user's login;
+  - streams its JSON events into `runs/`;
+  - validates `report.json` (fail-closed).
+- Tests use a fake `claude` executable (no account usage).
+- **Live runs on the user's account only after explicit OK.**
+
+~~Original M12: Anthropic provider + replay (needs `ANTHROPIC_API_KEY`)~~ superseded by D32.
 **Scope:**
 - urllib provider (`claude-sonnet-5-5`, key from env only);
 - `investigator replay runs/<file>.jsonl` (D3).

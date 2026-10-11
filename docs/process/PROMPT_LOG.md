@@ -1426,3 +1426,13 @@ Approve M11
 - **Did:** Marked M11 approved and pushed. Did not start M12 (not asked; it also needs the API key for live runs).
 - **Tests:** none run (no code changed since `447 passed`).
 - **Push:** `   a9d5ef2..5d3bdcf  main -> main`
+
+---
+
+## Entry 060 — 2026-10-11T06:38:23Z (23:38 PDT) — Milestone: before M12 (run with the user's Claude account, not an API key)
+
+### Prompt (verbatim)
+
+````text
+YEah i want this application to run with the my claude account not with api key
+````
