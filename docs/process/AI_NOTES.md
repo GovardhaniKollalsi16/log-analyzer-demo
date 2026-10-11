@@ -449,3 +449,15 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - **Scenario 3:** it scored 3 candidate causes (two came back LOW) and chose the poison message (HIGH). It named the two others in the report, with their LOW scores, and recorded the producer-side origin as an open alternative it couldn't check (order-service isn't a declared related app).
 - **Hook false positive:** in scenario 2, a `--reason` containing ";" was blocked, because the hook matches operators even inside quotes (the trade-off documented in the hook). The agent rephrased and carried on. Left as it is; it's the user's call whether to loosen it.
 - **Note:** the agent reads large tool outputs that Claude Code saves under `~/.claude/projects/<project>/…/tool-results/`. That's Claude Code's own storage of this run's output, not repo content.
+
+## 2026-10-11 — M12 approved — Unused-code cleanup and documentation
+
+- **How unused code was found:** an AST scan (stdlib `ast`, no new dependency) of every function, class and module constant in `src/`, counting references in `src/` and `tests/`, plus an unused-import check.
+  - **Limitation:** it matches by name, so an unused method that shares a name with a used one would be missed.
+- **Removed:**
+  - three `src/` helpers used only by tests: `Ids.is_empty`, then `Ids.present` (which only `is_empty` used), `sso.session_marker_for_tests` and `skill_samples.used_keys`. The tests now do the work themselves, and the test for `Ids.present` went with it;
+  - unused imports in 3 test files;
+  - stale "M12/M13" docstrings.
+  - Result: `481 passed` (482 before, minus the one deleted test).
+- **Kept, flagged to the user:** the Python agent loop (`agent/loop.py`, `provider.py`, `tools.py`, `narration.py`). The CLI's `--provider fake` and the guardrail tests use it, and the fake `claude` reuses the scripted model, but no real model runs through it any more (D32). Removing it is the user's call.
+- **Self-caught doc errors before committing:** the first draft of HOW_IT_WORKS described `EXACT_ID` as cross-service (it is in-app only, D25) and `SAME_OCCURRENCE` loosely. Both were corrected against `correlation.py`. The robustness section was rewritten from the actual perturbation list.

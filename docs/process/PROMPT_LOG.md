@@ -1478,3 +1478,23 @@ Yes, that is fine run and show me what is the input and what is the output as we
 - **Did:** Live runs of scenarios 2–4 on the user's login, in parallel. Results: MEDIUM / HIGH / INSUFFICIENT, all valid, no fallbacks; about $2.27 in total. Showed the user each incident (input) and report (output).
 - **Tests:** none run (no code changed since `482 passed`).
 - **Not done:** no push (not answered).
+
+---
+
+## Entry 063 — 2026-10-11T18:57:42Z (11:57 PDT) — Milestone: M12 approved; documentation; unused-code cleanup
+
+### Prompt (verbatim)
+
+````text
+approve M12 and also create clear documentation of what this application is doing and how it is doing and also check if there is any unused code please delete it
+````
+
+### Outcome
+
+- **Did:**
+  - Marked M12 approved.
+  - Removed unused code: 4 test-only helpers, 3 unused imports, stale docstrings.
+  - Wrote `README.md` (what it is, quick start, an example) and `docs/HOW_IT_WORKS.md` (flow, components, commands, correlation, confidence, validation, guardrails, outputs, scenarios, testing).
+  - Pushed.
+- **Tests:** `481 passed in 74.09s (0:01:14)`.
+- **Not done:** the Python agent loop is kept (still used by the fake provider and the tests); asked the user whether to remove it.
