@@ -329,3 +329,14 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - New milestone M8b (`investigator check` guard + `investigator score --cause`).
   - M9/M10/M11 scope amended.
   - M8 continues unchanged.
+
+## 2026-10-10 — M8 — what running scenarios 2–4 exposed
+
+1. **Collection gap (planner, AI's):** the DB step searched only by business key, so connection errors (`FATAL: too many clients`), which carry no order ID, were never fetched and the DB-burst detector couldn't fire. This is the same class of gap as the Kafka client lines in M6. Fix: the DB step also fetches the seed app's own sessions.
+2. **M7 detector bug (AI's):** `poison_message` iterated over events with same-occurrence copies removed, but the Kafka-side copies are the only lines carrying topic/partition/offset, so scenario 3 found no poison and ended INSUFFICIENT. Fix: read Kafka-side lines; each occurrence is still counted once.
+3. **Bundle bug (found as a `KeyError` in the AI's demo):** a hypothesis cause could be a cited copy, which the bundle excluded. Fix: drop copies unless cited.
+4. **Scenario 4 knob bug (AI's, caught on re-read):** the "seed config denied" default was replaced, not extended, when a test passed other denials. It's now always included; test added.
+5. **Shell slip (demo only):** an unquoted `$W` holding two flags isn't word-split in zsh, so the sample command failed. Rerun with explicit args.
+6. **Matrix verified by canary:** planting a topic-name dependence in the poison detector made exactly `consumer-processing × rename` fail (HIGH → INSUFFICIENT). Restored.
+- **Design note:** scenarios 2–4 use a new shared `builder.py`. Scenario 1 keeps its own code so its approved snapshots can't drift; the duplication is known and accepted.
+- **Outcome:** all four scenarios give their intended result (HIGH / HIGH / HIGH / INSUFFICIENT) under every perturbation; access denials lower confidence in all three applicable scenarios.

@@ -225,6 +225,11 @@ Generic names (D6): `edge-gateway`, `order-api`, `fulfillment-worker`, `notifica
 | 3 consumer-processing (D29; lag deferred) | a downstream app ERROR: entity not found (a downstream symptom) | Upstream (per the seed config) to the consuming app: repeated processing failures and retries on one offset (poison message), visible in consumer client logs; no message on the outgoing topic for that business key |
 | 4 ambiguous | an ERROR with **no correlation ID** | Config access denied; scattered SYMPTOMs; no ID chain → **INSUFFICIENT** |
 
+*As implemented in M8 (`src/mocklogs/scenarios/`):*
+- *2 `db-config`: seed `fulfillment-worker` DB call failed; config `db.pool.size=4` < `worker.threads=16`; DB `FATAL: too many clients` ×8.*
+- *3 `consumer-processing`: seed `notification-worker` timed out waiting for a fulfillment event; `fulfillment-worker` fails 5× on `orders.events-1@5502` (poison payload); the follow-up event is never published.*
+- *4 `ambiguous`: seed `edge-gateway` 502 with no correlation ID and no business key; seed config always denied; unrelated retry, leader election, rebalance and slow query.*
+
 Knobs (D8): `seed`, `service_names` (apps, topics, groups, threads, instances), `t0`, `drop_rate`, `dup_rate`, `shuffle`, `malformed_rate`, `access_denied`.
 
 ## 5. SKILL.md outline

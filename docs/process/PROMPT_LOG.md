@@ -1250,3 +1250,19 @@ Yes AI should do the investigations but not be a just the narraotr. what can we 
 ````text
 Yes that makes sense continue
 ````
+
+### Outcome
+
+- **Did:**
+  - Recorded D31 (AI investigates, code guards) in PROPOSAL/MILESTONES: new M8b for `check`/`score`; M9–M11 amended. Commit `11f46b3`.
+  - Finished M8:
+    - `scenarios/builder.py` + `db_config.py` + `consumer_processing.py` + `ambiguous.py`;
+    - fixes: DB session collection, poison detector on Kafka-side lines, cited copies kept in the bundle, scenario 4 config denial always applied;
+    - `tests/robustness/test_matrix.py` (4 scenarios × 8 perturbations + 3 denial tests + a rename-leak check) and `tests/mocklogs/test_scenarios.py`.
+  - Collected scenario 2–4 samples for the user's review. Not pushed (awaiting review). Finished at 2026-10-11T05:31:22Z.
+- **Commands run (actual results):**
+  - Scratch M8 demo, run #1: db-config HIGH (but no DB burst), consumer-processing INSUFFICIENT (no poison), ambiguous INSUFFICIENT.
+  - After the poison/DB fixes: `KeyError` on a cited copy. After the bundle fix: HIGH / HIGH / HIGH / INSUFFICIENT for scenarios 1–4.
+  - `pytest tests/robustness` → `36 passed in 3.29s`. Canary (planted topic-name dependence) → `1 failed, 8 passed` (`consumer-processing-rename`); restored → `36 passed`.
+  - `pytest tests/mocklogs/test_scenarios.py` → `13 passed`; full suite ×2 → `376 passed` (6.3s)
+  - Sample command #1 failed (zsh word-splitting); rerun OK.
