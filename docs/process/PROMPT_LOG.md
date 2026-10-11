@@ -1539,3 +1539,18 @@ My recommendation: keep both and present them that way:
   - Pushed.
 - **Tests:** `481 passed in 74.96s (0:01:14)`.
 - **Not done:** the GitHub repository's "About" description (if that's what was meant) was not changed. Asked.
+
+---
+
+## Entry 066 — 2026-10-11T22:26:25Z (15:26 PDT) — Milestone: GitHub repository description
+
+### Prompt (verbatim)
+
+````text
+yes set that description
+````
+
+### Outcome
+
+- **Did:** Set the GitHub repository description with `gh repo edit`. Read it back to confirm it was saved.
+- **Tests:** none run (no code changed).
