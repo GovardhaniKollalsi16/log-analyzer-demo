@@ -223,3 +223,16 @@ def test_cli_plan_prints_json(env, capsys, monkeypatch):
 def test_cli_plan_without_incident_fails_clearly(tmp_path, capsys):
     assert investigator_cli.main(["plan", "--workdir", str(tmp_path), "--rules", str(SKILL)]) == 2
     assert "incident.txt not found" in capsys.readouterr().err
+
+
+def test_kafka_client_lines_are_fetched_by_declared_client_ids_only(env, capsys):
+    save_incident(env)
+    rounds = agent_loop(env, capsys)
+    client_steps = {(s.target, s.argv[s.argv.index("--grep") + 1]) for s in fetched(rounds)
+                    if "its Kafka client" in s.reason}
+    assert client_steps == {
+        ("order-service", "order-service-consumer-1"), ("order-service", "order-service-producer-1"),
+        ("product-service", "product-service-producer-1"),
+        ("fulfillment-worker", "fulfillment-worker-consumer-1"),
+        ("notification-worker", "notification-worker-consumer-1"),
+    }

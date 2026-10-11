@@ -183,6 +183,7 @@ class _Planner:
                         "--timestamps", f"--since-time={self.since}", f"--until-time={self.until}"]
                 code = self.want(Source.APP, app, base + ["--grep", self.bk],
                                  f"{direction.value} app {app}: business key {self.bk_name}", direction)
+                self.client_logs(app, loc, topo, direction)
                 if code != 0:
                     continue
                 hits = [e for e in self.parsed.events
@@ -216,9 +217,22 @@ class _Planner:
             self.want(Source.DB, f"{inc.db_host}/{inc.db_name}", argv + ["--grep", inc.seed.app],
                       "DB sessions of the seed app (no business key)")
 
+    def client_logs(self, app: str, loc, topo: AppTopology, direction: Direction) -> None:
+        """An app's own Kafka client lines (retries, timeouts, expiries) carry its client ID but
+        neither the business key nor a correlation ID. Fetch them by the client IDs the seed config
+        declares for that app (D26). They're also how clock skew is estimated (same occurrence)."""
+        for cid in sorted(c for c, owner in topo.client_ids.items() if owner == app):
+            self.want(Source.APP, app,
+                      ["kubectl", "logs", f"deploy/{app}", "--context", loc.cluster, "-n", loc.namespace,
+                       "--timestamps", f"--since-time={self.since}", f"--until-time={self.until}",
+                       "--grep", cid],
+                      f"{direction.value} app {app}: its Kafka client {cid} (retries, timeouts)", direction)
+
     def run(self) -> FetchPlan:
         self.seed_logs()
         topo, config_settled = self.seed_config()
+        if topo is not None and self.inc.app is not None:
+            self.client_logs(self.inc.seed.app, self.inc.app, topo, Direction.SEED)
         self.kafka(topo)
         self.related(topo, config_settled)
         self.db()

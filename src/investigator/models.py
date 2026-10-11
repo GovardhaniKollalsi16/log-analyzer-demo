@@ -91,6 +91,9 @@ class LinkKind(str, enum.Enum):
     EXACT_ID = "exact_id"            # same app + same in-app correlation ID (D25: correlation IDs are per app)
     BUSINESS_KEY = "business_key"    # same business key (order_id, product_id, ...) across apps; not request-unique (R22)
     THREAD_LOCAL = "thread_local"    # same cluster + app + instance + thread segment (D17); weaker than an ID
+    RESOURCE = "resource"            # same Kafka topic-partition named by both records, within the window
+    SAME_OCCURRENCE = "same_occurrence"  # one event seen in two sources (e.g. a Kafka client line in app logs
+                                         # and in `kafka logs`): count it once
     WEAK_TEMPORAL = "weak_temporal"  # no ID, no thread; time + app only. Last resort, always labeled
 
 
@@ -334,11 +337,22 @@ class CorrelationGroup:
     link_kinds: Dict[str, LinkKind] = field(default_factory=dict)  # event_id -> how it joined
 
 
+@dataclass(frozen=True)
+class Link:
+    a: str  # event_id
+    b: str  # event_id
+    kind: LinkKind
+    reason: str
+
+
 @dataclass
 class SkewEstimate:
-    source: Source
+    """How far `clock` runs ahead of `reference` (a positive offset means `clock` is ahead)."""
+
+    clock: str           # "app:<app>", "kafka" or "db"
+    reference: str       # the clock it's measured against
     offset_ms: int
-    basis: str  # "causal_pairs" | "none"
+    basis: str           # "same_occurrence" (one event seen on both clocks) | "none"
     samples: int = 0
 
 
