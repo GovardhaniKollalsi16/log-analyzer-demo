@@ -307,3 +307,14 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - SAME_OCCURRENCE links, which still stop a Kafka line being counted twice;
   - the planner's client-ID fetch, which still collects the app-side retries.
 - **Self-caught:** a guard in the AI's own edit script rejected its replacement comment (which contained "skew") and stopped the script half-way. It was rerun after rewording.
+
+## 2026-10-10 — M7 — issues found while implementing the approved rules
+
+1. **Spec typo (AI's, in the approved M7_RULES):** the coverage row said a gap on a DB the seed config "doesn't declare" is PARTIAL, which contradicted the doc's own relevant-gap definition. Corrected to "declares" in the file, with an inline note, before coding. It was not silently coded differently.
+2. **Sloppy code caught before running:**
+   - `Hypothesis.ceiling` defaulted to `None` with a type-ignore; it now defaults to `INSUFFICIENT`, the safe value.
+   - The detectors module ended with `_ = timedelta` (to keep an import alive) and had an unused `_ts` helper. Both removed.
+   - `relevant_gaps` took an unused `incident` parameter. Removed.
+3. **Design flaw found by the demo:** with degraded collection (config denied / related lines omitted), the two retry-exhaustion findings on the **same** producer (orders o-1005 and o-1008) formed two chains and counted as each other's "equally strong rival", so `competing_hypotheses` came out WEAK. Fix: findings from one detector on the same client/resource merge into one chain. After the fix, each variant has one hypothesis; the ceilings are unchanged (HIGH / LOW / LOW, matching the hand-computed expectations in M7_RULES §4).
+4. **Test bug (AI's):** a D-6 test passed `code=` twice through the `SEED()` helper and then patched the event with a second constructor call. Rewritten.
+5. **Kept as an open decision:** the "transient exception" rule wasn't answered and isn't in the approved file, so it's **not** implemented.

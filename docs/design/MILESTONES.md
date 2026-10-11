@@ -112,7 +112,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M7 — Detectors + `investigator correlate` 🟡 (step 1: detector list + confidence-cap rules awaiting approval)
+## M7 — Detectors + `investigator correlate` 🟡 (rules approved "for now"; implemented 2026-10-10, awaiting review)
 **Scope**
 - `detectors/`: cross-record patterns over classified events:
   - retry amplification

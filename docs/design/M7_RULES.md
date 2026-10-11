@@ -1,4 +1,4 @@
-# M7 rules: detectors, hypotheses, confidence ceiling (PROPOSED, awaiting user approval)
+# M7 rules: detectors, hypotheses, confidence ceiling (APPROVED 2026-10-10 "for now"; to be fine-tuned later)
 
 Nothing in this file is coded yet. Edit it directly or comment in chat. Once approved, it becomes the spec for M7's code and tests.
 
@@ -41,7 +41,7 @@ Computed per hypothesis. The bundle reports each factor **with a reason**.
 | Factor | STRONG | PARTIAL | WEAK | ABSENT |
 |---|---|---|---|---|
 | **id_linkage**: how the cause connects to the seed | a path made only of same-app correlation ID, the seed's business key, same-occurrence, or a topic-partition **named by an ERROR record** | the path needs a thread-segment hop, or a topic-partition link between non-error records | only time proximity, no link path | the cause isn't in the seed's group |
-| **traversal_coverage**: how much of the planned collection succeeded | no relevant gaps | gaps only on **downstream** apps, or on a DB the seed config doesn't declare | a gap on the seed config, on Kafka, or on an **upstream** app | the seed app's own logs are missing |
+| **traversal_coverage**: how much of the planned collection succeeded | no relevant gaps | gaps only on **downstream** apps, or on a DB the seed config declares *(corrected 2026-10-10: the approved text said "doesn't declare", which contradicted the relevant-gap definition below)* | a gap on the seed config, on Kafka, or on an **upstream** app | the seed app's own logs are missing |
 | **temporal_precedence**: does the cause come first? | the cause precedes every effect and the seed | — | the cause precedes the seed but not all effects | the cause comes after the seed |
 | **competing_hypotheses**: are there rivals? | this is the only hypothesis | rivals exist but have weaker `id_linkage` | ≥ 1 rival with equally strong `id_linkage` | — |
 

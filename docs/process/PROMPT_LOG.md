@@ -1162,3 +1162,35 @@ Yes approve M6
   - Stopped for approval before any M7 code. Finished at 2026-10-11T05:14:20Z.
 - **Files:** `docs/design/M7_RULES.md` (new), `docs/design/MILESTONES.md`, `docs/process/PROMPT_LOG.md`
 - **Commands run:** `git push` → `e4c16d1..e654c8e  main -> main`. No tests (docs only).
+
+---
+
+## Entry 048 — 2026-10-11T05:16:41Z (22:16 PDT) — Milestone: M7 step 2 (implement detectors, hypotheses, factors, ceiling, correlate CLI)
+
+### Prompt (verbatim)
+
+````text
+Yeah this looks fine for now, will fine tune it later
+````
+
+### Outcome
+
+- **Did:**
+  - Marked M7_RULES approved ("for now"); corrected one spec typo (coverage/DB).
+  - Implemented:
+    - `detectors/`: D-1…D-7; copies are ignored, so nothing is counted twice;
+    - `analysis.py`: chains (shared events or the same pattern on one client/resource), cause = earliest preceding ERROR/SYMPTOM/ANOMALY, the four factors with reasons, the ceiling table, bundle assembly;
+    - `pipeline.py` (`analyse_workdir`);
+    - `investigator correlate --workdir`.
+  - Models: `Hypothesis` carries the cause, findings, effects, factors and ceiling.
+  - Demo on three variants of scenario 1 → HIGH / LOW / LOW as hand-computed. Not pushed (awaiting review). Finished at 2026-10-11T05:21:03Z.
+- **Files:**
+  - Code: `src/investigator/{models,analysis,pipeline,cli}.py`, `src/investigator/detectors/__init__.py`, `src/investigator/parsing/dispatch.py`
+  - Tests: `tests/unit/test_detectors_analysis.py` (new), `tests/integration/test_analysis_scenario.py` (new), `tests/integration/snapshots/scenario1_bundle_summary.json` (new)
+  - Docs: `docs/design/{M7_RULES,MILESTONES}.md`, `docs/process/{AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - Scratch demo #1: default HIGH (1 hypothesis, cause `kafka.broker.isr_shrink`); config-denied LOW and no-related LOW, each with **2** hypotheses (rival flaw).
+  - After the chain fix → 1 hypothesis each; HIGH / LOW / LOW.
+  - `pytest tests/unit/test_detectors_analysis.py` → `1 failed, 37 passed` (test helper bug) → `38 passed`
+  - `UPDATE_SNAPSHOTS=1 pytest tests/integration/test_analysis_scenario.py` → `7 passed`
+  - Full suite ×3 → `327 passed` (2.66s / 2.70s / 2.91s); `skill_samples --check` → exit 0
