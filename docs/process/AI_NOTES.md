@@ -279,3 +279,11 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 3. **Misleading label:** in round 1, offsets steps said "direction unknown" because the config wasn't read yet in that same round. The label was dropped from the offsets step; message steps (round 2) are labeled correctly.
 4. **Weak test assertion:** the config-denied test accepted any message step (`… or "messages on" in r`). It now asserts every message step is labeled "direction unknown". Canary: forcing "incoming" made it fail.
 - **Still open (R17):** how the incident gets into `<workdir>/incident.txt` in the Claude Code subagent path. The Python loop (M11) writes it directly; the subagent mechanism is decided in M13.
+
+## 2026-10-10 — M6 — what the skew demo exposed, and self-caught issues
+
+1. **Collection gap (found by the demo the M6 plan asked for):** with 45 s Kafka skew injected, the timeline placed the upstream producer's retries **after** the seed error (they were flagged order-uncertain, but uncorrected). Root cause: the planner never fetched `product-service`'s Kafka network-thread lines (no business key, no correlation ID, different thread), so there were 0 same-occurrence pairs and skew couldn't be measured. **Fix:** the planner fetches each app's logs by the Kafka client IDs the seed config declares (D26). Result: 8 pairs, +45000 ms measured exactly.
+2. **Wrong reference clock (also found by the demo):** the first correction used Kafka (the busiest clock) as the reference, shifting the app forward 45 s onto Kafka's skewed time. Only relative offsets are measurable, so the reference is an assumption. It now prefers the seed's clock, then an app clock (R25). With that, the true order came out: ISR shrink 09:01:50 → retries → expiry → publish failed → seed 09:04:50.
+3. **Junk code:** `timeline.py`'s first draft had a loop ending in `pass` and an over-complicated sample count. Removed before the first run.
+4. **Canary checks:** disabling the "thread switched request" rule failed the interleaving test, and estimating skew from ID links failed the delivery-delay test. Both restored.
+5. **Not implemented, said openly:** the design's "causal order within an ID chain overrides timestamps" (R26). Ordering is skew-adjusted time plus uncertainty flags.

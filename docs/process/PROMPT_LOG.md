@@ -1076,3 +1076,23 @@ Yes go ahead with m5
 ````text
 Yeah M5 looks fine for now. Go ahead with M6
 ````
+
+### Outcome
+
+- **Did:** Pushed M5 (`33564fc..e4c16d1`). Implemented M6:
+  - models: `LinkKind.RESOURCE`, `SAME_OCCURRENCE`; `Link`; clock-based `SkewEstimate`;
+  - `correlation.py`: EXACT_ID within an app, SAME_OCCURRENCE copies, BUSINESS_KEY (the seed key, within the window), THREAD_LOCAL segments, RESOURCE topic-partitions; groups; seed group; config-based client attribution;
+  - `timeline.py`: skew from same-occurrence pairs only, reference preference, adjusted ordering, `order_uncertain`/`concurrent_with`;
+  - planner: fetch apps' Kafka client lines by declared client IDs.
+  The scenario 1 + 45 s skew demo now shows the true order. Not pushed (awaiting review). Finished at 2026-10-11T03:06:02Z.
+- **Files:**
+  - Code: `src/investigator/{models,correlation,timeline,planner}.py`
+  - Tests: `tests/unit/test_correlation_timeline.py` (new), `tests/integration/test_correlate_scenario.py` (new), `tests/integration/test_planner.py`
+  - Docs: `docs/design/{PROPOSAL,MILESTONES}.md`, `docs/process/{AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - Skew demo (scratch) #1: `same-occurrence copies 0`, all skew estimates `basis none`, producer retries after the seed (flagged `*`).
+  - After the planner fix: `copies 8`, estimate `app:product-service vs kafka -45000 ms` (wrong reference).
+  - After the reference fix: `kafka vs app:product-service +45000 ms, n=8`; ISR shrink adjusted to 09:01:50; order correct.
+  - `pytest tests/unit/test_correlation_timeline.py tests/integration/test_planner.py` → `29 passed`; canary (2 rules disabled) → `2 failed, 13 passed`; restored → `15 passed`
+  - `pytest tests/integration/test_correlate_scenario.py` → `4 passed`
+  - Full suite ×3 → `286 passed` (~2.2s); `skill_samples --check` → exit 0
