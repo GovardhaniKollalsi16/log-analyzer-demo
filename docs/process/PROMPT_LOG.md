@@ -1194,3 +1194,13 @@ Yeah this looks fine for now, will fine tune it later
   - `pytest tests/unit/test_detectors_analysis.py` → `1 failed, 37 passed` (test helper bug) → `38 passed`
   - `UPDATE_SNAPSHOTS=1 pytest tests/integration/test_analysis_scenario.py` → `7 passed`
   - Full suite ×3 → `327 passed` (2.66s / 2.70s / 2.91s); `skill_samples --check` → exit 0
+
+---
+
+## Entry 049 — 2026-10-11T05:22:46Z (22:22 PDT) — Milestone: M7 approved → M8 (scenarios 2–4 + robustness matrix)
+
+### Prompt (verbatim)
+
+````text
+Approve M7 and next pick M8
+````

@@ -112,7 +112,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M7 — Detectors + `investigator correlate` 🟡 (rules approved "for now"; implemented 2026-10-10, awaiting review)
+## M7 — Detectors + `investigator correlate` ✅ (approved and pushed 2026-10-10)
 **Scope**
 - `detectors/`: cross-record patterns over classified events:
   - retry amplification
@@ -132,7 +132,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M8 — Scenarios 2–4 + robustness matrix ⬜
+## M8 — Scenarios 2–4 + robustness matrix 🟡 (in progress)
 **Scope:** db-config, consumer-processing-failure (D29: lag deferred; observable via consumer retries/errors and missing outgoing messages), and ambiguous generators. `tests/robustness/` covers every scenario × each of:
 - rename apps/topics/groups/threads/instances;
 - shift times;
