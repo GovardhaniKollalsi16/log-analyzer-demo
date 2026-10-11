@@ -264,3 +264,10 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 - **Open questions raised with the user (the AI didn't decide them):**
   1. The original brief's scenario 3 is "Kafka consumer lag/processing failure → downstream symptoms". Without lag collection, the lag half of it can't be observed; processing failures still show in consumer logs. Keep lag for scenario 3, or redefine the scenario?
   2. Does "assessment comes after" mean M4 (deterministic classification) should be parked, so the next step is the M5 collection planner? Or should M4's tests be finished first?
+
+## 2026-10-10 — M4 step 2 — tests exposed a real rule gap (+ one test bug)
+
+- **Interpretation:** the user said "finish M4" without answering the four step-1 review points. The AI treated the rule tables as approved as written: the transient-exception downgrade stays proposed for M7, and the mock-wording broker pattern is kept alongside the real one. Flagged in the reply.
+- **Real bug found by the tests:** `kafka.broker.request_failed` used `notenoughreplicas`, which matches the exception class `NotEnoughReplicasException` but **not** real Kafka's error code `NOT_ENOUGH_REPLICAS`. The rule caught the mock's invented wording but missed the real one, which is the overfitting risk flagged in step 1. Fixed to `not_?enough_?replicas`.
+- **Test bug (AI's):** the config test helper `cfg()` contained a half-written leftover expression passing `ts_utc` twice (5 TypeErrors). Rewritten.
+- **Result:** `tests/unit/test_classify.py` 66 passed; the integration test (scenario 1 + rename invariance) 2 passed; full suite 3 runs → `252 passed`.

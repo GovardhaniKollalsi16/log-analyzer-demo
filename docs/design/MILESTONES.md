@@ -67,7 +67,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M4 — Per-component error classification 🟡 (step 1: rule tables awaiting user review)
+## M4 — Per-component error classification 🟡 (steps 1–2 done 2026-10-10: rule tables + tests; awaiting user approval)
 **Status:** step 1 done: rule tables as code in `src/investigator/classify/` (commit `4716293`). **Step 2 (after approval):** one matching and one non-matching test per rule, lag/config cases, a rename-invariance test, then push.
 **Scope:** `classify/app.py`, `config.py`, `kafka.py`, `db.py` implementing PROPOSAL §2. Each rule sets `severity` + `error_code`, with thresholds in one config object.
 

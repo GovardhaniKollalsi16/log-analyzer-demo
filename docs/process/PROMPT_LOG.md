@@ -1016,3 +1016,23 @@ we can add lag later
 ````text
 finish M4
 ````
+
+### Outcome
+
+- **Did:**
+  - Pushed the pending commits (`d443dd3..7b3fd0b`).
+  - Wrote `tests/unit/test_classify.py`:
+    - a positive case for every rule code (generic text);
+    - CONTEXT/boundary cases; first-match order; tunable thresholds;
+    - config invalid/inconsistent/per-app/reason;
+    - lag stuck/growing/high/below/untimed/per-partition;
+    - invariants; a no-names check on the rule sources;
+    - a coverage check that every rule has a case.
+  - Wrote `tests/integration/test_classify_scenario.py` (scenario 1 codes; classification identical after renaming every name in the raw output).
+  - Fixed the `NOT_ENOUGH_REPLICAS` pattern. M4 awaits approval; not pushed. Finished at 2026-10-11T02:52:45Z.
+- **Files:** `src/investigator/classify/kafka.py`, `tests/unit/test_classify.py` (new), `tests/integration/test_classify_scenario.py` (new), `docs/design/MILESTONES.md`, `docs/process/{AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - `git push` → `d443dd3..7b3fd0b  main -> main`
+  - `pytest tests/unit/test_classify.py` → 6 failed (`kafka.broker.request_failed` → CONTEXT; 5 `TypeError`s from the test helper). After the fixes → `66 passed in 0.04s`
+  - `pytest tests/integration/test_classify_scenario.py` → `2 passed in 0.12s`
+  - Full suite ×3 → `252 passed` (1.16s / 1.25s / 1.39s); `skill_samples --check` → exit 0
