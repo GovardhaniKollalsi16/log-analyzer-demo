@@ -3,7 +3,7 @@ name: incident-logs
 description: Coordinator for investigating a distributed-system incident. The incident message gives one application error line plus the inputs for each source (app cluster/namespace, Kafka cluster and topics, database host and name). Defines the rules, the "no input, no access" rule, the investigation order, and which component skill to use at each step (incident-app-logs, incident-app-config, incident-kafka, incident-db-logs). All data in this project is synthetic (MOCK).
 ---
 
-# incident-logs: coordinator (v0.4)
+# incident-logs: coordinator (v0.5)
 
 > **v0.3 (M2).** The per-component details (logging in, required inputs, searching by time, cluster and topic, what to look for) live in **separate component skills**. This file holds the rules, the incident format, **which ID correlates across services**, the order, and which skill to use when.
 > Coming next: **v1 (M5)** adds the full traversal procedure with `investigator plan`. **v2 (M10)** adds the report contract and links each component skill's allowlist. Safeguards and rate limiting will be added later by the user.
@@ -11,6 +11,7 @@ description: Coordinator for investigating a distributed-system incident. The in
 
 ## 1. Hard rules (apply to every component skill)
 
+0. **Collect first, assess later.** Your job in this phase is to collect every record related to the incident, from every source the incident allows. Judging what went wrong comes afterwards (`investigator`, then the report). Don't stop collecting because something already looks like the answer.
 1. **No input, no access.** Every component skill lists its **required inputs**. If any required input is missing, **don't run any command from that skill.** Record a `missing_input` gap that names the missing input(s), and move on. Never guess, assume, or invent a cluster, namespace, topic, host, database or app name.
 2. **Start from the incident.** Your first message is the incident: one application error line plus the inputs for each source (§2). Everything you fetch must trace back to it.
 3. **Never parse raw logs or config yourself.** Fetch with the documented commands. `investigator` (deterministic code) parses, classifies, correlates and orders. You reason over its structured output only.
@@ -67,7 +68,7 @@ db:     host=<db host> name=<database>
 |---|---|---|---|
 | 1 | The seed app's logs: its `correlation_id` + the seed's thread on its instance | `incident-app-logs` | `app.cluster`, `app.namespace`, plus `app`, `ts` (and `correlation_id` if present) from the seed line |
 | 2 | The seed app's config (seed app **only**) | `incident-app-config` | `app.cluster`, `app.namespace`, plus `app` from the seed line |
-| 3 | Kafka: lag; messages carrying the **business key**; broker/client logs | `incident-kafka` | `kafka.bootstrap`, `kafka.topics` (plus `kafka.group` for lag, and the business key for message search) |
+| 3 | Kafka, per incident topic: **incoming** and **outgoing** messages carrying the **business key**, **retry** logs, and any **topic error or connection timeout** | `incident-kafka` | `kafka.bootstrap`, `kafka.topics` (and the business key for the message search) |
 | 4 | **One hop upstream and one hop downstream:** the apps the seed app's config declares in `upstream.apps` / `downstream.apps`. Search their app logs by the **business key**, then by **their own** `correlation_id` and thread from what that search returns | `incident-app-logs` | The seed app's config (for the app list), the business key, and that app's `app[<name>]:` line from the incident. No config → no related apps (`missing_input: upstream/downstream apps`). No `app[<name>]:` line → skip that app (`missing_input`). Never reuse the seed's cluster |
 | 5 | The database: statements carrying the **business key** | `incident-db-logs` | `db.host`, `db.name` (and the business key) |
 

@@ -90,3 +90,14 @@ Format:
 - **Reason:** The user confirmed "the incident stay the only source of where to look, with the config only saying who is related" ("This is correct").
 - **Triggering run transcript:** none.
 - **Change:** One bullet added to coordinator §2. No rule changed: the component skills already said the config is never a source of access inputs.
+
+## 2026-10-10 — incident-kafka v0.4 + coordinator v0.5 — collect first; Kafka collection scope (D28)
+- **Reason:** User: "The llm assesing what is wrong with the log comes after for now we need to collect logs for all related events and then we can debug. In kafka check incoming, outgoing and any retires logs. that is all. but also for kafka any topic that error, connection timedout related to the topic should be of concern. Edit skills file accordingly."
+- **Triggering run transcript:** none.
+- **Change:**
+  - Coordinator: new rule 0 "Collect first, assess later"; step 3 now lists the four Kafka collections.
+  - `incident-kafka`: §3 is now a collection table: incoming (consumed topics), outgoing (produced topics), retries (unfiltered producer/consumer logs), topic errors and connection timeouts (broker + client logs). Plus the message and log commands.
+    - The consumer-group lag and all-groups commands, their sample and the `group` input row were removed.
+    - §5 became a collection checklist.
+    - No `--grep` on client/broker logs, so retries and timeouts without the business key aren't lost.
+  - Sample generator: `kafka/lag` removed. A test pins the four collections and the absence of `kafka-consumer-groups`.

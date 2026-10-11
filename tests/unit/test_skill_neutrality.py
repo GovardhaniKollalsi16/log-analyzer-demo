@@ -105,3 +105,12 @@ def test_coordinator_forbids_inferring_apps_from_names():
     assert "**Never infer an app from a name.**" in text
     kafka = (SKILLS_DIR / "incident-kafka" / "SKILL.md").read_text(encoding="utf-8")
     assert "is the app name" not in kafka and "Never derive an app from a client ID" in kafka
+
+
+def test_collect_first_and_kafka_collection_scope():
+    coord = (SKILLS_DIR / "incident-logs" / "SKILL.md").read_text(encoding="utf-8")
+    assert "**Collect first, assess later.**" in coord
+    kafka = (SKILLS_DIR / "incident-kafka" / "SKILL.md").read_text(encoding="utf-8")
+    for item in ("**Incoming:**", "**Outgoing:**", "**Retries:**", "**Topic errors and connection timeouts:**"):
+        assert item in kafka, item
+    assert "kafka-consumer-groups" not in kafka  # lag/all-groups are not part of collection (user, 2026-10-10)

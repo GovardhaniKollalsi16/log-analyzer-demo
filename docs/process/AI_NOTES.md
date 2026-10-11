@@ -250,3 +250,17 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 2. **Rule order:** in the first run, the app line "Failed to publish pricing event…" classified as `app.retries_exhausted`, because its error detail says "Expiring 1 record" and that rule came first. `app.publish_failed` now comes first, with a comment explaining why.
 3. **Demo bug (AI's scratch script, not product code):** the hand-written config sample used a shortened banner (`# MOCK`), so it parsed as malformed JSON and printed nothing. Fixed the script; the config rules then worked.
 4. **Observed, not fixed (M6 concern):** the producer client's retry/expire lines exist in two sources (the upstream app's JSON logs and `kafka logs --component producer`), so one occurrence is classified twice (`app.retry_attempt` + `kafka.producer.retry`). Cross-source duplicates should be linked in M6, so detectors don't double-count. Flagged to the user.
+
+## 2026-10-10 — M4 review — Redirect: collect first, assess later; narrower Kafka scope
+
+- **AI proposed:** M4 rule tables classifying every record as ERROR/SYMPTOM/CONTEXT/ANOMALY. The Kafka skill also had the agent check consumer-group lag and list all groups, with a "what to look for" list of signals.
+- **User:** (pasted three of the AI's severity rows, then) "The llm assesing what is wrong with the log comes after for now we need to collect logs for all related events and then we can debug. In kafka check incoming, outgoing and any retires logs. that is all. but also for kafka any topic that error, connection timedout related to the topic should be of concern. Edit skills file accordingly."
+- **Changed:**
+  - Coordinator rule 0, "Collect first, assess later".
+  - Kafka skill rewritten around four collections per incident topic; lag/all-groups removed; checklist instead of judgement cues.
+  - D28 recorded; M5 planner scope updated.
+  - Test added → `184 passed`.
+- **Self-caught while editing:** the new §3 heading broke the cross-skill structure test (`## 3. Command…` prefix), and one stale "(lag and logs still run)" remained. Both fixed.
+- **Open questions raised with the user (the AI didn't decide them):**
+  1. The original brief's scenario 3 is "Kafka consumer lag/processing failure → downstream symptoms". Without lag collection, the lag half of it can't be observed; processing failures still show in consumer logs. Keep lag for scenario 3, or redefine the scenario?
+  2. Does "assessment comes after" mean M4 (deterministic classification) should be parked, so the next step is the M5 collection planner? Or should M4's tests be finished first?

@@ -82,7 +82,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 **Scope**
 - `config_model.py`: configmap JSON → `ConfigEntry`s + `AppTopology`, including (D26) `upstream.apps` / `downstream.apps` and a **client-ID → app map** built only from the declared `*.kafka.client.ids` + own `kafka.*.client.id`. Used to attribute Kafka log lines and lag rows; unmapped IDs stay unattributed.
 - `planner.py`: the **incident** (seed + per-source inputs) + fetched outputs in the workdir → `FetchPlan` following PROPOSAL §1. **No input, no access (D22):** a step with a missing required input becomes a `missing_input` gap, never a guessed command:
-  - seed app logs → config → Kafka → 1 hop up/down → DB;
+  - seed app logs → config → Kafka (per incident topic: incoming + outgoing messages by business key, producer/consumer/broker logs for retries, errors and timeouts; D28) → 1 hop up/down → DB;
   - access-denied targets become `CoverageGap`s.
 - `investigator plan --workdir <dir>` prints the next allowlisted argv lists as JSON. Register the `investigator` console script.
 - **SKILL.md v1:** the traversal section. Related apps come **only** from the seed config's `upstream.apps` / `downstream.apps` (D26). *Where* to look comes **only** from the incident (D27). It also covers the 1-hop rule and how to follow `investigator plan`. Logged in SKILL_CHANGELOG.

@@ -939,3 +939,30 @@ what is M4?
 - **Did:** Re-explained M4 in plain terms with a concrete before/after example from scenario 1. No files changed besides this log.
 - **Commands run:** none besides appending this entry.
 - **Tests:** none.
+
+---
+
+## Entry 039 — 2026-10-11T02:46:53Z (19:46 PDT) — Milestone: M4 review → skills: collect-first, Kafka scope
+
+### Prompt (verbatim; the first three lines were pasted from the AI's table, tabs preserved)
+
+````text
+SYMPTOM	Degraded, but not failed	broker: "Shrinking ISR … pricing.events-2" → kafka.broker.isr_shrink
+CONTEXT	Normal activity, useful only for the timeline	"Health check OK"
+ANOMALY	A suspicious config value (config only)
+
+The llm assesing what is wrong with the log comes after for now we need to collect logs for all related events and then we can debug. In kafka check incoming, outgoing and any retires logs. that is all. but also for kafka any topic that error, connection timedout related to the topic should be of concern. Edit skills file accordingly.
+````
+
+### Outcome
+
+- **Did:**
+  - Edited the skills per the user: coordinator rule 0 "Collect first, assess later" and the step-3 wording.
+  - `incident-kafka` v0.4: collection of incoming / outgoing / retries / topic errors and connection timeouts per incident topic; lag and all-groups removed; checklist.
+  - Removed the `kafka/lag` sample; added a test; D28; M5 scope.
+  - Asked two questions: scenario 3's lag, and whether to park M4.
+  - Committed locally, not pushed. Finished at 2026-10-11T02:48:00Z.
+- **Files:** `.claude/skills/{incident-logs,incident-kafka}/SKILL.md`, `src/mocklogs/skill_samples.py`, `tests/unit/test_skill_neutrality.py`, `docs/design/{PROPOSAL,MILESTONES}.md`, `docs/process/{SKILL_CHANGELOG,AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - `skill_samples --check` → exit 0
+  - `.venv/bin/pytest` → `1 failed, 182 passed` (structure test: the new §3 heading); fixed → `183 passed`; with the new test → `184 passed`

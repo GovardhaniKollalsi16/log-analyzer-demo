@@ -83,8 +83,6 @@ SAMPLES: Dict[str, Tuple[List[str], List[str], bool]] = {
                         ["kafka-topic:example.in"], True),
     "kafka/unreachable": (["kafka-get-offsets", "--bootstrap-server", "example-other:9092", "--topic", "example.in",
                            "--time", "-1"], [], True),
-    "kafka/lag": (["kafka-consumer-groups", *BOOT, "--describe", "--group", "example-downstream-group",
-                   "--samples", "2"], [], True),
     "kafka/offsets": (["kafka-get-offsets", *BOOT, "--topic", "example.in", "--time", _ms(60)], [], True),
     "kafka/messages": (["kafka-console-consumer", *BOOT, "--topic", "example.in", "--partition", "0",
                         "--offset", "1180", "--max-messages", "1", *PROPS], [], True),
