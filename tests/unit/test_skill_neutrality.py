@@ -114,3 +114,9 @@ def test_collect_first_and_kafka_collection_scope():
     for item in ("**Incoming:**", "**Outgoing:**", "**Retries:**", "**Topic errors and connection timeouts:**"):
         assert item in kafka, item
     assert "kafka-consumer-groups" not in kafka  # lag/all-groups are not part of collection (user, 2026-10-10)
+
+
+def test_coordinator_procedure_uses_the_planner():
+    text = (SKILLS_DIR / "incident-logs" / "SKILL.md").read_text(encoding="utf-8")
+    assert "## 6. Procedure" in text and "investigator plan --workdir <workdir>" in text
+    assert "exactly as given, in order" in text and '"done": true' in text

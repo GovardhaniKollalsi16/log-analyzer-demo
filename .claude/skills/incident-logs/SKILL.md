@@ -3,10 +3,10 @@ name: incident-logs
 description: Coordinator for investigating a distributed-system incident. The incident message gives one application error line plus the inputs for each source (app cluster/namespace, Kafka cluster and topics, database host and name). Defines the rules, the "no input, no access" rule, the investigation order, and which component skill to use at each step (incident-app-logs, incident-app-config, incident-kafka, incident-db-logs). All data in this project is synthetic (MOCK).
 ---
 
-# incident-logs: coordinator (v0.5)
+# incident-logs: coordinator (v1)
 
 > **v0.3 (M2).** The per-component details (logging in, required inputs, searching by time, cluster and topic, what to look for) live in **separate component skills**. This file holds the rules, the incident format, **which ID correlates across services**, the order, and which skill to use when.
-> Coming next: **v1 (M5)** adds the full traversal procedure with `investigator plan`. **v2 (M10)** adds the report contract and links each component skill's allowlist. Safeguards and rate limiting will be added later by the user.
+> **v1 (M5)** adds the procedure (§6): `investigator plan` decides every fetch. Coming next: **v2 (M10)** adds the report contract and links each component skill's allowlist. Safeguards and rate limiting will be added later by the user.
 > All example names and values in these skills (`example-app`, `example-cluster`, `example.in`, …) are deliberately neutral and match no scenario. Component-skill samples are real `mocklogs` output from a neutral fixture.
 
 ## 1. Hard rules (apply to every component skill)
@@ -72,8 +72,23 @@ db:     host=<db host> name=<database>
 | 4 | **One hop upstream and one hop downstream:** the apps the seed app's config declares in `upstream.apps` / `downstream.apps`. Search their app logs by the **business key**, then by **their own** `correlation_id` and thread from what that search returns | `incident-app-logs` | The seed app's config (for the app list), the business key, and that app's `app[<name>]:` line from the incident. No config → no related apps (`missing_input: upstream/downstream apps`). No `app[<name>]:` line → skip that app (`missing_input`). Never reuse the seed's cluster |
 | 5 | The database: statements carrying the **business key** | `incident-db-logs` | `db.host`, `db.name` (and the business key) |
 
-**Time window:** derived from the seed line's `ts`. By default, from 10 minutes before to 2 minutes after; widen once if a step finds nothing. (Defaults to be tuned; `investigator plan` will compute them in v1.)
+**Time window:** computed by `investigator plan` from the seed line's `ts`: 10 minutes before to 2 minutes after (defaults, to be tuned). Thread segments use ±1 minute around the record.
 
 ## 5. What counts as an error
 
 You don't classify records. `investigator` labels every record **ERROR / SYMPTOM / CONTEXT / ANOMALY** with an `error_code`, per component (definitions: `docs/design/PROPOSAL.md` §2). Each component skill's "What to look for" section only helps you pick filters and notice when a step needs widening.
+
+## 6. Procedure: let `investigator plan` drive the collection
+
+You don't work out the steps yourself. `investigator plan` applies everything above (no input, no access; where vs. who; business keys; one hop) and returns the exact commands to run.
+
+1. The runtime has saved the incident as `<workdir>/incident.txt` before you start.
+2. Run:
+   ```
+   investigator plan --workdir <workdir>
+   ```
+   It prints JSON: `steps` (each with `reason`, `component`, `direction` and the exact `argv`), `gaps` (steps that can't run, with the missing input), and `done`.
+3. Run every step's `argv` **exactly as given, in order**. Each one already includes `--save-dir <workdir>`. Don't add, drop, reorder or edit steps. If you think something is missing, say so in the report instead.
+4. If a step fails with exit code **3** (SSO): stop and ask the user to run `mocklogs sso login`, then go back to 2. The planner retries that step **once**. Exit codes **4** and **5** need nothing from you; they're recorded as gaps.
+5. Go back to 2 until it returns `"done": true`. Each round can unlock new steps: the config reveals related apps, offsets reveal partitions, and a related app's lines reveal its own correlation IDs and threads.
+6. Keep the final `gaps` list. Every gap (`missing_input`, `access_denied`, `auth_required`, `not_found`) belongs in the report, because it limits what can be concluded.

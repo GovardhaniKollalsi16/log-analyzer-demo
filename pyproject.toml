@@ -14,7 +14,7 @@ test = ["pytest>=8"]
 
 [project.scripts]
 mocklogs = "mocklogs.cli:main"
-# `investigator` is added in M5, when its CLI exists.
+investigator = "investigator.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

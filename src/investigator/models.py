@@ -278,13 +278,16 @@ class TopicSubscription:
 
 @dataclass
 class AppTopology:
-    """What the seed app's config says it is connected to."""
+    """What the seed app's config says it is connected to. It says WHO is related, never WHERE (D27)."""
 
     app: str
     consumes: List[TopicSubscription] = field(default_factory=list)
     produces: List[str] = field(default_factory=list)
     databases: List[str] = field(default_factory=list)
     limits: Dict[str, str] = field(default_factory=dict)  # timeouts, retries, pool sizes, ...
+    upstream_apps: List[str] = field(default_factory=list)      # config `upstream.apps` (D26)
+    downstream_apps: List[str] = field(default_factory=list)    # config `downstream.apps` (D26)
+    client_ids: Dict[str, str] = field(default_factory=dict)    # Kafka client.id -> app, ONLY as declared (D26)
 
 
 @dataclass
@@ -306,6 +309,7 @@ class FetchStep:
 @dataclass
 class FetchPlan:
     steps: List[FetchStep] = field(default_factory=list)
+    gaps: List["CoverageGap"] = field(default_factory=list)  # steps that can't run: missing inputs (D22)
     done: bool = False
     stop_reason: Optional[str] = None
 
