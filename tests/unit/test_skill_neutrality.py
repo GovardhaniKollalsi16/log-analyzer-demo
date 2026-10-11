@@ -116,7 +116,38 @@ def test_collect_first_and_kafka_collection_scope():
     assert "kafka-consumer-groups" not in kafka  # lag/all-groups are not part of collection (user, 2026-10-10)
 
 
-def test_coordinator_procedure_uses_the_planner():
+def test_coordinator_procedure_is_an_investigation_with_guardrails():
+    """D31: the agent investigates; plan = suggestions; every fetch via `investigator run`; causes scored."""
     text = (SKILLS_DIR / "incident-logs" / "SKILL.md").read_text(encoding="utf-8")
-    assert "## 6. Procedure" in text and "investigator plan --workdir <workdir>" in text
-    assert "exactly as given, in order" in text and '"done": true' in text
+    assert "## 6. Procedure: investigate" in text
+    for cmd in ("investigator init --workdir", "investigator plan --workdir", "investigator run --workdir",
+                "investigator correlate --workdir", "investigator score --workdir", "investigator validate --workdir"):
+        assert cmd in text, cmd
+    assert "exactly as given, in order" not in text  # the old "run the planner's steps exactly" rule is gone
+    assert "## 7. Report contract" in text and "confidence_above_ceiling" in text
+
+
+def documented_commands():
+    """Every `mocklogs ...` command written in a component skill's code blocks (sample output excluded)."""
+    import re
+    for name in EXPECTED_SKILLS[1:]:
+        text = (SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8")
+        for block in re.findall(r"```\n(.*?)```", text, re.S):
+            joined = block.replace("\\\n", " ")  # join shell line continuations
+            for line in joined.splitlines():
+                if line.strip().startswith("mocklogs "):
+                    yield name, line.split()[1:]
+
+
+def test_every_documented_command_is_allowlisted_and_sso_login_never_is():
+    from investigator.allowlist import load_allowlist
+    al = load_allowlist(SKILLS_DIR)
+    assert not any(shape.startswith("sso") for shape in al.flags)
+    checked = 0
+    for name, words in documented_commands():
+        shape = " ".join(words[:2]) if words[0] in ("kubectl", "kafka", "db") else words[0]
+        assert shape in al.flags, (name, shape)
+        flags = {w.split("=")[0] for w in words if w.startswith("-")}
+        assert flags <= al.flags[shape], (name, shape, flags - al.flags[shape])
+        checked += 1
+    assert checked >= 10

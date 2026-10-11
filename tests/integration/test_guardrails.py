@@ -9,7 +9,8 @@ import pytest
 
 from investigator import cli as investigator_cli
 from investigator.adapters import FileSource
-from investigator.guard import check
+from investigator.allowlist import load_allowlist
+from investigator.guard import check as _check
 from investigator.models import Confidence
 from investigator.parsing import parse_all
 from investigator.pipeline import analyse_workdir, prepare, score_in_workdir
@@ -18,6 +19,12 @@ from mocklogs import cli as mock_cli, sso
 from mocklogs.scenarios import SCENARIOS
 
 from test_planner import RULES, SKILL
+
+ALLOWLIST = load_allowlist(SKILL.parents[1])
+
+
+def check(argv, incident, topology, workdir):
+    return _check(argv, incident, topology, workdir, ALLOWLIST)
 
 W = ["--since-time=2026-03-14T08:50:00Z", "--until-time=2026-03-14T09:10:00Z"]
 

@@ -3,21 +3,25 @@ name: incident-logs
 description: Coordinator for investigating a distributed-system incident. The incident message gives one application error line plus the inputs for each source (app cluster/namespace, Kafka cluster and topics, database host and name). Defines the rules, the "no input, no access" rule, the investigation order, and which component skill to use at each step (incident-app-logs, incident-app-config, incident-kafka, incident-db-logs). All data in this project is synthetic (MOCK).
 ---
 
-# incident-logs: coordinator (v1)
+# incident-logs: coordinator (v2)
 
 > **v0.3 (M2).** The per-component details (logging in, required inputs, searching by time, cluster and topic, what to look for) live in **separate component skills**. This file holds the rules, the incident format, **which ID correlates across services**, the order, and which skill to use when.
-> **v1 (M5)** adds the procedure (§6): `investigator plan` decides every fetch. Coming next: **v2 (M10)** adds the report contract and links each component skill's allowlist. Safeguards and rate limiting will be added later by the user.
+> **v2 (M10, D31):** you investigate. `investigator plan` gives suggestions (§6), every fetch goes through `investigator run`, and the report contract is in §7. Safeguards and rate limiting will be added later by the user.
 > All example names and values in these skills (`example-app`, `example-cluster`, `example.in`, …) are deliberately neutral and match no scenario. Component-skill samples are real `mocklogs` output from a neutral fixture.
 
 ## 1. Hard rules (apply to every component skill)
 
-0. **Collect first, assess later.** Your job in this phase is to collect every record related to the incident, from every source the incident allows. Judging what went wrong comes afterwards (`investigator`, then the report). Don't stop collecting because something already looks like the answer.
+0. **Collect first, assess later.** Your job in this phase is to collect every record related to the incident, from every source the incident allows. Judging what went wrong comes afterwards (`investigator`, then the report). Don't stop collecting because something already looks like the answer. Once collected, **you investigate** (§6): assess, dig where the evidence is thin, conclude.
 1. **No input, no access.** Every component skill lists its **required inputs**. If any required input is missing, **don't run any command from that skill.** Record a `missing_input` gap that names the missing input(s), and move on. Never guess, assume, or invent a cluster, namespace, topic, host, database or app name.
 2. **Start from the incident.** Your first message is the incident: one application error line plus the inputs for each source (§2). Everything you fetch must trace back to it.
 3. **Never parse raw logs or config yourself.** Fetch with the documented commands. `investigator` (deterministic code) parses, classifies, correlates and orders. You reason over its structured output only.
 4. **Never decide chronology yourself.** `investigator` orders events by their timestamps.
-5. **Only run commands documented in a component skill, exactly as shown.** No pipes, redirects, `;`, `&&`, subshells or other tools.
-6. **Always pass `--save-dir <workdir>`.** Output that isn't saved can't be used as evidence.
+5. **Run every fetch through `investigator run`**, never `mocklogs` directly:
+   ```
+   investigator run --workdir <workdir> --reason "<why you need this>" -- mocklogs <command as in a component skill>
+   ```
+   It checks the command (the component skills' allowlists; WHERE only from the incident, WHO only from the seed config), runs it without a shell, and records your reason. A denial comes back with reason codes: fix the command or record the gap. Don't try to work around a denial. No pipes, redirects, `;`, `&&` or subshells, ever.
+6. **Always pass `--save-dir <workdir>`** (the runner refuses commands without it). Output that isn't saved can't be used as evidence.
 7. **You never log in.** Every component uses the **user's SSO session**. On an SSO error, stop and ask the user to run `mocklogs sso login`, then retry that command **once**. If the user declines or it still fails, record `auth_required` and continue.
 8. **Refusals are findings.** Exit **4** (`Forbidden`) → record `access_denied`. Exit **5** (not found or unreachable: wrong or stale cluster, namespace, app, topic, group, host or database) → record `not_found` naming the input. In both cases don't retry, don't try other values, and continue.
 9. **Don't look for or use the scenario name.** It's deliberately hidden, because it would give away the answer.
@@ -78,17 +82,54 @@ db:     host=<db host> name=<database>
 
 You don't classify records. `investigator` labels every record **ERROR / SYMPTOM / CONTEXT / ANOMALY** with an `error_code`, per component (definitions: `docs/design/PROPOSAL.md` §2). Each component skill's "What to look for" section only helps you pick filters and notice when a step needs widening.
 
-## 6. Procedure: let `investigator plan` drive the collection
+## 6. Procedure: investigate
 
-You don't work out the steps yourself. `investigator plan` applies everything above (no input, no access; where vs. who; business keys; one hop) and returns the exact commands to run.
+The deterministic tools do the mechanics (parsing, linking, ordering, scoring, checking). **The investigation is yours:** what to look at, which leads matter, what the cause is, and what's still missing.
 
-1. The runtime has saved the incident as `<workdir>/incident.txt` before you start.
-2. Run:
+1. **Set up.** If `<workdir>/incident.txt` doesn't exist yet, save the incident from a file the user gives you. Never retype it:
+   ```
+   investigator init --workdir <workdir> --incident-file <file>
+   ```
+2. **Collect broadly (rule 0).** Get suggestions, then run them through the runner:
    ```
    investigator plan --workdir <workdir>
+   investigator run --workdir <workdir> --reason "<the step's reason>" -- <the step's argv>
    ```
-   It prints JSON: `steps` (each with `reason`, `component`, `direction` and the exact `argv`), `gaps` (steps that can't run, with the missing input), and `done`.
-3. Run every step's `argv` **exactly as given, in order**. Each one already includes `--save-dir <workdir>`. Don't add, drop, reorder or edit steps. If you think something is missing, say so in the report instead.
-4. If a step fails with exit code **3** (SSO): stop and ask the user to run `mocklogs sso login`, then go back to 2. The planner retries that step **once**. Exit codes **4** and **5** need nothing from you; they're recorded as gaps.
-5. Go back to 2 until it returns `"done": true`. Each round can unlock new steps: the config reveals related apps, offsets reveal partitions, and a related app's lines reveal its own correlation IDs and threads.
-6. Keep the final `gaps` list. Every gap (`missing_input`, `access_denied`, `auth_required`, `not_found`) belongs in the report, because it limits what can be concluded.
+   Repeat until `plan` says `"done": true`. The suggestions apply no-input-no-access, where vs. who, business keys and the one-hop rule for you.
+3. **Assess.** Read the evidence:
+   ```
+   investigator correlate --workdir <workdir>
+   ```
+   Look at the timeline, the findings, the detector **leads** (hypotheses with factors and a ceiling), the gaps, and any ERROR/SYMPTOM the detectors didn't explain.
+4. **Dig where it's thin.** You may fetch beyond the suggestions: a wider window, another partition, a lead in a declared related app, a correlation ID you found. Every command goes through `investigator run` with a `--reason`. The runner records everything in `<workdir>/actions.jsonl`. Then re-run `correlate`. Stop when more fetching wouldn't change your conclusion, or when the remaining questions need access or inputs you don't have.
+5. **Decide the cause yourself.** The detector leads are leads, not answers. You may agree with one, prefer another collected event, or conclude "unknown". For any cause you propose, get its score:
+   ```
+   investigator score --workdir <workdir> --cause <event_id>
+   ```
+   You may claim **at most** that ceiling, and you must report its factor values unchanged.
+6. **SSO and refusals.** Exit **3**: stop, ask the user to run `mocklogs sso login`, then retry that command once. Exits **4/5**: no retry; it's a gap.
+7. **Write the report (§7), validate it, fix it.** Up to 3 attempts; if it still doesn't validate, the result is the INSUFFICIENT fallback.
+
+## 7. Report contract
+
+Submit one JSON object. `investigator validate` checks it against the collected evidence:
+```
+investigator validate --workdir <workdir> --report <report.json>
+investigator render   --workdir <workdir> --report <report.json>
+```
+
+| Section | Shape | Rules |
+|---|---|---|
+| `summary` | string | plain words |
+| `correlation_id` | string or null | the **seed's own** correlation ID |
+| `timeline` | `[{event_id, note}]` | in event-time order |
+| `root_cause` | `{statement, cause_event_id, evidence_event_ids, source: "detector"\|"ai"}` or `"unknown"` | the evidence must include the cause; `source` says who proposed it |
+| `evidence` | `[{event_id, why}]` | non-empty when there's a root cause |
+| `downstream_symptoms` | `[{statement, event_ids}]` | may be empty |
+| `alternative_hypotheses` | `[{statement, event_ids, status: "rejected"\|"open", why}]` | the leads you didn't pick, and why |
+| `confidence` | `{level, factors: [{name, value, reason}]}` | level ≤ the cause's `investigator score` ceiling; factor **values** exactly as scored; `"unknown"` → `INSUFFICIENT`; a named cause can't be `INSUFFICIENT` |
+| `gaps` | `[{target, reason, impact}]` | **every** coverage gap, with what it means for the conclusion |
+| `ai_interpretations` | `[{event_id, interpretation}]` | your reading of errors no rule explains; they never raise confidence |
+| `next_steps` | `[string]` | at least one: what to check, or what access/input is needed |
+
+Every `event_id` you cite must exist among the collected events. Validation errors come back with codes (`unknown_event_id`, `confidence_above_ceiling`, `factors_mismatch`, `gap_not_acknowledged`, …). Fix the report rather than arguing with them.

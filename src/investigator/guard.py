@@ -1,7 +1,7 @@
 """`investigator check`: allow or deny ONE command the AI wants to run (D31).
 
 The AI investigates freely; this guard checks every command against the rules the user set:
-  - only the tool's documented, read-only fetch commands, with documented flags only;
+  - only the read-only fetch commands and flags the component skills allowlist (allowlist.py);
   - no shell metacharacters (the runner never uses a shell, but the argv must be clean anyway);
   - output saved to the investigation's workdir (`--save-dir <workdir>`);
   - WHERE (cluster/namespace, Kafka bootstrap/topics, DB host/name) only from the incident (D22, D27);
@@ -16,24 +16,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+from investigator.allowlist import Allowlist
 from investigator.models import AppTopology, Incident
 
 TOOL = "mocklogs"
 SHELL_META = set(";|&$`<>\\\n\r") | {"$("}
-
-# command shape -> flags it may carry (documented in the component skills)
-FLAGS: Dict[str, Set[str]] = {
-    "kubectl logs": {"--context", "-n", "--namespace", "--timestamps", "--since-time", "--until-time", "--grep",
-                     "--instance", "--thread", "--save-dir"},
-    "kubectl get": {"--context", "-n", "--namespace", "-o", "--output", "--save-dir"},
-    "kafka-get-offsets": {"--bootstrap-server", "--topic", "--time", "--save-dir"},
-    "kafka-console-consumer": {"--bootstrap-server", "--topic", "--partition", "--offset", "--max-messages",
-                               "--property", "--grep", "--from-beginning", "--save-dir"},
-    "kafka logs": {"--bootstrap-server", "--component", "--topic", "--since-time", "--until-time", "--save-dir"},
-    "db logs": {"--host", "--db", "--since-time", "--until-time", "--grep", "--save-dir"},
-}
-VALUELESS = {"--timestamps", "--from-beginning"}
-
 
 @dataclass
 class Verdict:
@@ -46,7 +33,7 @@ class Verdict:
         self.reasons.append({"code": code, "detail": detail})
 
 
-def _options(args: List[str], v: Verdict, allowed: Set[str]) -> Dict[str, List[str]]:
+def _options(args: List[str], v: Verdict, allowed: Set[str], valueless: Set[str]) -> Dict[str, List[str]]:
     """Parse `--flag value`, `--flag=value` and valueless flags. Unknown flags are denied."""
     opts: Dict[str, List[str]] = {}
     i = 0
@@ -61,7 +48,7 @@ def _options(args: List[str], v: Verdict, allowed: Set[str]) -> Dict[str, List[s
             v.deny("flag_not_allowed", f"{name} isn't a documented flag for this command")
             i += 1
             continue
-        if name in VALUELESS:
+        if name in valueless:
             opts.setdefault(name, []).append("")
             i += 1
         elif eq:
@@ -80,7 +67,8 @@ def _one(opts: Dict[str, List[str]], *names: str) -> Optional[str]:
     return None
 
 
-def check(argv: List[str], incident: Incident, topology: Optional[AppTopology], workdir: str) -> Verdict:
+def check(argv: List[str], incident: Incident, topology: Optional[AppTopology], workdir: str,
+          allowlist: Allowlist) -> Verdict:
     v = Verdict(allowed=True)
     if not argv or argv[0] != TOOL:
         v.deny("unknown_tool", f"only `{TOOL}` fetch commands are checked here")
@@ -91,7 +79,7 @@ def check(argv: List[str], incident: Incident, topology: Optional[AppTopology], 
     args = argv[1:]
     shape = " ".join(args[:2]) if args[:1] in (["kubectl"], ["kafka"], ["db"]) else (args[0] if args else "")
     v.shape = shape
-    if shape not in FLAGS:
+    if shape not in allowlist.flags:
         if shape.startswith("kafka-consumer-groups"):
             v.deny("not_in_collection_scope", "consumer-group lag isn't part of collection (D28/D29)")
         elif shape.split(" ")[0] in ("sso", "scenario"):
@@ -100,7 +88,7 @@ def check(argv: List[str], incident: Incident, topology: Optional[AppTopology], 
             v.deny("unknown_command", f"`{shape}` isn't a documented fetch command")
         return v
     rest = args[2:] if " " in shape else args[1:]
-    opts = _options(rest, v, FLAGS[shape])
+    opts = _options(rest, v, allowlist.flags[shape], allowlist.valueless)
     save = _one(opts, "--save-dir")
     if save is None or Path(save).resolve() != Path(workdir).resolve():
         v.deny("save_dir_missing", f"output must be saved with --save-dir {workdir}")

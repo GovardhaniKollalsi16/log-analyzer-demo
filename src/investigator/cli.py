@@ -6,8 +6,13 @@
   investigator correlate --workdir <dir> [--rules ...]
       Prints the AnalysisBundle as JSON: what the LLM reasons over (events, links, timeline,
       findings, hypotheses with confidence factors, and the confidence ceiling).
+  investigator init --workdir <dir> --incident-file <file>
+      Validate an incident and save it verbatim as <dir>/incident.txt (R17: nobody retypes it).
   investigator check --workdir <dir> -- mocklogs <args...>
       Allow/deny one command the AI wants to run (D31). Exit 0 = allowed, 1 = denied; JSON reasons.
+  investigator run --workdir <dir> --reason "<why>" -- mocklogs <args...>
+      The ONLY way the agent runs a fetch: check, then execute without a shell. Every attempt
+      (allowed or denied) is appended to <dir>/actions.jsonl. Exit: the command's own code, or 1 if denied.
   investigator score --workdir <dir> --cause <event_id>
       The confidence factors and ceiling for an AI-proposed cause (D31).
   investigator validate --workdir <dir> --report <report.json>
@@ -78,17 +83,65 @@ def _load(a):
     return prepare(Path(a.workdir), load_rules(a.rules))
 
 
-def cmd_check(a) -> int:
+def _verdict(a):
+    from investigator.allowlist import load_allowlist, skills_dir_for
     from investigator.guard import check
     argv = list(a.command)
     if argv[:1] == ["--"]:
         argv = argv[1:]
+    p = _load(a)
+    return argv, check(argv, p.incident, p.topology, str(Path(a.workdir)), load_allowlist(skills_dir_for(a.rules)))
+
+
+def cmd_init(a) -> int:
+    workdir, target = Path(a.workdir), Path(a.workdir) / INCIDENT_FILE
     try:
-        p = _load(a)
+        text = Path(a.incident_file).read_text(encoding="utf-8")
+        incident = parse_incident(text, load_rules(a.rules))
+    except (OSError, ValueError) as e:
+        print(f"error: invalid incident: {e}", file=sys.stderr)
+        return 2
+    if target.exists() and target.read_text(encoding="utf-8") != text:
+        print(f"error: {target} already holds a different incident; use a new --workdir", file=sys.stderr)
+        return 2
+    workdir.mkdir(parents=True, exist_ok=True)
+    target.write_text(text, encoding="utf-8")
+    print(json.dumps({"saved": str(target), "seed_app": incident.seed.app,
+                      "business_key": incident.seed.business_key,
+                      "inputs": {"app": incident.app is not None, "related_apps": sorted(incident.related_apps),
+                                 "kafka": bool(incident.kafka_bootstrap), "db": bool(incident.db_host)}}, indent=2))
+    return 0
+
+
+def cmd_run(a) -> int:
+    import subprocess
+    from datetime import datetime, timezone
+    try:
+        argv, verdict = _verdict(a)
     except (OSError, ValueError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
-    verdict = check(argv, p.incident, p.topology, str(Path(a.workdir)))
+    record = {"ts": datetime.now(timezone.utc).isoformat(), "argv": argv, "reason": a.reason,
+              "allowed": verdict.allowed, "denials": verdict.reasons}
+    code = 1
+    if verdict.allowed:
+        proc = subprocess.run(argv, shell=False, capture_output=True, text=True, timeout=120)
+        sys.stdout.write(proc.stdout)
+        sys.stderr.write(proc.stderr)
+        code = record["exit_code"] = proc.returncode
+    else:
+        print(json.dumps({"allowed": False, "shape": verdict.shape, "reasons": verdict.reasons}, indent=2))
+    with open(Path(a.workdir) / "actions.jsonl", "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record) + "\n")
+    return code
+
+
+def cmd_check(a) -> int:
+    try:
+        argv, verdict = _verdict(a)
+    except (OSError, ValueError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
     print(json.dumps({"allowed": verdict.allowed, "shape": verdict.shape, "reasons": verdict.reasons}, indent=2))
     return 0 if verdict.allowed else 1
 
@@ -141,9 +194,18 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("correlate", help="print the analysis bundle for the incident in --workdir")
     s.add_argument("--workdir", required=True)
     s.add_argument("--rules", default=str(DEFAULT_RULES))
+    s = sub.add_parser("init", help="validate an incident and save it into --workdir")
+    s.add_argument("--workdir", required=True)
+    s.add_argument("--rules", default=str(DEFAULT_RULES))
+    s.add_argument("--incident-file", required=True)
     s = sub.add_parser("check", help="allow/deny one command the AI wants to run")
     s.add_argument("--workdir", required=True)
     s.add_argument("--rules", default=str(DEFAULT_RULES))
+    s.add_argument("command", nargs=argparse.REMAINDER, help="-- mocklogs <args...>")
+    s = sub.add_parser("run", help="check, then run one fetch command (the agent's only way to fetch)")
+    s.add_argument("--workdir", required=True)
+    s.add_argument("--rules", default=str(DEFAULT_RULES))
+    s.add_argument("--reason", required=True, help="why this command (recorded in actions.jsonl)")
     s.add_argument("command", nargs=argparse.REMAINDER, help="-- mocklogs <args...>")
     s = sub.add_parser("score", help="confidence factors and ceiling for an AI-proposed cause")
     s.add_argument("--workdir", required=True)
@@ -160,8 +222,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[List[str]] = None) -> int:
     a = build_parser().parse_args(argv)
-    return {"plan": cmd_plan, "correlate": cmd_correlate, "check": cmd_check, "score": cmd_score,
-            "validate": cmd_validate, "render": cmd_render}[a.cmd](a)
+    return {"plan": cmd_plan, "correlate": cmd_correlate, "init": cmd_init, "check": cmd_check, "run": cmd_run,
+            "score": cmd_score, "validate": cmd_validate, "render": cmd_render}[a.cmd](a)
 
 
 if __name__ == "__main__":
