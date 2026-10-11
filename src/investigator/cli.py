@@ -19,6 +19,8 @@
       Check an AI report against the evidence. Exit 0 = valid, 1 = invalid (JSON errors).
   investigator render --workdir <dir> --report <report.json>
       Render a report as Markdown.
+  investigator agent --workdir <dir> --incident-file <file> [--provider fake] [--runs-dir runs] [--label x]
+      Run the investigating agent end to end (Python path). Transcript -> runs/<ts>-<label>.jsonl.
 """
 
 from __future__ import annotations
@@ -114,26 +116,21 @@ def cmd_init(a) -> int:
 
 
 def cmd_run(a) -> int:
-    import subprocess
-    from datetime import datetime, timezone
+    from investigator.runner import run_checked
+    argv = list(a.command)
+    if argv[:1] == ["--"]:
+        argv = argv[1:]
     try:
-        argv, verdict = _verdict(a)
+        result = run_checked(Path(a.workdir), a.rules, argv, a.reason)
     except (OSError, ValueError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
-    record = {"ts": datetime.now(timezone.utc).isoformat(), "argv": argv, "reason": a.reason,
-              "allowed": verdict.allowed, "denials": verdict.reasons}
-    code = 1
-    if verdict.allowed:
-        proc = subprocess.run(argv, shell=False, capture_output=True, text=True, timeout=120)
-        sys.stdout.write(proc.stdout)
-        sys.stderr.write(proc.stderr)
-        code = record["exit_code"] = proc.returncode
+    if result.allowed:
+        sys.stdout.write(result.stdout)
+        sys.stderr.write(result.stderr)
     else:
-        print(json.dumps({"allowed": False, "shape": verdict.shape, "reasons": verdict.reasons}, indent=2))
-    with open(Path(a.workdir) / "actions.jsonl", "a", encoding="utf-8") as fh:
-        fh.write(json.dumps(record) + "\n")
-    return code
+        print(json.dumps({"allowed": False, "reasons": result.denials}, indent=2))
+    return result.exit_code
 
 
 def cmd_check(a) -> int:
@@ -185,6 +182,19 @@ def cmd_render(a) -> int:
     return 0
 
 
+def cmd_agent(a) -> int:
+    from investigator.agent.loop import run_agent
+    if a.provider != "fake":
+        print("error: only --provider fake exists until M12 (the real provider needs an API key)", file=sys.stderr)
+        return 2
+    from investigator.agent.fake import ScriptedInvestigator
+    result = run_agent(ScriptedInvestigator(), a.incident_file, a.workdir, a.rules, a.runs_dir, a.label)
+    print(json.dumps({"valid": result.valid, "fell_back": result.fell_back, "fallback_reason": result.fallback_reason,
+                      "confidence": result.report["confidence"]["level"], "report_attempts": result.report_attempts,
+                      "turns": result.turns, "transcript": str(result.transcript)}, indent=2))
+    return 0 if result.valid else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="investigator", description="Deterministic incident investigation (no LLM).")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -211,6 +221,13 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--workdir", required=True)
     s.add_argument("--rules", default=str(DEFAULT_RULES))
     s.add_argument("--cause", required=True, help="event_id of the proposed cause")
+    s = sub.add_parser("agent", help="run the investigating agent end to end")
+    s.add_argument("--workdir", required=True)
+    s.add_argument("--rules", default=str(DEFAULT_RULES))
+    s.add_argument("--incident-file", required=True)
+    s.add_argument("--provider", default="fake", choices=["fake", "anthropic"])
+    s.add_argument("--runs-dir", default="runs")
+    s.add_argument("--label", default="incident")
     for name, helptext in (("validate", "check an AI report against the evidence"),
                            ("render", "render a validated report as Markdown")):
         s = sub.add_parser(name, help=helptext)
@@ -223,7 +240,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None) -> int:
     a = build_parser().parse_args(argv)
     return {"plan": cmd_plan, "correlate": cmd_correlate, "init": cmd_init, "check": cmd_check, "run": cmd_run,
-            "score": cmd_score, "validate": cmd_validate, "render": cmd_render}[a.cmd](a)
+            "score": cmd_score, "validate": cmd_validate, "render": cmd_render, "agent": cmd_agent}[a.cmd](a)
 
 
 if __name__ == "__main__":

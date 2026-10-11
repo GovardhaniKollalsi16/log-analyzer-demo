@@ -44,7 +44,11 @@ def prepare(workdir: Union[str, Path], rules: List[KeyRule]) -> Prepared:
     for g in parsed.gaps + planned.gaps:
         if g not in gaps:
             gaps.append(g)
-    cor = correlate(classify(parsed.events), incident, topology)
+    events = parsed.events
+    if all(e.event_id != incident.seed.event_id for e in events):
+        # The seed line is evidence in its own right (it's in the incident), even before anything is fetched.
+        events = events + [incident.seed_event]
+    cor = correlate(classify(events), incident, topology)
     return Prepared(incident, cor, topology, outputs, gaps)
 
 
