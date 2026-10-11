@@ -966,3 +966,27 @@ The llm assesing what is wrong with the log comes after for now we need to colle
 - **Commands run (actual results):**
   - `skill_samples --check` → exit 0
   - `.venv/bin/pytest` → `1 failed, 182 passed` (structure test: the new §3 heading); fixed → `183 passed`; with the new test → `184 passed`
+
+---
+
+## Entry 040 — 2026-10-11T02:49:10Z (19:49 PDT) — Milestone: M4 review (open: scenario 3 / lag)
+
+### Prompt (verbatim)
+
+````text
+[pasted by the user, quoting the AI's question]
+Scenario 3 conflicts with this. Your original brief has a scenario of "Kafka consumer lag / processing failure → downstream symptoms". Without lag collection, the lag half can't be seen. The processing failures still show up in the consumer logs (item 3). Should I:
+
+* (a) add lag back as a fifth Kafka item, only for consumed topics;
+* (b) redefine scenario 3 as a consumer processing failure with retries, observable through items 1–4 (my recommendation, since it stays within what you listed); or
+* (c) something else?
+[end of pasted text]
+
+what do you mean by lag here?
+````
+
+### Outcome
+
+- **Did:** Explained "consumer lag" in chat with a concrete example in this project's terms. No files changed besides this log.
+- **Commands run:** none besides appending this entry.
+- **Tests:** none.
