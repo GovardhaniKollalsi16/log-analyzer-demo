@@ -11,7 +11,14 @@ An AI agent that investigates a production incident across a distributed system.
 
 The AI does the investigating. Deterministic code handles the parts that must not be guessed: parsing, linking events, ordering, scoring how much confidence the evidence allows, checking every command before it runs, and validating the report.
 
-It runs as a **Claude Code subagent on your own Claude login** (no API key), started from the command line.
+It has **two run paths**. Both use the same skills, guards, scoring and validator:
+
+| Path | Who runs the loop | Status | Role |
+|---|---|---|---|
+| **Claude Code** (`--provider claude-code`) | Claude Code runs the `incident-investigator` subagent headless on **your Claude login** (no API key) | Working; live runs in `runs/` | The working path |
+| **Python agent loop** (`--provider fake`) | This app: it calls the model and exposes 5 typed tools (no shell, no file access) | Built and tested with a scripted model; a real model needs an API key (deferred) | How it would be built as a service |
+
+See [How it works §2](docs/HOW_IT_WORKS.md#2-two-ways-to-run-the-agent) for the difference.
 
 ## Quick start
 
@@ -42,6 +49,12 @@ Run the investigation (this uses your Claude account's usage, roughly $0.40–$1
 ```
 
 The output goes to `case-1/report.md` (readable) and `case-1/report.json`, with the full transcript in `runs/`. Use a neutral workdir name: the AI sees it.
+
+Or run the Python agent loop with its scripted model (no Claude usage):
+
+```bash
+.venv/bin/investigator agent --provider fake --workdir ./case-2 --incident-file incident.txt
+```
 
 Run the tests (no Claude usage; a fake `claude` stands in):
 

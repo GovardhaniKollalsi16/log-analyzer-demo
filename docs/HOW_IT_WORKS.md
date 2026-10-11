@@ -25,7 +25,22 @@ The split of work, decided in D31: **the AI investigates, the code guards.**
 | What the root cause is, or that it's unknown | A proposed cause is scored: the confidence **ceiling** is computed, not guessed |
 | How to explain it | The report is validated: invented IDs, over-claimed confidence or hidden gaps are rejected |
 
-## 2. The big picture
+## 2. Two ways to run the agent
+
+Both paths give the AI the same skills, go through the same `investigator` code and guards, and end with the same validator. What differs is **who owns the agent loop**: the code that repeatedly sends the conversation to the model, runs the tool it asks for, and returns the result.
+
+| | **Claude Code** (`--provider claude-code`) | **Python agent loop** (`--provider fake`) |
+|---|---|---|
+| Who runs the loop | Claude Code, running the `incident-investigator` subagent headless | This app (`src/investigator/agent/loop.py`) |
+| The AI's tools | General-purpose: Bash, Read, Write, narrowed by permissions and a hook to `investigator …` commands and the workdir | 5 typed functions: `plan`, `run`, `correlate`, `score`, `submit_report`. No shell or file access exists. |
+| Model access | Your Claude login (no API key) | A provider interface. Today only a scripted model implements it; a real one needs an API key (deferred, D10/D11). |
+| Report | The agent writes `report.json`; the harness validates it afterwards | `submit_report` is validated on each call, up to 3 attempts |
+| Status | **Working**: all 4 scenarios run live (`runs/`) | Built and tested end to end with the scripted model |
+| Role | The working path: an engineer runs it from the command line | How it would be built as a **service**: the app controls the tools, turn budget, context and cost |
+
+**Why keep both.** Claude Code was the fastest way to get a real model investigating on a subscription, and skills as plain files are easy to show and change. The agent loop is the usual shape of an AI product, where the app calls a model API with tools it defines, and it is safe by construction rather than by restriction. Adding a real model there means writing one provider class (`agent/provider.py`). Nothing else changes.
+
+## 3. The big picture (Claude Code path)
 
 ```mermaid
 flowchart LR
@@ -42,7 +57,7 @@ flowchart LR
     V -->|"missing / invalid"| F[INSUFFICIENT fallback]
 ```
 
-## 3. Inputs
+## 4. Inputs
 
 ### The incident
 
@@ -65,7 +80,7 @@ db:     host=db-a name=appdb
 - **Across services, the agent follows a business key** chosen by the seed's class: `Order*` → `order_id`, `Product*` → `product_id`. The coordinator skill holds this table.
 - **Within one app:** one request is also followed along its thread, for up to 1 minute (D17).
 
-## 4. The components
+## 5. The components
 
 | Part | Where | What it does |
 |---|---|---|
@@ -73,7 +88,8 @@ db:     host=db-a name=appdb
 | **Skills** | `.claude/skills/` | Instructions for the AI. There's one coordinator (`incident-logs`: rules, incident format, ID table, the investigation procedure, the report contract). There's also one skill per source (`incident-app-logs`, `incident-app-config`, `incident-kafka`, `incident-db-logs`): how to log in, required inputs, commands, output format, what counts as an error, and an **allowlist** of permitted commands. |
 | **Subagent** | `.claude/agents/incident-investigator.md` | The Claude Code agent: all 5 skills preloaded, tools limited to Bash, Read and Write, at most 60 turns. |
 | **Investigator** | `src/investigator/` | The deterministic engine and the agent's only interface to the data (the `investigator` command). It never imports the mock package, and contains no scenario names (a test enforces both). |
-| **Harness** | `src/investigator/agent/claude_code.py` | Starts Claude Code headless with the limits below, records the run, and validates the result. |
+| **Harness (Claude Code path)** | `src/investigator/agent/claude_code.py` | Starts Claude Code headless with the limits in §10, records the run, and validates the result. |
+| **Agent loop (service path)** | `src/investigator/agent/loop.py`, `tools.py`, `provider.py`, `narration.py`, `fake.py` | The app's own loop: 5 typed tools over the same guarded code, a compact view of the evidence for the model's context, a turn budget, 3 report attempts, and the fallback. `fake.py` is the scripted model that drives it today. |
 
 ### `investigator` commands (what the agent runs)
 
@@ -88,9 +104,9 @@ db:     host=db-a name=appdb
 | `validate --report …` | Check the report against the evidence. |
 | `render --report …` | Turn a validated report into Markdown. |
 
-## 5. The investigation, step by step
+## 6. The investigation, step by step
 
-This follows the coordinator skill's §6:
+This follows the coordinator skill's §6 and is the same on both paths. On the agent loop, the steps are tool calls instead of commands.
 
 1. **Collect broadly.**
    - The agent runs `plan` and executes each suggestion through `run`, repeating until `plan` says it's done.
@@ -101,12 +117,12 @@ This follows the coordinator skill's §6:
      - the related apps, by business key and their client IDs;
      - database sessions.
    - For Kafka, "collect" means incoming messages, outgoing messages, retries, and topic errors or timeouts (D28).
-2. **Assess.** `correlate` turns the saved outputs into one picture, as described in §6.
+2. **Assess.** `correlate` turns the saved outputs into one picture, as described in §7.
 3. **Dig where it's thin.** The agent may fetch beyond the suggestions: a wider window, another partition, an ID it found. Each fetch is still checked.
 4. **Decide.** The agent proposes a cause, or "unknown", and runs `score` on it. It may claim **at most** that ceiling, and can choose less. In the live run of scenario 2, the AI chose MEDIUM under a HIGH ceiling because one alternative was still open.
 5. **Report.** It writes `report.json`, runs `validate`, and fixes errors, with up to 3 attempts.
 
-## 6. Inside `correlate` (deterministic)
+## 7. Inside `correlate` (deterministic)
 
 1. **Parse.** Each source has its own parser: JSON app logs, config, Kafka messages and client/broker logs, and DB logs. Every line becomes an **Event** with a stable ID (`ev-…`), a UTC time, the IDs on it, and its business keys. Unparseable lines are kept as parse issues, never dropped silently.
 2. **Classify.** Each event is marked ERROR, SYMPTOM, CONTEXT or ANOMALY, with an error code, using per-source rule tables. For example, Kafka `REQUEST_TIMED_OUT` and a DB `too many clients` count as errors.
@@ -131,7 +147,7 @@ This follows the coordinator skill's §6:
 
 6. **Hypotheses (leads).** Findings that share events become a chain, and each chain gets a candidate cause. These are **leads for the AI**, not answers.
 
-## 7. Confidence: computed, not felt
+## 8. Confidence: computed, not felt
 
 Every proposed cause gets four factors, each STRONG, PARTIAL, WEAK or ABSENT:
 
@@ -151,7 +167,7 @@ They combine into the **ceiling**:
 | any factor is PARTIAL | MEDIUM |
 | all are STRONG | HIGH |
 
-## 8. The report and its validation
+## 9. The report and its validation
 
 The report contract is in coordinator §7: summary, the seed's correlation ID, timeline, root cause (or `"unknown"`), evidence, downstream symptoms, alternative hypotheses, confidence with factors, gaps, AI interpretations, and next steps.
 
@@ -171,7 +187,7 @@ The validator rejects a report that:
 
 The harness runs this validation itself on the final `report.json`, whatever the agent says. **If the report is missing or still invalid, it is not trusted.** It is kept as `report.rejected.json`, and the result becomes an **INSUFFICIENT fallback** report built from the evidence alone.
 
-## 9. Guardrails (defence in depth)
+## 10. Guardrails (defence in depth)
 
 | Layer | Stops |
 |---|---|
@@ -182,9 +198,11 @@ The harness runs this validation itself on the final `report.json`, whatever the
 | **Report validator + fallback** | Invented evidence, over-claimed confidence, hidden gaps. |
 | **Login, not a key** | `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` are removed from the environment, so the run uses your Claude login. |
 
+On the **agent loop** path, the first two layers aren't needed: the model has no shell and no file access, only the 5 typed tools, which call the same `investigator run` guard and validator.
+
 Rate limiting and further safeguards are planned separately (D24).
 
-## 10. What a run leaves behind
+## 11. What a run leaves behind
 
 | File | Content |
 |---|---|
@@ -195,7 +213,7 @@ Rate limiting and further safeguards are planned separately (D24).
 | `<workdir>/report.rejected.json` | Only if the agent's report failed validation |
 | `runs/<timestamp>-<label>.jsonl` | The full transcript: every message and tool call from Claude Code. Kept permanently. |
 
-## 11. The four mock scenarios
+## 12. The four mock scenarios
 
 | Scenario | The seed | Live result |
 |---|---|---|
@@ -215,7 +233,7 @@ The code never hardcodes a cause for a scenario. Robustness tests (`tests/robust
 
 The detectors, the kind of cause and the confidence ceiling must stay the same. Access denials may only lower confidence.
 
-## 12. Testing
+## 13. Testing
 
 ```bash
 .venv/bin/pytest -q

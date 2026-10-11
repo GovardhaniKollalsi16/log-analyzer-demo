@@ -227,7 +227,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--rules", default=str(DEFAULT_RULES))
     s.add_argument("--incident-file", required=True)
     s.add_argument("--provider", default="fake", choices=["fake", "claude-code"],
-                   help="claude-code: the subagent, headless on your Claude login (D32); fake: scripted, for tests")
+                   help="claude-code: the subagent, headless on your Claude login (D32); fake: the Python agent loop driven by a "
+                        "scripted model (the service path, D33)")
     s.add_argument("--claude-bin", default="claude", help="the Claude Code executable (claude-code provider)")
     s.add_argument("--runs-dir", default="runs")
     s.add_argument("--label", default="incident")

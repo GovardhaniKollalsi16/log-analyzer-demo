@@ -1498,3 +1498,44 @@ approve M12 and also create clear documentation of what this application is doin
   - Pushed.
 - **Tests:** `481 passed in 74.09s (0:01:14)`.
 - **Not done:** the Python agent loop is kept (still used by the fake provider and the tests); asked the user whether to remove it.
+
+---
+
+## Entry 064 — 2026-10-11T20:16:28Z (13:16 PDT) — Milestone: question (agent loop vs Claude Code)
+
+### Prompt (verbatim)
+
+````text
+what is the difference between agent loop vs running through claude code. Which is more ai application like
+````
+
+### Outcome
+
+- **Did:** Answered the question; no code changed. Recommended keeping Claude Code as the product path. Left the loop decision with the user.
+
+---
+
+## Entry 065 — 2026-10-11T20:19:44Z (13:19 PDT) — Milestone: keep both run paths; update the docs
+
+### Prompt (verbatim)
+
+````text
+My recommendation: keep both and present them that way:
+
+* Claude Code as the working path: it runs today on your account, with live results.
+* The agent loop as the "how I'd build it as a service" path: it's already built and tested with the scripted model, and the same guards apply.
+
+* 
+* keep it and update the description in the repo
+````
+
+### Outcome
+
+- **Did:**
+  - Recorded D33 (two run paths, two roles).
+  - `README.md` now has a table of both paths and how to run each.
+  - `HOW_IT_WORKS.md` has a new §2 comparing them, an agent-loop row in the components table, and a note on which guard layers apply to which path. Sections were renumbered and cross-references fixed.
+  - The `--provider` help text now describes `fake` as the service path.
+  - Pushed.
+- **Tests:** `481 passed in 74.96s (0:01:14)`.
+- **Not done:** the GitHub repository's "About" description (if that's what was meant) was not changed. Asked.
