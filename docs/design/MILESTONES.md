@@ -67,7 +67,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M4 — Per-component error classification 🟡 (steps 1–2 done 2026-10-10: rule tables + tests; awaiting user approval)
+## M4 — Per-component error classification ✅ (approved and pushed 2026-10-10)
 **Status:** step 1 done: rule tables as code in `src/investigator/classify/` (commit `4716293`). **Step 2 (after approval):** one matching and one non-matching test per rule, lag/config cases, a rename-invariance test, then push.
 **Scope:** `classify/app.py`, `config.py`, `kafka.py`, `db.py` implementing PROPOSAL §2. Each rule sets `severity` + `error_code`, with thresholds in one config object.
 
@@ -79,7 +79,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M5 — Config → topology + `investigator plan` ⬜
+## M5 — Config → topology + `investigator plan` 🟡 (in progress)
 **Scope**
 - `config_model.py`: configmap JSON → `ConfigEntry`s + `AppTopology`, including (D26) `upstream.apps` / `downstream.apps` and a **client-ID → app map** built only from the declared `*.kafka.client.ids` + own `kafka.*.client.id`. Used to attribute Kafka log lines and lag rows; unmapped IDs stay unattributed.
 - `planner.py`: the **incident** (seed + per-source inputs) + fetched outputs in the workdir → `FetchPlan` following PROPOSAL §1. **No input, no access (D22):** a step with a missing required input becomes a `missing_input` gap, never a guessed command:

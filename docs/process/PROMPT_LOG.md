@@ -1036,3 +1036,13 @@ finish M4
   - `pytest tests/unit/test_classify.py` → 6 failed (`kafka.broker.request_failed` → CONTEXT; 5 `TypeError`s from the test helper). After the fixes → `66 passed in 0.04s`
   - `pytest tests/integration/test_classify_scenario.py` → `2 passed in 0.12s`
   - Full suite ×3 → `252 passed` (1.16s / 1.25s / 1.39s); `skill_samples --check` → exit 0
+
+---
+
+## Entry 043 — 2026-10-11T02:54:56Z (19:54 PDT) — Milestone: M4 approved → M5 (config → topology + investigator plan)
+
+### Prompt (verbatim)
+
+````text
+Yes go ahead with m5
+````
