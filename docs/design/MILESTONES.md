@@ -67,6 +67,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 ---
 
 ## M4 — Per-component error classification 🟡 (step 1: rule tables awaiting user review)
+**Status:** step 1 done: rule tables as code in `src/investigator/classify/` (commit `4716293`). **Step 2 (after approval):** one matching and one non-matching test per rule, lag/config cases, a rename-invariance test, then push.
 **Scope:** `classify/app.py`, `config.py`, `kafka.py`, `db.py` implementing PROPOSAL §2. Each rule sets `severity` + `error_code`, with thresholds in one config object.
 
 **Tests:** one positive and one negative fixture per rule; renamed apps/topics classify identically.
@@ -84,9 +85,9 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
   - seed app logs → config → Kafka → 1 hop up/down → DB;
   - access-denied targets become `CoverageGap`s.
 - `investigator plan --workdir <dir>` prints the next allowlisted argv lists as JSON. Register the `investigator` console script.
-- **SKILL.md v1:** the traversal section. It explains how upstream apps are found (message headers on consumed topics), how downstream apps are found (consumer groups on produced topics), the 1-hop rule, and how to follow `investigator plan`. Logged in SKILL_CHANGELOG.
+- **SKILL.md v1:** the traversal section. Related apps come **only** from the seed config's `upstream.apps` / `downstream.apps` (D26). *Where* to look comes **only** from the incident (D27). It also covers the 1-hop rule and how to follow `investigator plan`. Logged in SKILL_CHANGELOG.
 
-**Tests:** plan sequence for scenario 1 step by step; access denied at config → Kafka steps can't be planned → gap recorded; no DB in config → no DB step; never more than 1 hop.
+**Tests:** plan sequence for scenario 1 step by step; config access denied → related apps unknown → step 4 recorded as `missing_input`; no `db:` line in the incident → no DB step (`missing_input`); a related app without an `app[<name>]:` line is skipped; never more than 1 hop; unmapped client IDs stay unattributed.
 
 > **Kickoff prompt:** "Start M5 per MILESTONES.md. Walk me through the plan output for scenario 1 step by step."
 
@@ -94,10 +95,16 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ## M6 — Correlation (IDs + thread segments) + timeline ⬜
 **Scope**
-- `correlation.py`: union-find over IDs, plus `THREAD_LOCAL` segments (app+instance scope, 1-min window, stop at a different correlation ID, D17).
+- `correlation.py`: links, each labeled with its kind and strength:
+  - `EXACT_ID`: same app + same in-app `correlation_id` (D25: never across apps);
+  - `BUSINESS_KEY`: same `order_id`/`product_id` across apps, Kafka messages and DB statements, bounded by the incident window (R22);
+  - `THREAD_LOCAL`: cluster + app + instance + thread, 1-min window, stops at a different correlation ID (D17);
+  - **resource links:** Kafka broker/producer lines ↔ app errors naming the same topic-partition;
+  - **cross-source copies:** the same Kafka client line seen in an app's logs and in `kafka logs` is linked as one occurrence, so detectors don't double-count (found in M4);
+  - Kafka client IDs attributed to apps via the M5 config map (D26).
 - `timeline.py`: skew estimation from causal pairs; 60 s tolerance (D2); causal order within ID chains wins; `order_uncertain` flags.
 
-**Tests:** two requests interleaved on one thread are not merged; the same thread name in two apps is not linked; shuffled input gives the same timeline; injected skew; delivery delay ≠ skew.
+**Tests:** two requests interleaved on one thread are not merged; the same thread name in two apps is not linked; correlation IDs never link across apps; a business key outside the window doesn't link; cross-source copies collapse to one occurrence; shuffled input gives the same timeline; injected skew; delivery delay ≠ skew.
 
 > **Kickoff prompt:** "Start M6 per MILESTONES.md. Show me the scenario 1 timeline with skew injected."
 
@@ -111,7 +118,8 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
   - lag growth / stuck partition
   - poison message (repeated failure on one offset)
   - DB error burst
-  - config inconsistency confirmed by observed behavior
+  - config inconsistency confirmed by observed behavior (cross-source config checks moved here from M4: a timeout vs. observed latencies, a topic missing from Kafka, a DB never seen)
+  - *proposed, pending user OK:* an app exception followed by a later success for the same correlation ID is downgraded to SYMPTOM ("transient")
   - first error per app
 - `analysis.py`: hypotheses, the confidence factors (`id_linkage`, `traversal_coverage`, `temporal_precedence`, `competing_hypotheses`), the cap, and the bundle.
 - `investigator correlate --workdir <dir> --json`.

@@ -903,3 +903,23 @@ Yes
   - Scratch demo → scenario 1: `CONTEXT 83, ERROR 9, SYMPTOM 14`. The first run showed "Failed to publish…" as `app.retries_exhausted` → reordered → `app.publish_failed`.
   - Hand-written samples → `db.statement_timeout`, `db.too_many_connections`, `db.slow_query` (812 ms), CONTEXT (3 ms); `config.inconsistent` (pool 4 < threads 16) ×2 keys; `config.invalid_value` (-5); `kafka.lag.partition_stuck` ×3, CONTEXT for the healthy partition. The config rows were initially missing because of a demo-script banner bug, since fixed.
 - Finished at 2026-10-11T02:23:37Z.
+
+---
+
+## Entry 037 — 2026-10-11T02:42:18Z (19:42 PDT) — Milestone: M4 (rule tables awaiting review)
+
+### Prompt (verbatim)
+
+````text
+What is M4 show all the next steps, And later i will write a validation plan as well
+````
+
+### Outcome
+
+- **Did:** Explained M4 and listed all remaining steps (M4–M14) in chat. Before listing, found that MILESTONES.md M5–M7 still described superseded decisions:
+  - M5 said upstream apps come from headers and the DB from config (superseded by D26/D27);
+  - M6/M7 lacked business-key, resource and cross-source-copy links and the cross-source config checks.
+  Updated them. Noted that the user will write a validation plan later. Finished at 2026-10-11T02:42:45Z.
+- **Files:** `docs/design/MILESTONES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** `grep`/`awk` over MILESTONES.md; a Python script with count-asserted replacements (all 6 matched).
+- **Tests:** none (docs only).
