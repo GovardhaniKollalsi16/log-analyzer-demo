@@ -203,7 +203,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M12 — Claude Code on the user's account (D32, path 2: command line) 🟡 (done; scenario 1 live-verified, scenarios 2–4 live pending)
+## M12 — Claude Code on the user's account (D32, path 2: command line) 🟡 (done; all 4 scenarios run live; awaiting approval)
 **Scope (replaces the API-key provider):**
 - `.claude/agents/incident-investigator.md`: all five skills in `skills:`; `tools: Bash, Read, Write`; a `PreToolUse` hook.
 - `.claude/hooks/allowlist_guard.py` (D7): Bash may only run `investigator …`, with no shell operators.

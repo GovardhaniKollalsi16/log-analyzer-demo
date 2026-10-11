@@ -11,3 +11,4 @@ Full transcripts of every agent run, named `<timestamp>-<scenario>.jsonl` (UTC t
 **Claude Code runs (M12):**
 - `20261011T165123162161Z-claude-code-upstream-timeout.jsonl`: the first live run on the user's login. It ran **before** the guard fixes: the agent hook didn't fire, and reads of `src/` weren't denied. The agent ran only `investigator` commands and read only its own tool output and the coordinator skill, so the result stands, but it is not an example of the final guardrails.
 - `20261011T165656Z-claude-code-guard-check.jsonl`: a guardrail check, not an investigation. It tried forbidden calls on purpose; all were blocked.
+- `20261011T170019…-claude-code-{db-config,consumer-processing,ambiguous}.jsonl`: live runs with the final limits. Results: MEDIUM / HIGH / INSUFFICIENT, all valid (see AI_NOTES).

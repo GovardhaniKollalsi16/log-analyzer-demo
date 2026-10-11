@@ -432,3 +432,20 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - `investigator plan --help` ran.
   - The frontmatter hook is kept, but it's still unverified.
 - **Note:** run 1 happened before these fixes, so it ran with the weaker limits. It's kept and documented in `runs/README.md`.
+
+## 2026-10-11 — M12 — Live runs, scenarios 2–4 (first runs with the final limits)
+
+- **Results:**
+
+  | Scenario | Confidence | Report attempts | Turns | Time | Cost (Claude Code's figure) |
+  |---|---|---|---|---|---|
+  | 2 (db-config) | MEDIUM | 1 | 35 | 139 s | $0.90 |
+  | 3 (consumer-processing) | HIGH | 1 | 38 | 161 s | $1.01 |
+  | 4 (ambiguous) | INSUFFICIENT | 2 | 16 | 77 s | $0.36 |
+
+  All valid; no fallbacks. Scenario 4's first report left out the access-denied gap; the validator rejected it, and the agent fixed it.
+- **The AI chose differently from the scripted fake:**
+  - **Scenario 2:** it rated MEDIUM, below the HIGH ceiling, because it kept an alternative open: DB max_connections could have been used up by other clients, and that wasn't visible. Allowed (the ceiling is a maximum) and a defensible call. The fake always claims the ceiling.
+  - **Scenario 3:** it scored 3 candidate causes (two came back LOW) and chose the poison message (HIGH). It named the two others in the report, with their LOW scores, and recorded the producer-side origin as an open alternative it couldn't check (order-service isn't a declared related app).
+- **Hook false positive:** in scenario 2, a `--reason` containing ";" was blocked, because the hook matches operators even inside quotes (the trade-off documented in the hook). The agent rephrased and carried on. Left as it is; it's the user's call whether to loosen it.
+- **Note:** the agent reads large tool outputs that Claude Code saves under `~/.claude/projects/<project>/…/tool-results/`. That's Claude Code's own storage of this run's output, not repo content.

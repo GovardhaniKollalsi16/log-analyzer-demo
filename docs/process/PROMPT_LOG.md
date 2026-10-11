@@ -1462,3 +1462,19 @@ YEah i want this application to run with the my claude account not with api key
   - Both transcripts are kept in `runs/`.
 - **Tests:** `482 passed in 75.27s (0:01:15)`.
 - **Not done:** scenarios 2–4 live (not yet asked for). No push (not answered). Path 1 dropped: the user wants the command line only.
+
+---
+
+## Entry 062 — 2026-10-11T17:00:14Z (10:00 PDT) — Milestone: M12 live runs, scenarios 2–4
+
+### Prompt (verbatim)
+
+````text
+Yes, that is fine run and show me what is the input and what is the output as well
+````
+
+### Outcome
+
+- **Did:** Live runs of scenarios 2–4 on the user's login, in parallel. Results: MEDIUM / HIGH / INSUFFICIENT, all valid, no fallbacks; about $2.27 in total. Showed the user each incident (input) and report (output).
+- **Tests:** none run (no code changed since `482 passed`).
+- **Not done:** no push (not answered).
