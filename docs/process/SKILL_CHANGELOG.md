@@ -101,3 +101,13 @@ Format:
     - §5 became a collection checklist.
     - No `--grep` on client/broker logs, so retries and timeouts without the business key aren't lost.
   - Sample generator: `kafka/lag` removed. A test pins the four collections and the absence of `kafka-consumer-groups`.
+
+## 2026-10-10 — incident-logs v1 — procedure: `investigator plan` drives collection (M5)
+- **Reason:** M5 plan ("SKILL.md v1: the traversal section"), with the user's approval to start M5 ("Yes go ahead with m5").
+- **Triggering run transcript:** none from an agent yet. The procedure was validated by a scripted loop (scratch walkthrough, 4 rounds) and by `tests/integration/test_planner.py`.
+- **Change:** new §6 "Procedure":
+  - the incident is saved as `<workdir>/incident.txt`;
+  - loop `investigator plan` → run every `argv` exactly, in order → until `"done": true`;
+  - exit 3: ask the user, then re-plan (one retry); exits 4/5 become gaps;
+  - keep all gaps for the report.
+  The time window is now stated as computed by the planner. A test pins the procedure.

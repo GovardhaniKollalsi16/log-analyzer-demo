@@ -271,3 +271,11 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 - **Real bug found by the tests:** `kafka.broker.request_failed` used `notenoughreplicas`, which matches the exception class `NotEnoughReplicasException` but **not** real Kafka's error code `NOT_ENOUGH_REPLICAS`. The rule caught the mock's invented wording but missed the real one, which is the overfitting risk flagged in step 1. Fixed to `not_?enough_?replicas`.
 - **Test bug (AI's):** the config test helper `cfg()` contained a half-written leftover expression passing `ts_utc` twice (5 TypeErrors). Rewritten.
 - **Result:** `tests/unit/test_classify.py` 66 passed; the integration test (scenario 1 + rename invariance) 2 passed; full suite 3 runs → `252 passed`.
+
+## 2026-10-10 — M5 — self-caught issues
+
+1. **Junk code before the first run:** `planner.py` ended with a meaningless `_unused: Set[str] = set()` and an odd `__all__`, and `run()` recomputed the config status that `seed_config()` already knew. Removed and simplified (`seed_config` now returns `(topology, settled)`).
+2. **Walkthrough script bug (scratch, not product):** the subprocesses couldn't find `mocklogs` because the venv `bin` wasn't on `PATH` (`FileNotFoundError`). Fixed in the script.
+3. **Misleading label:** in round 1, offsets steps said "direction unknown" because the config wasn't read yet in that same round. The label was dropped from the offsets step; message steps (round 2) are labeled correctly.
+4. **Weak test assertion:** the config-denied test accepted any message step (`… or "messages on" in r`). It now asserts every message step is labeled "direction unknown". Canary: forcing "incoming" made it fail.
+- **Still open (R17):** how the incident gets into `<workdir>/incident.txt` in the Claude Code subagent path. The Python loop (M11) writes it directly; the subagent mechanism is decided in M13.

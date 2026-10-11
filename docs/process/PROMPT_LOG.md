@@ -1046,3 +1046,23 @@ finish M4
 ````text
 Yes go ahead with m5
 ````
+
+### Outcome
+
+- **Did:** Pushed M4 (`7b3fd0b..33564fc`). Implemented M5:
+  - models: `AppTopology` gains upstream/downstream apps + client-ID map; `FetchPlan.gaps`;
+  - `config_model.py`: `build_topology` (declared client IDs only), `attribute_clients`;
+  - `planner.py`: idempotent, re-planned each round; seed logs → config → Kafka (offsets → messages per partition, producer/consumer/broker logs) → declared related apps by business key, then their own correlation IDs and threads → DB; missing inputs → gaps; one SSO retry;
+  - `investigator plan --workdir` CLI + console script;
+  - coordinator skill v1 procedure.
+  Walkthrough: scenario 1 converges in 4 rounds (11 + 9 + 2 steps); the only gap is the DB (no `db:` line). Not pushed (awaiting review). Finished at 2026-10-11T02:58:32Z.
+- **Files:**
+  - Code: `src/investigator/{models,config_model,planner,cli}.py`, `pyproject.toml`
+  - Skills: `.claude/skills/incident-logs/SKILL.md`
+  - Tests: `tests/integration/test_planner.py` (new), `tests/unit/test_skill_neutrality.py`
+  - Docs: `docs/design/MILESTONES.md`, `docs/process/{SKILL_CHANGELOG,AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` after the model changes → `252 passed`; `pip install -e .` → `.venv/bin/investigator` exists
+  - Scratch walkthrough: the first attempt failed with `FileNotFoundError: 'mocklogs'` (script PATH bug). Rerun: rounds 11/9/2/0 steps, `done=True`, gaps `[db missing_input]`.
+  - `pytest tests/integration/test_planner.py` → `13 passed`. Tightened one assertion; canary → `1 failed`; restored.
+  - Full suite ×3 → `265 passed`; with the procedure test → `266 passed`; `skill_samples --check` → exit 0
