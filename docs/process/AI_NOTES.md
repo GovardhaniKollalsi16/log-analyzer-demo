@@ -364,3 +364,14 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - `fallback_report` keeps the detector leads as **open** alternatives instead of discarding them.
 - **Self-caught:** a pointless f-string in the renderer and an unused `first_error_summary` helper were removed before the tests. One test assertion was again too weak (`… or ceiling is INSUFFICIENT`); it now asserts the exact error set for each case.
 - **Canary:** disabling gap acknowledgement failed exactly `gap_not_acknowledged`; restored.
+
+## 2026-10-10 — M10 — notes
+
+- **Design choices the AI made (flagged to the user):**
+  - The allowlist moved from constants in `guard.py` into the skills (single source of truth). Otherwise the skills and the guard could drift apart.
+  - `investigator run` is the **only** way the agent fetches, and `--reason` is mandatory. Every attempt goes to `actions.jsonl`, which is the record of the AI's investigative decisions.
+  - R17 resolved with `investigator init --incident-file`. For the subagent path, the user hands over a file path.
+- **Self-caught:**
+  1. An old skill test pinned "exactly as given, in order", correctly failing once D31 replaced that procedure. Updated to pin the new procedure.
+  2. Two bugs in the AI's new tests: one treated a code block with two commands as a single command, and one expected a MOCK banner that the in-process `run()` doesn't add. Then a sloppy patch to the first left junk (an `_unused()` function, `if True:`, misplaced counters). It was rewritten cleanly instead of patched again.
+- **Canary:** removing `--thread` from the app-logs allowlist failed the documented-commands test; restored.

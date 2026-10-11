@@ -111,3 +111,15 @@ Format:
   - exit 3: ask the user, then re-plan (one retry); exits 4/5 become gaps;
   - keep all gaps for the report.
   The time window is now stated as computed by the planner. A test pins the procedure.
+
+## 2026-10-10 — all skills — v2: investigate through a checked runner; allowlists; report contract (M10, D31)
+- **Reason:** D31 (the user: "AI should do the investigations but not be a just the narraotr") and the M10 plan, approved with "Approve M9 and go ahead with M10".
+- **Triggering run transcript:** none from an agent yet (M11 adds runs). The behaviour is covered by `tests/integration/test_runner.py` and `tests/unit/test_skill_neutrality.py`.
+- **Change:**
+  - Coordinator v2:
+    - rule 0 extended ("once collected, you investigate");
+    - rules 5–6 now say every fetch goes through `investigator run --reason`;
+    - §6 is the investigation procedure (init → plan suggestions → run → correlate → dig → choose the cause and `score` it → report);
+    - new §7 report contract.
+  - Component skills (app-logs v0.4, app-config v0.3, kafka v0.5, db-logs v0.3): new §6 machine-readable allowlist, the single source of truth read by the guard.
+  - Tests: every documented command is allowlisted (canary: removing `--thread` failed it); `sso login` is never allowlisted.

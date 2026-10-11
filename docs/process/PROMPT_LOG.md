@@ -1349,3 +1349,19 @@ Yes
 ````text
 Approve M9 and go ahead with M10
 ````
+
+### Outcome
+
+- **Did:** Pushed M9 (`571d229..196429b`). Built M10:
+  - `src/investigator/allowlist.py`; the guard reads the skills' allowlists;
+  - CLI `investigator init` (R17) and `investigator run` (check → shell-free execution → `actions.jsonl`);
+  - coordinator v2 (investigate procedure, report contract);
+  - component skills with §6 allowlists;
+  - tests: `tests/integration/test_runner.py` + skill tests.
+  Not pushed (awaiting review). Finished at 2026-10-11T06:25:03Z.
+- **Commands run (actual results):**
+  - Allowlist load → 6 shapes from 4 skills
+  - `.venv/bin/pytest` after wiring → `420 passed`
+  - Skill + runner tests → `2 failed, 38 passed` (both test bugs) → `40 passed`
+  - Canary (`--thread` removed) → `1 failed, 30 passed`; restored
+  - Full suite ×2 → `430 passed` (9.4s); `skill_samples --check` → exit 0
