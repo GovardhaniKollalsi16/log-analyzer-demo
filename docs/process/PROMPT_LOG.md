@@ -891,3 +891,15 @@ r should the incident stay the only source of where to look, with the config onl
 ````text
 Yes
 ````
+
+### Outcome
+
+- **Did:**
+  - Pushed (`60f90a4..d443dd3`). Wrote the M4 rule tables as code (`src/investigator/classify/`: `rules.py` machinery + `Thresholds`; ordered tables in `app.py`, `kafka.py` incl. `classify_lag`, `db.py`, `config.py` checks; `__init__.classify`).
+  - Ran them over scenario 1 and over hand-written DB/config/lag lines in a scratch demo.
+  - No M4 tests yet; stopped for the user's review of the tables. Committed locally, not pushed.
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` → `183 passed` (after removing the overfitted pattern); again before commit → `183 passed`
+  - Scratch demo → scenario 1: `CONTEXT 83, ERROR 9, SYMPTOM 14`. The first run showed "Failed to publish…" as `app.retries_exhausted` → reordered → `app.publish_failed`.
+  - Hand-written samples → `db.statement_timeout`, `db.too_many_connections`, `db.slow_query` (812 ms), CONTEXT (3 ms); `config.inconsistent` (pool 4 < threads 16) ×2 keys; `config.invalid_value` (-5); `kafka.lag.partition_stuck` ×3, CONTEXT for the healthy partition. The config rows were initially missing because of a demo-script banner bug, since fixed.
+- Finished at 2026-10-11T02:23:37Z.

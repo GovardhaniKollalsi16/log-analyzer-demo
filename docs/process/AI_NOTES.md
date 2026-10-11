@@ -243,3 +243,10 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - Skills updated (see SKILL_CHANGELOG). D26 recorded; R13 superseded; M5 scope gains the config-based client-ID map.
   - Snapshots regenerated (diff reviewed: only config keys, client IDs and the `CLIENT-ID` column changed). 3 tests added → `183 passed`.
 - **Open:** the user also said DBs are defined in the config. Under D22 the DB step's inputs come from the incident. The AI asked whether the config may also supply DB/related-app access inputs.
+
+## 2026-10-10 — M4 step 1 — self-caught issues while writing the rule tables
+
+1. **Overfitting risk:** the AI writes these rules after having seen scenario 1's text. One app rule, `no \S+ event within`, was shaped like scenario 1's own error message ("no pricing event within 30000 ms"). It was removed before the first run. Remaining mitigations: the rules follow PROPOSAL §2 (written before any data existed), and the M8 robustness matrix plus scenarios 2–4 will test them on data they weren't written against. The broker rule `timed out waiting for in-sync replicas` matches the mock's own invented wording (real Kafka says `NOT_ENOUGH_REPLICAS`); both patterns are kept, and this is flagged to the user.
+2. **Rule order:** in the first run, the app line "Failed to publish pricing event…" classified as `app.retries_exhausted`, because its error detail says "Expiring 1 record" and that rule came first. `app.publish_failed` now comes first, with a comment explaining why.
+3. **Demo bug (AI's scratch script, not product code):** the hand-written config sample used a shortened banner (`# MOCK`), so it parsed as malformed JSON and printed nothing. Fixed the script; the config rules then worked.
+4. **Observed, not fixed (M6 concern):** the producer client's retry/expire lines exist in two sources (the upstream app's JSON logs and `kafka logs --component producer`), so one occurrence is classified twice (`app.retry_attempt` + `kafka.producer.retry`). Cross-source duplicates should be linked in M6, so detectors don't double-count. Flagged to the user.
