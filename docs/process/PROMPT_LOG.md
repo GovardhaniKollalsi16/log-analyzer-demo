@@ -1286,3 +1286,29 @@ Yes, And Approve M8 and what are the guardrails and what are the steps that are 
   - Did not start M8b (not explicitly asked). Finished at 2026-10-11T05:33:00Z.
 - **Commands run:** `git push` (result in the next line).
   - Push result: `   c06233c..758dd6b  main -> main`
+
+---
+
+## Entry 054 — 2026-10-11T05:34:45Z (22:34 PDT) — Milestone: M8b (investigator check + investigator score)
+
+### Prompt (verbatim)
+
+````text
+Start with your guardrails i will fix it later
+````
+
+### Outcome
+
+- **Did:** Built M8b:
+  - `src/investigator/guard.py` (`check`);
+  - `analysis.score_cause`;
+  - `pipeline.prepare` / `score_in_workdir` (refactored `analyse_workdir` onto `prepare`);
+  - CLI `investigator check --workdir -- mocklogs …` (exit 0/1, JSON reasons) and `investigator score --workdir --cause <id>`;
+  - 24 tests in `tests/integration/test_guardrails.py`.
+  Not pushed (awaiting review). Finished at 2026-10-11T05:37:24Z.
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` after the score/prepare refactor → `376 passed`; after adding the CLI commands → `376 passed`
+  - `pytest tests/integration/test_guardrails.py` → `1 failed, 23 passed` (`StopIteration`, wrong test assumption) → fixed → `24 passed`
+  - Full suite ×2 → `400 passed` (8.42s / 7.94s)
+  - Canary (rule disabled) → `2 failed, 22 passed`; restored → `24 passed`
+  - CLI demo: `investigator check … deploy/edge-gateway …` → `allowed: false`, codes `app_not_related` + `input_missing`, exit 1

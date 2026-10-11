@@ -340,3 +340,16 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 6. **Matrix verified by canary:** planting a topic-name dependence in the poison detector made exactly `consumer-processing × rename` fail (HIGH → INSUFFICIENT). Restored.
 - **Design note:** scenarios 2–4 use a new shared `builder.py`. Scenario 1 keeps its own code so its approved snapshots can't drift; the duplication is known and accepted.
 - **Outcome:** all four scenarios give their intended result (HIGH / HIGH / HIGH / INSUFFICIENT) under every perturbation; access denials lower confidence in all three applicable scenarios.
+
+## 2026-10-10 — M8b — guardrails built ("Start with your guardrails i will fix it later")
+
+- **Built:**
+  - `investigator check` (`guard.py`): command shape + documented flags; shell metacharacters; `--save-dir` = workdir; WHERE from the incident (D22/D27); WHO from the seed config (D26); only the seed config is readable; consumer-group lag out of scope (D28/D29); `sso`/`scenario` refused. Reasons are machine-readable codes.
+  - `investigator score --cause` (`analysis.score_cause`, `pipeline.prepare/score_in_workdir`): the M7 factors and ceiling for any parsed event. Effects = the seed; rivals = detector hypotheses with a different cause.
+- **Key consistency test:** every planner step passes the guard in all 4 scenarios.
+- **Self-caught:** a score test assumed a seed-app "Health check OK" line was collected. It isn't: the planner fetches the seed app by correlation ID, so the test got `StopIteration`. Changed to a collected-but-unrelated event (a consumer's "Subscribed to topic" line).
+- **Canary:** disabling the "app must be declared in the seed config" rule failed 2 guard tests; restored.
+- **Known gaps left for the user to tune ("i will fix it later"):**
+  - no time-window bounds on AI commands (the AI can request any window), which overlaps D24 rate limiting;
+  - `--grep` values aren't restricted;
+  - the guard isn't yet wired into the skills (M10) or the runner/hook (M11/M13). Until then it's a callable check, not an enforced one.
