@@ -189,7 +189,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M11 — Provider interface, fake LLM, tool loop, transcripts 🟡 (implemented 2026-10-11, awaiting review)
+## M11 — Provider interface, fake LLM, tool loop, transcripts ✅ (approved and pushed 2026-10-11)
 **Scope:**
 - `LLMProvider` + `ScriptedFakeLLM`;
 - tools `run_command` (always via `investigator check`), `plan` (suggestions), `correlate`, `score`, `submit_report` (D31);

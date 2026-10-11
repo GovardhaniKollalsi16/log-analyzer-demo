@@ -1410,3 +1410,18 @@ M11 allow
   - Demo runs ×4 → HIGH / HIGH / HIGH / INSUFFICIENT. The leak check found the scenario name in model-visible content (workdir paths). Reran with `case-N` → no leak.
   - With neutral test workdirs + the leak test → `17 passed`; canary → `4 failed`; restored
   - Full suite ×2 → `447 passed` (~30s)
+
+---
+
+## Entry 059 — 2026-10-11T06:37:32Z (23:37 PDT) — Milestone: M11 approved
+
+### Prompt (verbatim)
+
+````text
+Approve M11
+````
+
+### Outcome
+
+- **Did:** Marked M11 approved and pushed. Did not start M12 (not asked; it also needs the API key for live runs).
+- **Tests:** none run (no code changed since `447 passed`).
