@@ -1391,3 +1391,22 @@ Approve m10
 ````text
 M11 allow
 ````
+
+### Outcome
+
+- **Did:** Built M11:
+  - `src/investigator/runner.py` (shared checked runner; the CLI `run` now uses it);
+  - `src/investigator/agent/{provider,narration,tools,loop,fake}.py`;
+  - `investigator agent --provider fake`;
+  - `tests/integration/test_agent.py` (17 tests).
+  - Fixed the zero-fetch analysis crash.
+  - Saved demo agent transcripts to `runs/` (5 flawed, documented; 4 clean). Added R27.
+  Not pushed (awaiting review). Finished at 2026-10-11T06:34:21Z.
+- **Commands run (actual results):**
+  - Runner tests after the refactor → `9 passed`
+  - First `investigator agent` run (scenario 1) → valid HIGH, 1 attempt, 7 turns; transcript + `actions.jsonl` (27 entries) inspected
+  - `pytest tests/integration/test_agent.py` → `1 failed, 12 passed` (`KeyError` in the turn-budget fallback) → fixed → `13 passed`
+  - Canary (accept any report) → `2 failed`; restored → `13 passed`
+  - Demo runs ×4 → HIGH / HIGH / HIGH / INSUFFICIENT. The leak check found the scenario name in model-visible content (workdir paths). Reran with `case-N` → no leak.
+  - With neutral test workdirs + the leak test → `17 passed`; canary → `4 failed`; restored
+  - Full suite ×2 → `447 passed` (~30s)

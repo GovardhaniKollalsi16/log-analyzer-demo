@@ -375,3 +375,12 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   1. An old skill test pinned "exactly as given, in order", correctly failing once D31 replaced that procedure. Updated to pin the new procedure.
   2. Two bugs in the AI's new tests: one treated a code block with two commands as a single command, and one expected a MOCK banner that the in-process `run()` doesn't add. Then a sloppy patch to the first left junk (an `_unused()` function, `if True:`, misplaced counters). It was rewritten cleanly instead of patched again.
 - **Canary:** removing `--thread` from the app-logs allowlist failed the documented-commands test; restored.
+
+## 2026-10-11 — M11 — what building the agent loop exposed
+
+1. **Analysis crash with nothing fetched (found by the turn-budget test):** the fallback after zero fetches raised `KeyError` on the seed event ID, because the analysis assumed the seed's log line had been collected. Fix: the incident's seed event is always included (it is evidence in its own right).
+2. **Process-rule slip (the AI's):** the first manual fake run wrote its transcript to the scratchpad, not `runs/`. It was copied into `runs/` afterwards.
+3. **Scenario-name leak (the AI's demo setup):** the demo workdirs were named `work-<scenario>`. The workdir path is in the model's first message and in every `--save-dir`, so every model-visible transcript entry named the scenario. Caught by a leak check before committing. The flawed runs are kept (never-delete rule) and documented in `runs/README.md`; clean reruns use `case-N`. New risk R27, plus a leak test (canary: scenario-named workdirs failed all 4 cases).
+4. **Sloppiness caught before running:** the fake set an undeclared `own_cause_overclaim` attribute via `getattr`. It's now a declared field.
+- **Canary:** making the loop accept any submitted report failed the invented-ID and over-claim tests; restored.
+- **Note:** the full suite now takes about 30 s, because the agent tests spawn real `mocklogs` subprocesses.
