@@ -34,7 +34,7 @@ RULES = [
     Rule("kafka.broker.partition_offline", E, "Partition offline / no leader",
          components=B, pattern=rx(r"offline|no leader|leader is not available")),
     Rule("kafka.broker.request_failed", E, "Broker could not complete a request for the partition",
-         components=B, pattern=rx(r"timed out waiting for in-sync replicas|notenoughreplicas|rejected")),
+         components=B, pattern=rx(r"timed out waiting for in-sync replicas|not_?enough_?replicas|rejected")),
     Rule("kafka.broker.isr_shrink", S, "In-sync replica set shrank",
          components=B, pattern=rx(r"shrinking isr|isr shrink")),
     Rule("kafka.broker.under_replicated", S, "Partition under-replicated",
