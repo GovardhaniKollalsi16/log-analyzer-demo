@@ -66,7 +66,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M4 — Per-component error classification ⬜
+## M4 — Per-component error classification 🟡 (step 1: rule tables awaiting user review)
 **Scope:** `classify/app.py`, `config.py`, `kafka.py`, `db.py` implementing PROPOSAL §2. Each rule sets `severity` + `error_code`, with thresholds in one config object.
 
 **Tests:** one positive and one negative fixture per rule; renamed apps/topics classify identically.

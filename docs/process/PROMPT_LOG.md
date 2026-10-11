@@ -881,3 +881,13 @@ r should the incident stay the only source of where to look, with the config onl
 - **Files:** `.claude/skills/incident-logs/SKILL.md`, `docs/design/PROPOSAL.md`, `docs/process/{SKILL_CHANGELOG,PROMPT_LOG}.md`
 - **Commands run (actual results):** `.venv/bin/pytest` → see the chat reply (run before this entry was written; result also recorded below).
   - `.venv/bin/pytest` → `183 passed in 1.05s`
+
+---
+
+## Entry 036 — 2026-10-11T02:21:34Z (19:21 PDT) — Milestone: M4 (per-component error classification; step 1: rule tables for review)
+
+### Prompt (verbatim)
+
+````text
+Yes
+````
