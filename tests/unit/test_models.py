@@ -88,13 +88,6 @@ def test_tuning_defaults():
     assert THREAD_SEGMENT_WINDOW_MS == 60_000    # D17: groups one unit of work on a thread
 
 
-# --- Ids ---------------------------------------------------------------------
-
-def test_ids_present_only_returns_set_ids():
-    assert Ids(trace_id="t-1", message_id="m-1").present() == {"trace_id": "t-1", "message_id": "m-1"}
-    assert Ids().is_empty()
-
-
 # --- Event invariants --------------------------------------------------------
 
 def test_event_requires_utc_aware_timestamp():

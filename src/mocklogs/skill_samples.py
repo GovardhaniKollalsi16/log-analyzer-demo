@@ -136,10 +136,6 @@ def apply(text: str, samples: Dict[str, str]) -> str:
     return BLOCK.sub(sub, text)
 
 
-def used_keys(text: str) -> List[str]:
-    return [m.group("key") for m in BLOCK.finditer(text)]
-
-
 def main(argv: Optional[List[str]] = None) -> int:
     args = sys.argv[1:] if argv is None else argv
     mode = args[0] if args else "--check"

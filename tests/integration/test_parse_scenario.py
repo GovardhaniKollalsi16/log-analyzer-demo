@@ -14,7 +14,7 @@ import pytest
 
 from investigator.adapters import FileSource
 from investigator.correlation_keys import load_rules
-from investigator.models import GapReason, LinkKind, Source
+from investigator.models import GapReason, Ids, LinkKind, Source
 from investigator.parsing import parse_all
 from investigator.parsing.incident import parse_incident
 from mocklogs import cli, sso
@@ -99,7 +99,7 @@ def test_kafka_records(clean):
     assert msgs and all(e.app == "product-service" and e.ids.correlation_id and "order_id" in e.keys for e in msgs)
     assert not [e for e in msgs if e.keys["order_id"] == "o-1008"]  # the missing message
     logs = [e for e in res.events if e.source is Source.KAFKA and e.component in ("broker", "producer", "consumer")]
-    assert logs and all(e.ids.is_empty() and not e.keys for e in logs)  # "correlation id 8850" is not an app ID
+    assert logs and all(e.ids == Ids() and not e.keys for e in logs)  # "correlation id 8850" is not an app ID
     assert any(e.attrs.get("partitions") == [2] and e.component == "broker" for e in logs)
     lag = [e for e in res.events if e.component == "consumer-group"]
     seed_group = [e for e in lag if e.kafka.group == "order-service-pricing"]

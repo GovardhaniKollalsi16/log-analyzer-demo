@@ -85,7 +85,7 @@ def test_skill_samples_are_real_and_current():
     for name in EXPECTED_SKILLS:
         path = SKILLS_DIR / name / "SKILL.md"
         text = path.read_text(encoding="utf-8")
-        used += skill_samples.used_keys(text)
+        used += [m.group("key") for m in skill_samples.BLOCK.finditer(text)]
         assert skill_samples.apply(text, samples) == text, (
             f"{name}/SKILL.md samples are stale; run: python -m mocklogs.skill_samples --write")
     assert sorted(used) == sorted(samples), "every generated sample is used exactly once"

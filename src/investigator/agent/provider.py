@@ -1,4 +1,5 @@
-"""The LLM behind the agent, behind one small interface (real provider: M12; scripted fakes: tests)."""
+"""The LLM behind the Python agent loop, behind one small interface. Only scripted fakes implement it; the real
+model runs through Claude Code instead (agent/claude_code.py, D32)."""
 
 from __future__ import annotations
 

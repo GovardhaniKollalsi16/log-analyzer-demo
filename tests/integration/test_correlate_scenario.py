@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from investigator.adapters import FileSource
 from investigator.classify import classify
 from investigator.correlation import correlate

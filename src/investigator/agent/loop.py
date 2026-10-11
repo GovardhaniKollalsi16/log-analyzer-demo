@@ -1,4 +1,4 @@
-"""The agent loop (the Python path; the Claude Code subagent path is M13).
+"""The Python agent loop, driven by scripted fakes in tests (the real model runs via agent/claude_code.py, D32).
 
   incident file -> `init` (the runtime saves it verbatim, R17) -> the model gets the skills as its system
   prompt and the incident as its first message (D19) -> tool calls until it submits a valid report,

@@ -148,13 +148,6 @@ class Ids:
     message_id: Optional[str] = None
     request_id: Optional[str] = None
 
-    def present(self) -> Dict[str, str]:
-        """Only the IDs that are set, as {kind: value}."""
-        return {f.name: getattr(self, f.name) for f in fields(self) if getattr(self, f.name)}
-
-    def is_empty(self) -> bool:
-        return not self.present()
-
 
 @dataclass(frozen=True)
 class KafkaRef:

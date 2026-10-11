@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from datetime import timedelta
-from pathlib import Path
 
 import pytest
 
@@ -12,6 +11,11 @@ from mocklogs import cli, sso
 from mocklogs.render import BANNER
 from mocklogs.scenarios import load
 from mocklogs.scenarios.base import DEFAULT_T0, ScenarioKnobs
+
+
+def session_marker():
+    """The secret marker in the saved SSO session (it must never appear in any output)."""
+    return json.loads(sso._session_path().read_text())["marker"]
 
 SCENARIO = "upstream-timeout"
 WINDOW = ["--since-time=2026-03-14T08:54:50Z", "--until-time=2026-03-14T09:06:50Z"]
@@ -81,18 +85,18 @@ def test_every_fetch_works_when_logged_in_and_starts_with_banner(logged_in, caps
 
 
 def test_session_marker_and_scenario_name_never_leak(logged_in, capsys):
-    marker = sso.session_marker_for_tests()
+    marker = session_marker()
     assert marker and marker.startswith("MOCK-SESSION-")
     save = logged_in / "work"
     texts = []
     for argv in [["sso", "status"], ["sso", "login"], ["scenario", "incident"]] + list(FETCH_COMMANDS.values()):
         code, out, err = run(list(argv) + (["--save-dir", str(save)] if argv[0] not in ("sso", "scenario") else []), capsys)
         texts += [out, err]
-        marker = sso.session_marker_for_tests()  # login rotates it
+        marker = session_marker()  # login rotates it
         assert marker not in out + err
     texts += [p.read_text() for p in (save / "raw").iterdir()]
     blob = "\n".join(texts)
-    assert sso.session_marker_for_tests() not in blob
+    assert session_marker() not in blob
     assert SCENARIO not in blob
 
 

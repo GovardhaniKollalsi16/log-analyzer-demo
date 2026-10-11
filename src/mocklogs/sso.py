@@ -59,9 +59,3 @@ def expires_at() -> Optional[datetime]:
         return None
     return expires if expires > _now() else None
 
-
-def session_marker_for_tests() -> Optional[str]:
-    try:
-        return json.loads(_session_path().read_text())["marker"]
-    except (OSError, ValueError, KeyError):
-        return None

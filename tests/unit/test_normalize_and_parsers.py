@@ -11,7 +11,7 @@ from investigator import normalize
 from investigator.adapters.base import RawOutput
 from investigator.correlation_keys import KeyRule, choose_business_key, load_rules
 from investigator.dedupe import dedupe
-from investigator.models import GapReason, Level, ParseIssueKind, Source
+from investigator.models import GapReason, Ids, Level, ParseIssueKind, Source
 from investigator.parsing import dispatch
 from investigator.parsing.incident import IncidentError, parse_incident
 
@@ -94,7 +94,7 @@ def test_kafka_log_internal_correlation_id_is_not_an_application_id():
             "(org.apache.kafka.clients.producer.internals.Sender)")
     res = dispatch.parse_output(out(["kafka", "logs", "--component", "producer", "--topic", "t-1"], [line]))
     (ev,) = res.events
-    assert ev.ids.is_empty() and ev.keys == {}
+    assert ev.ids == Ids() and ev.keys == {}
     assert ev.attrs["client_id"] == "app-y-producer-1" and ev.attrs["partitions"] == [2]
     assert ev.level is Level.WARN and ev.ts_utc == datetime(2026, 1, 1, 0, 0, 5, 300000, tzinfo=UTC)
 
