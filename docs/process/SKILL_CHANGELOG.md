@@ -123,3 +123,15 @@ Format:
     - new §7 report contract.
   - Component skills (app-logs v0.4, app-config v0.3, kafka v0.5, db-logs v0.3): new §6 machine-readable allowlist, the single source of truth read by the guard.
   - Tests: every documented command is allowlisted (canary: removing `--thread` failed it); `sso login` is never allowlisted.
+
+## 2026-10-11 — new subagent `incident-investigator` v0.1 + allowlist hook (M12, D32)
+- **Reason:** D32. The user: "YEah i want this application to run with the my claude account not with api key", then "Pathj 2".
+- **Triggering run transcript:** none yet. There are no live runs until the user approves. Behaviour is covered by `tests/integration/test_claude_code.py` (fake `claude`) and `tests/unit/test_allowlist_hook.py`.
+- **Change:**
+  - `.claude/agents/incident-investigator.md`:
+    - tools Bash, Read, Write; `maxTurns: 60`;
+    - all five skills preloaded;
+    - a `PreToolUse` hook on Bash;
+    - the body points to the coordinator §6 procedure, writes the report with Write, then runs `investigator validate`, with at most 3 attempts.
+  - `.claude/hooks/allowlist_guard.py`: Bash may run only `investigator {init,plan,run,correlate,check,score,validate,render}` as one plain command. Shell operators, redirections and substitutions are blocked (exit 2), with a reason shown to the model.
+  - Skills unchanged.

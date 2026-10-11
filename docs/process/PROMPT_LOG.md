@@ -1436,3 +1436,9 @@ Approve M11
 ````text
 YEah i want this application to run with the my claude account not with api key
 ````
+
+### Outcome
+
+- **Did:** Logged D32 (commit 9204404). Then, after "Pathj 2", built M12 path 2 (logged under that entry's outcome, no separate prompt): the subagent, the hook, the `claude-code` provider, a fake `claude`, and tests.
+- **Tests:** `481 passed in 74.27s`.
+- **Not done:** no live run on the user's account (waiting for an explicit OK). Not pushed.

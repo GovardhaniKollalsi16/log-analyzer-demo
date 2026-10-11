@@ -144,8 +144,10 @@ def test_cli_agent(tmp_path, setup, monkeypatch, capsys):
                                   "--runs-dir", str(tmp_path / "runs"), "--label", "cli"])
     out = json.loads(capsys.readouterr().out)
     assert code == 0 and out["valid"] is True and out["confidence"] == "HIGH"
-    assert investigator_cli.main(["agent", "--workdir", str(tmp_path / "x"), "--incident-file", str(incident),
-                                  "--provider", "anthropic"]) == 2
+    with pytest.raises(SystemExit) as exc:  # no API-key provider exists (D32)
+        investigator_cli.main(["agent", "--workdir", str(tmp_path / "x"), "--incident-file", str(incident),
+                               "--provider", "anthropic"])
+    assert exc.value.code == 2
 
 
 @pytest.mark.parametrize("scenario", sorted(SCENARIOS))

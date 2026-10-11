@@ -394,3 +394,19 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - local `claude` v2.1.296 has `-p`, `--agent`, `--allowedTools`, `--output-format stream-json` and `--permission-mode`;
   - the docs (sub-agents, permissions, authentication) confirm the `skills:` frontmatter, `PreToolUse` hooks with exit 2, `Bash(investigator *)` prefix rules with compound-command splitting, `dontAsk`, `Edit(//abs/**)`, and that `-p` uses the `/login` subscription unless `ANTHROPIC_API_KEY` is set.
 - **Changed:** D32 (supersedes D10); R2 resolved; M12 rescoped.
+
+## 2026-10-11 — M12 (path 2) — Notes while building the Claude Code harness
+
+1. **Process slip (the AI's):** while testing the hook by hand, the loop wrote stderr to `/tmp/hookerr` instead of the session scratchpad. Nothing project-related was kept there.
+2. **Wrong test expectation (the AI's):** the first hook test expected the text "only `investigator`", but the hook says "only `investigator ...` commands". The test was fixed, not the hook. 3 failures, then green.
+3. **Changed an existing test:** `test_cli_agent` asserted that `--provider anthropic` returns 2 ("not until M12"). Per D32 that provider no longer exists, so argparse now rejects it. The test asserts that instead.
+4. **Deviations from the stated plan, flagged:**
+   - The local `claude` has no `--max-turns` flag, so the turn cap is the subagent's `maxTurns: 60` plus a 20-minute process timeout.
+   - The harness saves `incident.txt` itself, the same way `run_agent` does, rather than shelling out to `investigator init`. Same validation, same verbatim write.
+   - Added `--setting-sources project` and `--strict-mcp-config`. Otherwise the user's own allow rules or MCP servers could widen what the subagent may do.
+5. **Not yet verified against the real `claude` (R2 is still open for these):**
+   - that the subagent-frontmatter hook in exec form (`args: []`) fires under `--agent`;
+   - that `Edit(//<workdir>/**)` permits the Write tool in `dontAsk`;
+   - that Read of `incident.txt` under `--add-dir` needs no rule.
+
+   The fake `claude` calls the real hook, but it can't prove Claude Code calls it. The first live run will.

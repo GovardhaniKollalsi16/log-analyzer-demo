@@ -19,8 +19,8 @@
       Check an AI report against the evidence. Exit 0 = valid, 1 = invalid (JSON errors).
   investigator render --workdir <dir> --report <report.json>
       Render a report as Markdown.
-  investigator agent --workdir <dir> --incident-file <file> [--provider fake] [--runs-dir runs] [--label x]
-      Run the investigating agent end to end (Python path). Transcript -> runs/<ts>-<label>.jsonl.
+  investigator agent --workdir <dir> --incident-file <file> [--provider fake|claude-code] [--runs-dir runs] [--label x]
+      Run the investigating agent end to end. Transcript -> runs/<ts>-<label>.jsonl.
 """
 
 from __future__ import annotations
@@ -183,12 +183,13 @@ def cmd_render(a) -> int:
 
 
 def cmd_agent(a) -> int:
-    from investigator.agent.loop import run_agent
-    if a.provider != "fake":
-        print("error: only --provider fake exists until M12 (the real provider needs an API key)", file=sys.stderr)
-        return 2
-    from investigator.agent.fake import ScriptedInvestigator
-    result = run_agent(ScriptedInvestigator(), a.incident_file, a.workdir, a.rules, a.runs_dir, a.label)
+    if a.provider == "claude-code":
+        from investigator.agent.claude_code import run_claude_code
+        result = run_claude_code(a.incident_file, a.workdir, a.rules, a.runs_dir, a.label, claude_bin=a.claude_bin)
+    else:
+        from investigator.agent.fake import ScriptedInvestigator
+        from investigator.agent.loop import run_agent
+        result = run_agent(ScriptedInvestigator(), a.incident_file, a.workdir, a.rules, a.runs_dir, a.label)
     print(json.dumps({"valid": result.valid, "fell_back": result.fell_back, "fallback_reason": result.fallback_reason,
                       "confidence": result.report["confidence"]["level"], "report_attempts": result.report_attempts,
                       "turns": result.turns, "transcript": str(result.transcript)}, indent=2))
@@ -225,7 +226,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--workdir", required=True)
     s.add_argument("--rules", default=str(DEFAULT_RULES))
     s.add_argument("--incident-file", required=True)
-    s.add_argument("--provider", default="fake", choices=["fake", "anthropic"])
+    s.add_argument("--provider", default="fake", choices=["fake", "claude-code"],
+                   help="claude-code: the subagent, headless on your Claude login (D32); fake: scripted, for tests")
+    s.add_argument("--claude-bin", default="claude", help="the Claude Code executable (claude-code provider)")
     s.add_argument("--runs-dir", default="runs")
     s.add_argument("--label", default="incident")
     for name, helptext in (("validate", "check an AI report against the evidence"),
