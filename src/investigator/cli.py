@@ -3,6 +3,9 @@
   investigator plan --workdir <dir> [--rules <coordinator SKILL.md>]
       Reads <dir>/incident.txt and everything saved in <dir>/raw/, prints the next
       fetches as JSON: {"steps": [...argv...], "gaps": [...], "done": bool, ...}.
+  investigator correlate --workdir <dir> [--rules ...]
+      Prints the AnalysisBundle as JSON: what the LLM reasons over (events, links, timeline,
+      findings, hypotheses with confidence factors, and the confidence ceiling).
 """
 
 from __future__ import annotations
@@ -47,18 +50,36 @@ def cmd_plan(a) -> int:
     return 0
 
 
+def cmd_correlate(a) -> int:
+    from investigator.pipeline import analyse_workdir
+    workdir = Path(a.workdir)
+    if not (workdir / INCIDENT_FILE).is_file():
+        print(f"error: {workdir / INCIDENT_FILE} not found", file=sys.stderr)
+        return 2
+    try:
+        bundle = analyse_workdir(workdir, load_rules(a.rules))
+    except (OSError, ValueError) as e:  # IncidentError is a ValueError
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    print(json.dumps(to_jsonable(bundle), indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="investigator", description="Deterministic incident investigation (no LLM).")
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("plan", help="list the next fetches for the incident in --workdir")
     s.add_argument("--workdir", required=True)
     s.add_argument("--rules", default=str(DEFAULT_RULES), help="coordinator SKILL.md with the correlation-key table")
+    s = sub.add_parser("correlate", help="print the analysis bundle for the incident in --workdir")
+    s.add_argument("--workdir", required=True)
+    s.add_argument("--rules", default=str(DEFAULT_RULES))
     return p
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     a = build_parser().parse_args(argv)
-    return {"plan": cmd_plan}[a.cmd](a)
+    return {"plan": cmd_plan, "correlate": cmd_correlate}[a.cmd](a)
 
 
 if __name__ == "__main__":

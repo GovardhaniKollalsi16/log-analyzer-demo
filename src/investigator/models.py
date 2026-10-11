@@ -371,13 +371,16 @@ class Finding:
 
 @dataclass
 class Hypothesis:
-    """A candidate cause -> effect chain. Unranked: the LLM chooses, the code only checks."""
+    """A candidate cause and the effects it would explain (M7_RULES §2). Unranked: the LLM
+    chooses among hypotheses (or says INSUFFICIENT); the code only scores them."""
 
     hyp_id: str
-    cause_finding_ids: List[str]
-    effect_finding_ids: List[str]
-    precedence_ok: bool
-    id_linked: bool
+    cause_event_id: str
+    finding_ids: List[str]
+    effect_event_ids: List[str]
+    summary: str
+    factors: List["ConfidenceFactor"] = field(default_factory=list)
+    ceiling: Confidence = Confidence.INSUFFICIENT  # computed by analysis from the factors
 
 
 @dataclass

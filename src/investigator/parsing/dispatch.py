@@ -14,7 +14,7 @@ REFUSALS = {3: GapReason.AUTH_REQUIRED, 4: GapReason.ACCESS_DENIED, 5: GapReason
 Parser = Callable[[RawOutput], ParseResult]
 
 
-def _shape(argv) -> Optional[Tuple[Source, Parser, str]]:
+def command_shape(argv) -> Optional[Tuple[Source, Parser, str]]:
     """(component, parser, target) for a command line, or None if unknown."""
     args = argv[1:]  # drop the tool name
     def opt(name):
@@ -42,7 +42,7 @@ def _shape(argv) -> Optional[Tuple[Source, Parser, str]]:
 
 
 def parse_output(out: RawOutput) -> ParseResult:
-    shape = _shape(out.argv)
+    shape = command_shape(out.argv)
     if shape is None:
         res = ParseResult()
         res.issues.append(ParseIssue(Source.APP, 0, ParseIssueKind.UNKNOWN_FORMAT, " ".join(out.argv),

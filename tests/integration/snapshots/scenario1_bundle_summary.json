@@ -1,0 +1,27 @@
+{
+  "confidence_cap": "HIGH",
+  "findings": [
+    "config_vs_observed: configured pricing.wait.timeout.ms=30000 matches the observed timeout",
+    "delivery_failure_chain: broker trouble and delivery errors on pricing.events-2",
+    "first_error_per_app: first ERROR of order-service",
+    "first_error_per_app: first ERROR of product-service",
+    "missing_message: no message with order_id=o-1008 on orders.events, pricing.events",
+    "retry_exhaustion: 3 retries then app.retries_exhausted (client:product-service-producer-1)",
+    "retry_exhaustion: 3 retries then app.retries_exhausted (client:product-service-producer-1)"
+  ],
+  "hypotheses": [
+    {
+      "cause": "kafka.broker.isr_shrink | [Partition pricing.events-2 broker=1] Shrinking ISR from 1,2",
+      "factors": {
+        "id_linkage": "STRONG",
+        "traversal_coverage": "STRONG",
+        "temporal_precedence": "STRONG",
+        "competing_hypotheses": "STRONG"
+      },
+      "ceiling": "HIGH"
+    }
+  ],
+  "gaps": [
+    "db:db:missing_input"
+  ]
+}
