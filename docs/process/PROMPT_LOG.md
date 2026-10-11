@@ -1381,3 +1381,13 @@ Approve m10
 - **Did:** Marked M10 approved and pushed. Did not start M11 (not asked).
 - **Tests:** none run (no code changed since the last run's `430 passed`).
 - **Push:** `   196429b..6fe0d4b  main -> main`
+
+---
+
+## Entry 058 — 2026-10-11T06:26:49Z (23:26 PDT) — Milestone: M11 (provider interface, fake LLM, agent loop, transcripts)
+
+### Prompt (verbatim)
+
+````text
+M11 allow
+````
