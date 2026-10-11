@@ -173,7 +173,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M10 — SKILL.md v2 (allowlist) + command runner 🟡 (implemented 2026-10-10, awaiting review)
+## M10 — SKILL.md v2 (allowlist) + command runner ✅ (approved and pushed 2026-10-10)
 **Scope:**
 - **Skills v2:** a fenced JSON allowlist block **in each component skill**, merged by `allowlist.py`; the report contract in the coordinator;
 - **D31:** coordinator §6 rewritten from "run the planner's steps exactly" to "start from the suggestions, investigate; every command goes through `investigator check`; record why";

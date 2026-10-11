@@ -1365,3 +1365,18 @@ Approve M9 and go ahead with M10
   - Skill + runner tests → `2 failed, 38 passed` (both test bugs) → `40 passed`
   - Canary (`--thread` removed) → `1 failed, 30 passed`; restored
   - Full suite ×2 → `430 passed` (9.4s); `skill_samples --check` → exit 0
+
+---
+
+## Entry 057 — 2026-10-11T06:25:51Z (23:25 PDT) — Milestone: M10 approved
+
+### Prompt (verbatim)
+
+````text
+Approve m10
+````
+
+### Outcome
+
+- **Did:** Marked M10 approved and pushed. Did not start M11 (not asked).
+- **Tests:** none run (no code changed since the last run's `430 passed`).
