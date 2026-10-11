@@ -79,7 +79,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M5 — Config → topology + `investigator plan` 🟡 (implemented 2026-10-10, awaiting review)
+## M5 — Config → topology + `investigator plan` ✅ (approved "for now" and pushed 2026-10-10)
 **Scope**
 - `config_model.py`: configmap JSON → `ConfigEntry`s + `AppTopology`, including (D26) `upstream.apps` / `downstream.apps` and a **client-ID → app map** built only from the declared `*.kafka.client.ids` + own `kafka.*.client.id`. Used to attribute Kafka log lines and lag rows; unmapped IDs stay unattributed.
 - `planner.py`: the **incident** (seed + per-source inputs) + fetched outputs in the workdir → `FetchPlan` following PROPOSAL §1. **No input, no access (D22):** a step with a missing required input becomes a `missing_input` gap, never a guessed command:
@@ -94,7 +94,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M6 — Correlation (IDs + thread segments) + timeline ⬜
+## M6 — Correlation (IDs + thread segments) + timeline 🟡 (in progress)
 **Scope**
 - `correlation.py`: links, each labeled with its kind and strength:
   - `EXACT_ID`: same app + same in-app `correlation_id` (D25: never across apps);

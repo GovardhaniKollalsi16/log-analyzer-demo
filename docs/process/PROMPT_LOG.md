@@ -1066,3 +1066,13 @@ Yes go ahead with m5
   - Scratch walkthrough: the first attempt failed with `FileNotFoundError: 'mocklogs'` (script PATH bug). Rerun: rounds 11/9/2/0 steps, `done=True`, gaps `[db missing_input]`.
   - `pytest tests/integration/test_planner.py` → `13 passed`. Tightened one assertion; canary → `1 failed`; restored.
   - Full suite ×3 → `265 passed`; with the procedure test → `266 passed`; `skill_samples --check` → exit 0
+
+---
+
+## Entry 044 — 2026-10-11T03:01:54Z (20:01 PDT) — Milestone: M5 approved → M6 (correlation + timeline)
+
+### Prompt (verbatim)
+
+````text
+Yeah M5 looks fine for now. Go ahead with M6
+````
