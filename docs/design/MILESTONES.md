@@ -132,7 +132,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M8 — Scenarios 2–4 + robustness matrix 🟡 (implemented 2026-10-10, awaiting review incl. scenario samples)
+## M8 — Scenarios 2–4 + robustness matrix ✅ (approved and pushed 2026-10-10; samples accepted as realistic, scenario 4 → INSUFFICIENT confirmed)
 **Scope:** db-config, consumer-processing-failure (D29: lag deferred; observable via consumer retries/errors and missing outgoing messages), and ambiguous generators. `tests/robustness/` covers every scenario × each of:
 - rename apps/topics/groups/threads/instances;
 - shift times;
