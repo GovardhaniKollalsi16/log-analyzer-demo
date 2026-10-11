@@ -132,7 +132,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M8 — Scenarios 2–4 + robustness matrix 🟡 (in progress)
+## M8 — Scenarios 2–4 + robustness matrix 🟡 (in progress; unaffected by D31)
 **Scope:** db-config, consumer-processing-failure (D29: lag deferred; observable via consumer retries/errors and missing outgoing messages), and ambiguous generators. `tests/robustness/` covers every scenario × each of:
 - rename apps/topics/groups/threads/instances;
 - shift times;
@@ -148,7 +148,20 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
+## M8b — Guardrail commands for an investigating AI (D31) ⬜
+**Scope:**
+- `investigator check --workdir <dir> -- <argv…>`: allow/deny one proposed command. Clusters, namespaces, apps, topics, groups, hosts and DBs must come from the incident (where) or the seed config (who); the command shape must be one the skills document. Deny reasons are machine-readable.
+- `investigator score --workdir <dir> --cause <event_id>`: the four factors and the ceiling for any bundle event the AI proposes as the cause (the M7 code, exposed for one event).
+
+**Tests:** allowed vs. denied commands (unknown cluster/topic/app, undeclared related app, a DB not in the incident); score for a detector cause equals the bundle's; score for an unrelated event is LOW/INSUFFICIENT; unknown event ID rejected.
+
+> **Kickoff prompt:** "Start M8b per MILESTONES.md."
+
+---
+
 ## M9 — Report model + validator + Markdown ⬜
+- **D31:** the report may name an AI-proposed cause; the validator checks it exists in the bundle and that the claimed confidence ≤ its `investigator score` ceiling. AI interpretations of unclassified errors are labeled and never raise confidence.
+
 **Scope:**
 - `IncidentReport` with all required sections;
 - a validator rejecting unknown event IDs, confidence > cap, a root cause without evidence, missing sections, and HIGH/MEDIUM with an `unknown` root cause;
@@ -163,6 +176,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 ## M10 — SKILL.md v2 (allowlist) + command runner ⬜
 **Scope:**
 - **Skills v2:** a fenced JSON allowlist block **in each component skill**, merged by `allowlist.py`; the report contract in the coordinator;
+- **D31:** coordinator §6 rewritten from "run the planner's steps exactly" to "start from the suggestions, investigate; every command goes through `investigator check`; record why";
 - `allowlist.py`;
 - `MockCliSource` (subprocess argv, no shell);
 - resolve R17 (getting the seed into `seed.log`);
@@ -178,7 +192,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 ## M11 — Provider interface, fake LLM, tool loop, transcripts ⬜
 **Scope:**
 - `LLMProvider` + `ScriptedFakeLLM`;
-- tools `run_command`, `plan`, `correlate`, `submit_report`;
+- tools `run_command` (always via `investigator check`), `plan` (suggestions), `correlate`, `score`, `submit_report` (D31);
 - the loop takes the seed as its first message, writes `seed.log`, uses a turn budget, and retries up to 3 times (D12) before INSUFFICIENT;
 - `narration.py`;
 - `runs/<ts>-<scenario>.jsonl`.

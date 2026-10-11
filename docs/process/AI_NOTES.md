@@ -318,3 +318,14 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 3. **Design flaw found by the demo:** with degraded collection (config denied / related lines omitted), the two retry-exhaustion findings on the **same** producer (orders o-1005 and o-1008) formed two chains and counted as each other's "equally strong rival", so `competing_hypotheses` came out WEAK. Fix: findings from one detector on the same client/resource merge into one chain. After the fix, each variant has one hypothesis; the ceilings are unchanged (HIGH / LOW / LOW, matching the hand-computed expectations in M7_RULES §4).
 4. **Test bug (AI's):** a D-6 test passed `code=` twice through the `SEED()` helper and then patched the event with a second constructor call. Rewritten.
 5. **Kept as an open decision:** the "transient exception" rule wasn't answered and isn't in the approved file, so it's **not** implemented.
+
+## 2026-10-10 — M8 — Redirect: the AI must investigate, not just narrate (D31)
+
+- **User (asking, with "dont change anyhting"):** "is this an ai first appliction or is this a normal applciation that is using ai very lgihtly"
+- **AI's honest answer:** as designed, it's deterministic-first. Code decides the fetches (planner), the errors (M4), the patterns and candidate causes (M7) and the confidence; the AI only picks among candidates and writes. Part of that came from the brief ("the LLM never parses raw logs or decides chronology"), but the AI pushed further than required: the deterministic planner (D18) was its own proposal, and it repeatedly moved judgment into code.
+- **User:** "Yes AI should do the investigations but not be a just the narraotr. what can we change simply to make it possible" → after the AI's proposal: "Yes that makes sense continue"
+- **Changed (design only so far):**
+  - D31 recorded; D18 amended (planner = suggestions).
+  - New milestone M8b (`investigator check` guard + `investigator score --cause`).
+  - M9/M10/M11 scope amended.
+  - M8 continues unchanged.

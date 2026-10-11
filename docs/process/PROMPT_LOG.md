@@ -1204,3 +1204,49 @@ Yeah this looks fine for now, will fine tune it later
 ````text
 Approve M7 and next pick M8
 ````
+
+---
+
+## Entry 050 — 2026-10-11T05:25:00Z (22:25 PDT) — Milestone: M8 in progress (paused by the user's question)
+
+### Prompt (verbatim; sent mid-turn while the AI was fixing M8 issues)
+
+````text
+I seriously have one doubt dont change anyhting, but is this an ai first appliction or is this a normal applciation that is using ai very lgihtly
+````
+
+### Outcome
+
+- **Did:** Stopped changing code as asked and answered the question in chat.
+- **State left as-is (uncommitted):**
+  - `src/investigator/detectors/__init__.py`: the poison detector now reads Kafka-side lines;
+  - `src/investigator/planner.py`: the DB step also fetches the seed app's sessions;
+  - the four new scenario files and the registry.
+- **A bug the last run exposed, not fixed (per the user's instruction):** a hypothesis cause can be a same-occurrence copy event that the bundle excludes (`KeyError` in the scratch demo for scenario 3).
+- **Commands run:** the scratch M8 demo (results in chat). No tests run after the last edits.
+
+---
+
+## Entry 051 — 2026-10-11T05:27:19Z (22:27 PDT) — Milestone: M8 paused (direction: AI as investigator)
+
+### Prompt (verbatim)
+
+````text
+Yes AI should do the investigations but not be a just the narraotr. what can we change simply to make it possible
+````
+
+### Outcome
+
+- **Did:** Proposed a minimal set of changes in chat (no code changed); asked for approval before touching the design or code.
+- **Commands run:** none besides appending this entry.
+- **Tests:** none.
+
+---
+
+## Entry 052 — 2026-10-11T05:29:17Z (22:29 PDT) — Milestone: D31 (AI as investigator) recorded → finish M8
+
+### Prompt (verbatim)
+
+````text
+Yes that makes sense continue
+````
