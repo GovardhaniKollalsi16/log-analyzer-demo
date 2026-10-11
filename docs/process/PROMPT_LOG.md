@@ -1148,3 +1148,17 @@ Yeah the clock drift between machines is not an issue, since the window is big. 
 ````text
 Yes approve M6
 ````
+
+### Outcome
+
+- **Did:**
+  - Marked M6 approved and pushed (`e4c16d1..e654c8e`).
+  - Wrote `docs/design/M7_RULES.md` (PROPOSED, nothing coded), adapting the original M7 list to D28/D29/D30:
+    - 7 detectors: `missing_message` added, lag dropped;
+    - hypothesis construction;
+    - 4 confidence factors with STRONG/PARTIAL/WEAK/ABSENT definitions;
+    - ceiling rules, with hand-computed expectations per scenario;
+    - 4 questions.
+  - Stopped for approval before any M7 code. Finished at 2026-10-11T05:14:20Z.
+- **Files:** `docs/design/M7_RULES.md` (new), `docs/design/MILESTONES.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** `git push` → `e4c16d1..e654c8e  main -> main`. No tests (docs only).
