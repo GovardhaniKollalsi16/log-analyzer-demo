@@ -1442,3 +1442,23 @@ YEah i want this application to run with the my claude account not with api key
 - **Did:** Logged D32 (commit 9204404). Then, after "Pathj 2", built M12 path 2 (logged under that entry's outcome, no separate prompt): the subagent, the hook, the `claude-code` provider, a fake `claude`, and tests.
 - **Tests:** `481 passed in 74.27s`.
 - **Not done:** no live run on the user's account (waiting for an explicit OK). Not pushed.
+
+---
+
+## Entry 061 — 2026-10-11T16:51:13Z (09:51 PDT) — Milestone: M12 live run
+
+### Prompt (verbatim)
+
+````text
+1. Yes 2. I want to run the application through command line
+````
+
+### Outcome
+
+- **Did:**
+  - One live run on scenario 1: valid, HIGH, $1.07.
+  - Found that the hook hadn't fired and that the repo was readable. Fixed both, plus the attempt counter.
+  - Verified the fixes with a small live check ($0.05).
+  - Both transcripts are kept in `runs/`.
+- **Tests:** `482 passed in 75.27s (0:01:15)`.
+- **Not done:** scenarios 2–4 live (not yet asked for). No push (not answered). Path 1 dropped: the user wants the command line only.

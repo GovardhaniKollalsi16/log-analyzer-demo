@@ -135,3 +135,10 @@ Format:
     - the body points to the coordinator §6 procedure, writes the report with Write, then runs `investigator validate`, with at most 3 attempts.
   - `.claude/hooks/allowlist_guard.py`: Bash may run only `investigator {init,plan,run,correlate,check,score,validate,render}` as one plain command. Shell operators, redirections and substitutions are blocked (exit 2), with a reason shown to the model.
   - Skills unchanged.
+
+## 2026-10-11 — subagent `incident-investigator` v0.1 → harness-side guard (M12)
+- **Reason:** in the first live run, the frontmatter PreToolUse hook didn't fire (AI_NOTES 2026-10-11, "First live runs").
+- **Triggering run transcript:** `runs/20261011T165123162161Z-claude-code-upstream-timeout.jsonl`; the fix is verified in `runs/20261011T165656Z-claude-code-guard-check.jsonl`.
+- **Change:**
+  - The subagent file is unchanged; its frontmatter hook is kept but is unverified.
+  - The harness now passes the same hook through `--settings` by absolute path, plus per-subcommand allow rules, a deny for `investigator agent`, and read denies for `src/`, `tests/`, `docs/` and `runs/`.

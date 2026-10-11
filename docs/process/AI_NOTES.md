@@ -410,3 +410,25 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
    - that Read of `incident.txt` under `--add-dir` needs no rule.
 
    The fake `claude` calls the real hook, but it can't prove Claude Code calls it. The first live run will.
+
+## 2026-10-11 — M12 — First live runs on the user's login: the hook hadn't been firing
+
+- **Run 1** (`runs/20261011T165123162161Z-claude-code-upstream-timeout.jsonl`, scenario 1, 45 turns, 138 s, $1.07 reported by Claude Code):
+  - valid report, HIGH, no fallback;
+  - `apiKeySource: none`, so it ran on the login, not a key.
+- **Defect 1 (the AI's, an unverified assumption from the previous note):** the hook declared in the subagent's frontmatter **did not fire**: `investigator --help` ran, and the hook should have blocked it.
+  - Bash stayed limited to `investigator …` only because of the permission rule.
+  - But that rule (`Bash(investigator *)`) also allowed `investigator agent`, a nested run the hook exists to stop.
+  - The docs say project agent hooks need workspace trust, and they don't confirm `${CLAUDE_PROJECT_DIR}` expansion in frontmatter. The exact cause wasn't isolated.
+- **Defect 2 (the AI's design gap):** Claude Code runs with the repo as its cwd, and `dontAsk` still allows reads inside the working directories. So the agent *could* read `src/mocklogs/scenarios/*`, where the answers are. It didn't, but nothing stopped it.
+- **Defect 3:** the report-attempt counter counted `investigator validate --help`, so it said 2 attempts when there was 1.
+- **Fixes:**
+  - The permission rules are now the primary limit: one allow rule per allowed subcommand, a deny for `investigator agent`, and denied reads of `src/`, `tests/`, `docs/` and `runs/`.
+  - The hook is also passed through `--settings` by absolute path.
+  - `--help` calls are no longer counted.
+- **Verified live** (`runs/20261011T165656Z-claude-code-guard-check.jsonl`, 5 turns, $0.05):
+  - `investigator --help` and `investigator agent --help` were blocked by the hook, with its message;
+  - reading `src/mocklogs/cli.py` was denied by permissions;
+  - `investigator plan --help` ran.
+  - The frontmatter hook is kept, but it's still unverified.
+- **Note:** run 1 happened before these fixes, so it ran with the weaker limits. It's kept and documented in `runs/README.md`.

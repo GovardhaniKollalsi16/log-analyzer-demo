@@ -77,13 +77,29 @@ def test_command_uses_the_login_not_an_api_key_and_only_preapproved_tools(tmp_pa
     assert argv[argv.index("--permission-mode") + 1] == "dontAsk"
     assert argv[argv.index("--setting-sources") + 1] == "project"
     allowed = argv[argv.index("--allowedTools") + 1:]
-    assert allowed[0] == "Bash(investigator *)" and allowed[1].startswith("Edit(//") and len(allowed) == 2
+    assert allowed[:-1] == [f"Bash(investigator {c} *)" for c in
+                            ("init", "plan", "run", "correlate", "check", "score", "validate", "render")]
+    assert allowed[-1].startswith("Edit(//")
+    denied = argv[argv.index("--disallowedTools") + 1:argv.index("--allowedTools")]
+    assert "Bash(investigator agent *)" in denied
+    assert {f"Read(/{PROJECT_DIR / d}/**)" for d in ("src", "tests", "docs", "runs")} <= set(denied)
+    hook = json.loads(argv[argv.index("--settings") + 1])["hooks"]["PreToolUse"][0]
+    assert hook["matcher"] == "Bash" and Path(hook["hooks"][0]["command"]).is_file()
     assert rec["prompt"].splitlines()[0].startswith("workdir: /")
 
 
 def test_edit_rule_is_scoped_to_the_workdir(tmp_path):
-    cmd = build_command("claude", Path("/abs/case-7"))
+    cmd = build_command("claude", Path("/abs/case-7"), Path("/repo"))
     assert cmd[-1] == "Edit(//abs/case-7/**)"
+    assert "Read(//repo/src/**)" in cmd
+
+
+def test_help_calls_are_not_counted_as_report_attempts():
+    from investigator.agent.claude_code import _report_attempts
+    use = lambda c: {"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash",
+                                                                  "input": {"command": c}}]}}
+    assert _report_attempts([use("investigator validate --help"),
+                             use("investigator validate --workdir /w --report /w/report.json")]) == 1
 
 
 def test_blocked_commands_reach_the_model_and_the_run_still_completes(tmp_path, setup):

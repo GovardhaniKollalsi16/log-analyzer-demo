@@ -203,7 +203,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M12 — Claude Code on the user's account (D32, path 2: command line) 🟡 (code + tests done; live run awaits the user's OK)
+## M12 — Claude Code on the user's account (D32, path 2: command line) 🟡 (done; scenario 1 live-verified, scenarios 2–4 live pending)
 **Scope (replaces the API-key provider):**
 - `.claude/agents/incident-investigator.md`: all five skills in `skills:`; `tools: Bash, Read, Write`; a `PreToolUse` hook.
 - `.claude/hooks/allowlist_guard.py` (D7): Bash may only run `investigator …`, with no shell operators.
@@ -227,7 +227,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M13 — Claude Code subagent + hook + transcripts ⬜
+## M13 — Claude Code subagent + hook + transcripts ❌ (dropped: the user runs it from the command line only, 2026-10-11; the subagent + hook were built in M12)
 **Scope:**
 - `.claude/agents/incident-investigator.md` listing all five skills (`incident-logs`, `incident-app-logs`, `incident-app-config`, `incident-kafka`, `incident-db-logs`) in its frontmatter (verify the syntax first, R2);
 - the allowlist PreToolUse hook;
