@@ -159,7 +159,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M9 — Report model + validator + Markdown 🟡 (in progress)
+## M9 — Report model + validator + Markdown 🟡 (implemented 2026-10-10, awaiting review)
 - **D31:** the report may name an AI-proposed cause; the validator checks it exists in the bundle and that the claimed confidence ≤ its `investigator score` ceiling. AI interpretations of unclassified errors are labeled and never raise confidence.
 
 **Scope:**

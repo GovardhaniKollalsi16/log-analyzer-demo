@@ -353,3 +353,14 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
   - no time-window bounds on AI commands (the AI can request any window), which overlaps D24 rate limiting;
   - `--grep` values aren't restricted;
   - the guard isn't yet wired into the skills (M10) or the runner/hook (M11/M13). Until then it's a callable check, not an enforced one.
+
+## 2026-10-10 — M9 — notes
+
+- **Design choices the AI made (flagged to the user):**
+  - Citations may point at **any collected event**, not only the bundle subset, so an investigating AI (D31) can cite what it fetched itself.
+  - The report must restate the computed factor **values** exactly (`factors_mismatch`); only the reasons may be reworded.
+  - Every coverage gap must be acknowledged in `gaps`.
+  - A named cause with INSUFFICIENT is rejected as a contradiction; "unknown" is the honest form.
+  - `fallback_report` keeps the detector leads as **open** alternatives instead of discarding them.
+- **Self-caught:** a pointless f-string in the renderer and an unused `first_error_summary` helper were removed before the tests. One test assertion was again too weak (`… or ceiling is INSUFFICIENT`); it now asserts the exact error set for each case.
+- **Canary:** disabling gap acknowledgement failed exactly `gap_not_acknowledged`; restored.

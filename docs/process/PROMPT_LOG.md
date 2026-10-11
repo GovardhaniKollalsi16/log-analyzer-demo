@@ -1322,3 +1322,20 @@ Start with your guardrails i will fix it later
 ````text
 Yes
 ````
+
+### Outcome
+
+- **Did:** Pushed M8b (`edade70..571d229`). Built M9:
+  - `src/investigator/report/model.py` (sections, `fallback_report`, `cited_event_ids`);
+  - `validate.py` (11 rule codes);
+  - `render_md.py`;
+  - `pipeline.validate_report_in_workdir`;
+  - CLI `investigator validate` / `investigator render`;
+  - `tests/integration/test_report.py` (20 tests).
+  Not pushed (awaiting review). Finished at 2026-10-11T05:41:20Z.
+- **Commands run (actual results):**
+  - `.venv/bin/pytest` after the CLI wiring → `400 passed`
+  - `pytest tests/integration/test_report.py` → `20 passed`; tightened assertion → `1 passed` (filtered)
+  - Canary (gap rule disabled) → `1 failed, 19 passed`; restored
+  - Full suite ×2 → `420 passed` (9.5s)
+  - Rendered a sample scenario 1 report → `valid: True`, Markdown with confidence HIGH, cause, evidence, timeline, factors
