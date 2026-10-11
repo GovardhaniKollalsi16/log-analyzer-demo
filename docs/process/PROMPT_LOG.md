@@ -923,3 +923,19 @@ What is M4 show all the next steps, And later i will write a validation plan as 
 - **Files:** `docs/design/MILESTONES.md`, `docs/process/PROMPT_LOG.md`
 - **Commands run:** `grep`/`awk` over MILESTONES.md; a Python script with count-asserted replacements (all 6 matched).
 - **Tests:** none (docs only).
+
+---
+
+## Entry 038 — 2026-10-11T02:43:51Z (19:43 PDT) — Milestone: M4 (rule tables awaiting review)
+
+### Prompt (verbatim)
+
+````text
+what is M4?
+````
+
+### Outcome
+
+- **Did:** Re-explained M4 in plain terms with a concrete before/after example from scenario 1. No files changed besides this log.
+- **Commands run:** none besides appending this entry.
+- **Tests:** none.
