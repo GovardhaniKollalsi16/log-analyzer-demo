@@ -5,6 +5,7 @@ Matches `PROPOSAL.md` Rev 2. **The user reviews and edits this file.** Each mile
 Status: ✅ approved · 🟡 implemented, awaiting review · ⬜ not started
 
 **Deferred, owned by the user (D24):** safeguards and rate limiting, to be added later. Not in any milestone until the user schedules them.
+**Deferred (D29):** consumer-lag collection, to be added later.
 
 ---
 
@@ -131,7 +132,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 ---
 
 ## M8 — Scenarios 2–4 + robustness matrix ⬜
-**Scope:** db-config, consumer-lag, and ambiguous generators. `tests/robustness/` covers every scenario × each of:
+**Scope:** db-config, consumer-processing-failure (D29: lag deferred; observable via consumer retries/errors and missing outgoing messages), and ambiguous generators. `tests/robustness/` covers every scenario × each of:
 - rename apps/topics/groups/threads/instances;
 - shift times;
 - shuffle;

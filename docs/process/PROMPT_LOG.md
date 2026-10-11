@@ -990,3 +990,19 @@ what do you mean by lag here?
 - **Did:** Explained "consumer lag" in chat with a concrete example in this project's terms. No files changed besides this log.
 - **Commands run:** none besides appending this entry.
 - **Tests:** none.
+
+---
+
+## Entry 041 — 2026-10-11T02:50:02Z (19:50 PDT) — Milestone: M4 review (scenario 3 / lag decision)
+
+### Prompt (verbatim)
+
+````text
+we can add lag later
+````
+
+### Outcome
+
+- **Did:** Recorded D29: consumer-lag collection is deferred. Until it's added, scenario 3 is a consumer processing failure with retries, observable through the D28 collections. Updated the PROPOSAL scenario table and the MILESTONES deferred list and M8 scope. Lag code stays (the `mocklogs` command, the M4 lag rules), unused by the skill. Nothing else changed. The question about parking M4 is still open. Finished at 2026-10-11T02:50:08Z.
+- **Files:** `docs/design/{PROPOSAL,MILESTONES}.md`, `docs/process/PROMPT_LOG.md`
+- **Commands run:** a Python edit + `grep` confirming the D29 rows. No tests (docs only).
