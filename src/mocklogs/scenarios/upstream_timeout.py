@@ -22,7 +22,6 @@ from mocklogs.scenarios.base import (
     make_rng,
     resolve_denied,
     resolve_names,
-    resolve_skew,
     short_id,
 )
 from mocklogs.world import (
@@ -299,6 +298,5 @@ def generate(knobs: ScenarioKnobs) -> World:
         db_logs=db_logs,
         incident=incident,
         denied=resolve_denied(knobs, n),
-        skew_ms=resolve_skew(knobs, n),
     )
     return world

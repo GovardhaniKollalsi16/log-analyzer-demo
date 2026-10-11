@@ -108,7 +108,7 @@ def cmd_kubectl_logs(a, world: World) -> Result:
         raise Refusal(NOT_FOUND, f'Error from server (NotFound): deployments.apps "{app}" not found')
     lines = []
     for line in sorted((l for l in world.app_logs if l.app == app), key=lambda l: l.ts):
-        ts = render.skewed(world, f"app:{app}", line.ts)
+        ts = line.ts
         if not render.in_window(ts, a.since_time, a.until_time):
             continue
         if a.instance and (line.instance != a.instance or line.thread != a.thread):
@@ -174,7 +174,7 @@ def cmd_consumer_groups(a, world: World) -> Result:
     for k in range(a.samples):
         at = world.now - timedelta(minutes=a.samples - 1 - k)
         if a.samples > 1:
-            out.append((f"# sample {k + 1}/{a.samples} at {render.iso_ms(render.skewed(world, 'kafka', at))}", True))
+            out.append((f"# sample {k + 1}/{a.samples} at {render.iso_ms(at)}", True))
         for g in (groups if a.all_groups else groups[:1]):
             out.append(("", True))
             out += [(l, True) for l in render.table(render.LAG_HEADER, render.lag_rows(world, [g], at))]
@@ -195,7 +195,7 @@ def cmd_get_offsets(a, world: World) -> Result:
             off = base
         else:
             off = next((m.offset for m in msgs
-                        if render.skewed(world, "kafka", m.ts).timestamp() * 1000 >= a.time), end)
+                        if m.ts.timestamp() * 1000 >= a.time), end)
         out.append((f"{a.topic}:{p}:{off}", True))
     return Result(out=out, structured=True)  # type: ignore[arg-type]
 
@@ -235,7 +235,7 @@ def cmd_kafka_logs(a, world: World) -> Result:
     for line in sorted(world.kafka_logs, key=lambda l: l.ts):
         if line.component != a.component or line.topic != a.topic:
             continue
-        if not render.in_window(render.skewed(world, "kafka", line.ts), a.since_time, a.until_time):
+        if not render.in_window(line.ts, a.since_time, a.until_time):
             continue
         out.append((render.kafka_log4j(world, line), line.critical))
     return Result(out=out)  # type: ignore[arg-type]
@@ -254,7 +254,7 @@ def cmd_db_logs(a, world: World) -> Result:
     for line in sorted(world.db_logs, key=lambda l: l.ts):
         if line.db != a.db:
             continue
-        if not render.in_window(render.skewed(world, "db", line.ts), a.since_time, a.until_time):
+        if not render.in_window(line.ts, a.since_time, a.until_time):
             continue
         text = render.db_text(world, line)
         if a.grep and a.grep not in text:

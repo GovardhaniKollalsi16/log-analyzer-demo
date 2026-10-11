@@ -38,7 +38,7 @@ Status: **Rev 2 approved 2026-10-10 (PROMPT_LOG entry 018).** M1 (models per §3
    ▼
  investigator correlate (deterministic, no LLM)
    parse/normalize → classify per component (§2) → dedupe → link
-   (IDs + thread segments) → timeline (skew-tolerant) → detectors
+   (IDs + thread segments) → timeline (by timestamp, D30) → detectors
    → hypotheses + confidence cap → ANALYSIS BUNDLE (JSON)
    │
    ▼
@@ -165,7 +165,7 @@ src/
     planner.py                 # seed + topology + fetched data → FetchPlan
     dedupe.py
     correlation.py             # union-find over IDs + THREAD_LOCAL segments
-    timeline.py                # skew estimation, 60 s tolerance (D2), uncertainty flags
+    timeline.py                # chronological order by UTC timestamp (D30: no clock-drift handling)
     detectors/                 # cross-record patterns over classified events (never names)
     analysis.py                # hypotheses, confidence factors + cap, coverage gaps, bundle
     allowlist.py               # fenced JSON allowlist in SKILL.md
@@ -202,7 +202,7 @@ tests/  unit/  integration/  robustness/
 - ★ `FetchStep(order, component, target, argv, reason, direction: seed|upstream|downstream)`, `FetchPlan(steps, done, stop_reason)`
 - ★ `CoverageGap(component, target, reason: access_denied | auth_required | missing_input | not_found | empty)` (`missing_input`: D22, added to code in M3)
 - ★ `LinkKind` gains `THREAD_LOCAL`.
-- `CorrelationGroup`, `TimelineEntry`, `SkewEstimate`, `Finding`, `Hypothesis`, `ConfidenceFactor`: unchanged.
+- `CorrelationGroup`, `TimelineEntry` (`event_id`, `ts_utc`), `Finding`, `Hypothesis`, `ConfidenceFactor`: unchanged. (`SkewEstimate` removed, D30.)
 - `AnalysisBundle`: ★ plus `seed`, `topology`, `coverage_gaps`, `traversal`; ★ **minus `parse_issues`** (Q1).
 - `IncidentReport` (M9): unchanged sections; timeline/evidence rows also show `app/instance/thread`.
 
@@ -225,7 +225,7 @@ Generic names (D6): `edge-gateway`, `order-api`, `fulfillment-worker`, `notifica
 | 3 consumer-processing (D29; lag deferred) | a downstream app ERROR: entity not found (a downstream symptom) | Upstream (per the seed config) to the consuming app: repeated processing failures and retries on one offset (poison message), visible in consumer client logs; no message on the outgoing topic for that business key |
 | 4 ambiguous | an ERROR with **no correlation ID** | Config access denied; scattered SYMPTOMs; no ID chain → **INSUFFICIENT** |
 
-Knobs (D8): `seed`, `service_names` (apps, topics, groups, threads, instances), `t0`, `per_source_skew_ms`, `drop_rate`, `dup_rate`, `shuffle`, `malformed_rate`, `access_denied`.
+Knobs (D8): `seed`, `service_names` (apps, topics, groups, threads, instances), `t0`, `drop_rate`, `dup_rate`, `shuffle`, `malformed_rate`, `access_denied`.
 
 ## 5. SKILL.md outline
 
@@ -284,7 +284,7 @@ Built in stages (user decision 2026-10-10): **v0 in M2** (sections 1, 3, 4, 5 + 
 | R3 | The subagent's Bash tool can't enforce the allowlist by itself. | PreToolUse hook (D7). |
 | R4 | Subagent transcripts live outside `runs/`. | SubagentStop hook copies them; verify early. |
 | R5 | Root cause leaking into analysis code. | Boundary test (M1); rules on structure, not names; robustness renames incl. threads/instances. |
-| R6/R6b | Skew estimation; a 60 s tolerance blurs cross-source order; delivery delay ≠ skew. | Causal order inside ID chains wins; order-uncertain count reported; lag is its own signal. |
+| ~~R6/R6b~~ | Skew estimation; a 60 s tolerance blurs cross-source order; delivery delay ≠ skew. | **Withdrawn 2026-10-10 (D30):** clock drift is out of scope; no skew estimation or tolerance |
 | R7 | LLM overclaiming. | Validator + cap + 3 retries (D12). |
 | R8–R10 | urllib provider; nondeterministic real runs; synthetic data resembling the employer's. | Mocked-transport tests; fake LLM in tests; generic names + user review in M2. |
 | R12 | Thread reuse creates false links. | App+instance scope, 1-min window, stop at a different correlation ID, `THREAD_LOCAL` label; a test interleaves two requests on one thread. |
@@ -299,8 +299,8 @@ Built in stages (user decision 2026-10-10): **v0 in M2** (sections 1, 3, 4, 5 + 
 | ★ R22 | **Business keys aren't request-unique.** A `product_id` (and an `order_id` across retries or amendments) matches many unrelated records. | Business-key matches are always bounded by the incident time window. `investigator` labels them `BUSINESS_KEY` links, weaker than an in-app `correlation_id` match, and reports how many distinct requests matched |
 | ★ R23 | Plain-text log lines (DB, log4j) can't show that they were truncated, so a cut line parses as a valid event with a partial message. Log4j lines are protected by their trailing `(logger)` pattern; DB lines aren't. | Accepted: the event is still exactly what the log says (a prefix of the real line), never invented content. A test enforces the prefix property. Detectors must not rely on a message's *ending* |
 | ★ R24 | Single-snapshot lag rows (`--all-groups`, `--samples 1`) carry no timestamp, because the real tool prints none, so they can't be placed on the timeline. | `--samples N` rows are timed. Untimed rows are used for topology (who consumes what), not chronology |
-| ★ R25 | **Which clock is right is unknowable.** Skew between two clocks can be measured (same occurrence on both), but only as a relative offset. | Reference = the seed's clock if connected, else an app clock (the services under investigation), else the busiest clock. Documented in `timeline.py`. Clock sets with no shared occurrence aren't aligned; their nearby events are marked `order_uncertain` instead |
-| ★ R26 | Design §R6 said "causal order inside an ID chain overrides timestamps". **Not implemented in M6:** ordering is by skew-adjusted time only. | Revisit in M7 if a detector needs produce→consume causality; until then uncertainty flags are the safeguard |
+| ~~★ R25~~ | **Which clock is right is unknowable.** Skew between two clocks can be measured (same occurrence on both), but only as a relative offset. | **Withdrawn 2026-10-10 (D30):** no skew measurement, so no reference clock |
+| ~~★ R26~~ | Design §R6 said "causal order inside an ID chain overrides timestamps". **Not implemented in M6:** ordering is by skew-adjusted time only. | **Withdrawn 2026-10-10 (D30):** no clock correction, so causal reordering isn't needed |
 | ~~R21~~ | **Withdrawn 2026-10-10.** Assuming related apps run in the seed's cluster is a guess, which D22 forbids. Related apps need their own `app[<name>]:` line in the incident; otherwise `missing_input`. | — |
 
 ## 7. Milestone plan
@@ -330,7 +330,7 @@ Detailed, editable version with kickoff prompts: `docs/design/MILESTONES.md`.
 | # | Decision | Status |
 |---|---|---|
 | D1 | Python version | Resolved: 3.9; JSON allowlist |
-| D2 | Skew tolerance | Resolved: 60 000 ms, configurable, tune later |
+| D2 | ~~Skew tolerance~~ | **Superseded by D30:** no clock-skew tolerance or handling |
 | D3 | Offline demo | Resolved: replay transcripts from `runs/` |
 | D4 | Report output | Resolved: JSON → Markdown |
 | D5 | Mock formats | Resolved, ★ amended: app logs JSON lines incl. `instance`, `thread`; Kafka/DB native-style text; app config as `kubectl get configmap -o json` |
@@ -361,3 +361,4 @@ Detailed, editable version with kickoff prompts: `docs/design/MILESTONES.md`.
 | D27 | Where vs. who | ★ Resolved 2026-10-10 (user: "This is correct"): the **incident** is the only source of *where* to look (clusters, namespaces, Kafka bootstrap/topics, DB host/name). The seed **config** only says *who* is related (upstream/downstream apps, their Kafka client IDs) and gives limits/topic direction. Config values for clusters/DBs are never used for access; a mismatch with the incident is reported |
 | D28 | Collect first; Kafka collection scope | ★ Resolved 2026-10-10 (user): the agent's job is to **collect** all related records; assessment comes later. Kafka collection per incident topic = **incoming** + **outgoing** messages (business key), **retry** logs, and any **topic error / connection timeout**. Nothing else (consumer-group lag and all-groups are dropped from the skill; `mocklogs` still supports them). Scenario 3 impact resolved by D29 |
 | D29 | Consumer lag | ★ Deferred 2026-10-10 (user: "we can add lag later"). Until then, scenario 3 is a **consumer processing failure with retries** (a poison message retried on one offset → downstream symptoms), observable through the D28 collections: consumer client logs with retries/errors, and incoming/outgoing messages. Lag collection is a later addition; `mocklogs` keeps the `kafka-consumer-groups` command and the M4 lag rules stay in code, unused by the skill |
+| D30 | Clock drift | ★ Resolved 2026-10-10 (user): "the clock drift between machines is not an issue, since the window is big. Ignore all the references in the application that measure or take into account clock drift/skew". Events are ordered by their own UTC timestamps; skew estimation, correction, tolerance, uncertainty flags and the mock skew knob are removed. Supersedes D2; withdraws R6/R6b/R25/R26 |

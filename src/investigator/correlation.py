@@ -4,7 +4,7 @@ Link kinds, strongest first:
   EXACT_ID         same app + same in-app correlation_id (D25: never across apps).
                    A Kafka message's header ID belongs to its producer app.
   SAME_OCCURRENCE  one Kafka client line seen twice (in the app's own logs and in `kafka logs`):
-                   identical text + logger + client ID, close in time. Counted once (`copies`).
+                   identical text + logger, written within 2 s of each other. Counted once (`copies`).
   BUSINESS_KEY     same value of the seed's business key across apps/Kafka/DB, inside the incident
                    window (R22: a business key isn't request-unique, hence the window).
   THREAD_LOCAL     same cluster + app + instance + thread; a segment ends at a gap > 1 min or when
@@ -24,7 +24,7 @@ from investigator.config_model import attribute_clients
 from investigator.models import AppTopology, CorrelationGroup, Event, Incident, Link, LinkKind, Source
 
 THREAD_WINDOW = timedelta(minutes=1)
-SAME_OCCURRENCE_WINDOW = timedelta(minutes=1)  # copies on different clocks may differ by up to the skew tolerance
+SAME_OCCURRENCE_WINDOW = timedelta(seconds=2)  # two copies of one line are written moments apart
 WINDOW_BEFORE = timedelta(minutes=10)
 WINDOW_AFTER = timedelta(minutes=2)
 LINK_STRENGTH = [LinkKind.EXACT_ID, LinkKind.SAME_OCCURRENCE, LinkKind.BUSINESS_KEY, LinkKind.THREAD_LOCAL,

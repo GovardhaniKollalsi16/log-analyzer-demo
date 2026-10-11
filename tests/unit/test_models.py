@@ -7,7 +7,6 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from investigator.models import (
-    DEFAULT_SKEW_TOLERANCE_MS,
     THREAD_SEGMENT_WINDOW_MS,
     AnalysisBundle,
     AppTopology,
@@ -86,8 +85,7 @@ def test_rev2_enum_members():
 
 
 def test_tuning_defaults():
-    assert DEFAULT_SKEW_TOLERANCE_MS == 60_000   # D2
-    assert THREAD_SEGMENT_WINDOW_MS == 60_000    # D17
+    assert THREAD_SEGMENT_WINDOW_MS == 60_000    # D17: groups one unit of work on a thread
 
 
 # --- Ids ---------------------------------------------------------------------
@@ -197,7 +195,6 @@ def test_bundle_has_rev2_fields_and_no_parse_issues():
 
 def test_bundle_defaults_and_event_ids():
     bundle = AnalysisBundle(bundle_id="b-1", events=[make_event("ev-1"), make_event("ev-2")])
-    assert bundle.skew_tolerance_ms == 60_000
     assert bundle.confidence_cap is Confidence.INSUFFICIENT
     assert bundle.event_ids() == {"ev-1", "ev-2"}
 

@@ -137,4 +137,4 @@ Before moving on, check that each incident topic has:
 - [ ] **producer** and **consumer** client logs for the window (these hold the **retries**);
 - [ ] **broker** logs for the window (these hold **topic errors** and **connection timeouts**: `TimeoutException`, `timed out`, `disconnected`, `NOT_ENOUGH_REPLICAS`, `NotLeader…`, offline partitions, authorization failures naming the topic).
 
-You don't judge any of it. Collect it all and let `investigator` and the report do the assessment. Timing is also left to `investigator`: a message consumed about a minute after it was produced can be normal delivery delay, not clock skew.
+You don't judge any of it. Collect it all and let `investigator` and the report do the assessment. Timing is also left to `investigator`.

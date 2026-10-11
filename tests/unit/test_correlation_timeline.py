@@ -1,4 +1,4 @@
-"""M6 unit tests: linking rules and the skew-aware timeline, on hand-made events."""
+"""M6 unit tests: linking rules and the timeline, on hand-made events."""
 
 from __future__ import annotations
 
@@ -129,9 +129,10 @@ def test_resource_links_log_records_naming_the_same_topic_partition_but_not_mess
 def test_same_occurrence_pairs_a_client_line_seen_in_two_sources():
     text = "[Producer clientId=p-1] Got error produce response, retrying (2 attempts left)"
     in_app = app_ev(10, "svc-p", text, logger="k.Sender")
-    in_kafka = kafka_ev(55, "producer", text, logger="k.Sender", client="p-1")   # 45 s skewed copy
-    unrelated = kafka_ev(56, "producer", "something else", logger="k.Sender", client="p-1")
-    r = correlate([in_app, in_kafka, unrelated], incident(in_app), None)
+    in_kafka = kafka_ev(10.4, "producer", text, logger="k.Sender", client="p-1")  # the same line, moments apart
+    unrelated = kafka_ev(10.5, "producer", "something else", logger="k.Sender", client="p-1")
+    later_repeat = kafka_ev(30, "producer", text, logger="k.Sender", client="p-1")  # same text, a later occurrence
+    r = correlate([in_app, in_kafka, unrelated, later_repeat], incident(in_app), None)
     assert r.copies == {in_kafka.event_id: in_app.event_id}
     assert kinds(r, in_app, in_kafka) == {LinkKind.SAME_OCCURRENCE}
 
@@ -148,62 +149,28 @@ def test_client_lines_are_attributed_only_via_declared_ids():
 
 # --- timeline ----------------------------------------------------------------------------------
 
-def skewed_pairs(skew_s: float, n=4):
-    """n Kafka client lines recorded on the app clock and on a Kafka clock that runs skew_s ahead."""
-    events = []
-    for i in range(n):
-        text = f"[Producer clientId=p-1] retrying #{i}"
-        events.append(app_ev(10 * i, "svc-p", text, logger="k.Sender"))
-        events.append(kafka_ev(10 * i + skew_s, "producer", text, logger="k.Sender", client="p-1"))
-    return events
-
-
-def test_skew_is_estimated_from_same_occurrence_and_corrected():
-    events = skewed_pairs(45)
-    broker = kafka_ev(40, "broker", "[Partition t-0] Shrinking ISR", partitions=[0])  # truly at app-time -5 s
-    events.append(broker)
-    r = correlate(events, incident(events[0]), None)
-    tl = build_timeline(r.events, r.links, events[0].event_id)
-    (est,) = [s for s in tl.skews if s.clock == "kafka"]
-    assert (est.reference, est.offset_ms, est.basis, est.samples) == ("app:svc-p", 45000, "same_occurrence", 4)
-    adjusted = {t.event_id: t.adjusted_ts for t in tl.entries}
-    assert adjusted[broker.event_id] == at(-5)
-
-
-def test_delivery_delay_is_not_mistaken_for_skew():
+def test_timeline_orders_by_utc_timestamp_only():
+    """D30: no clock adjustment. A message consumed 60 s after it was produced stays 60 s later."""
     produced = app_ev(0, "svc-p", "published", cid="c-1")
     consumed = kafka_ev(60, "message", "message t-0@1", producer="svc-p", cid="c-1", partition=0, offset=1)
-    r = correlate([produced, consumed], incident(produced), None)
-    tl = build_timeline(r.events, r.links, produced.event_id)
-    assert all(s.basis == "none" for s in tl.skews)  # an ID link is not evidence of skew
-    assert {t.event_id: t.adjusted_ts for t in tl.entries}[consumed.event_id] == at(60)
+    broker = kafka_ev(-5, "broker", "[Partition t-0] Shrinking ISR", partitions=[0])
+    config = Event(event_id="cfg-1", source=Source.APP_CONFIG, level=Level.INFO, message="k=v", ts_raw="", ts_utc=None,
+                   app="svc-p", attrs={"key": "k", "value": "v"})
+    tl = build_timeline([consumed, config, produced, broker])
+    assert [(t.event_id, t.ts_utc) for t in tl.entries] == [
+        (broker.event_id, at(-5)), (produced.event_id, at(0)), (consumed.event_id, at(60))]  # config: untimed
 
 
-def test_reference_prefers_the_seed_clock_then_app_clocks():
-    events = skewed_pairs(30)
-    r = correlate(events, incident(events[0]), None)
-    tl = build_timeline(r.events, r.links, seed_event_id="not-in-this-set")
-    assert [s.reference for s in tl.skews if s.basis == "same_occurrence"] == ["app:svc-p"]
+def test_timeline_can_be_restricted_to_a_group():
+    a, b, c = app_ev(0, "svc-a", "a"), app_ev(1, "svc-a", "b"), app_ev(2, "svc-a", "c")
+    assert [t.event_id for t in build_timeline([a, b, c], only=[c.event_id, a.event_id]).entries] == \
+        [a.event_id, c.event_id]
 
 
-def test_unconnected_clocks_within_tolerance_are_order_uncertain():
-    a = app_ev(0, "svc-a", "a")
-    b = app_ev(30, "svc-b", "b")     # different clock, no shared occurrence, 30 s apart
-    c = app_ev(200, "svc-b", "c")    # far from everything on svc-a's clock
-    r = correlate([a, b, c], incident(a), None)
-    tl = build_timeline(r.events, r.links, a.event_id, focus=[a.event_id, b.event_id])
-    flags = {t.event_id: t.order_uncertain for t in tl.entries}
-    assert flags == {a.event_id: True, b.event_id: True, c.event_id: False}
-    assert {t.event_id: t.concurrent_with for t in tl.entries}[a.event_id] == [b.event_id]
-
-
-def test_timeline_is_independent_of_input_order():
-    events = skewed_pairs(20, n=6) + [app_ev(7, "svc-q", "q")]
-    seed_id = events[0].event_id
-    r1 = correlate(events, incident(events[0]), None)
-    order1 = [t.event_id for t in build_timeline(r1.events, r1.links, seed_id).entries]
-    shuffled = events[:]
+def test_timeline_ties_are_deterministic_and_independent_of_input_order():
+    same_time = [app_ev(5, "svc-a", "x"), kafka_ev(5, "broker", "y"), app_ev(5, "svc-b", "z"), app_ev(1, "svc-q", "q")]
+    order1 = [t.event_id for t in build_timeline(same_time).entries]
+    shuffled = same_time[:]
     random.Random(3).shuffle(shuffled)
-    r2 = correlate(shuffled, incident(events[0]), None)
-    order2 = [t.event_id for t in build_timeline(r2.events, r2.links, seed_id).entries]
-    assert order1 == order2
+    assert [t.event_id for t in build_timeline(shuffled).entries] == order1
+    assert order1[0] == same_time[3].event_id  # earliest first; app before kafka at equal times

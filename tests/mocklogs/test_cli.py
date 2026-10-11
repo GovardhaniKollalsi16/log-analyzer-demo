@@ -189,12 +189,6 @@ def test_t0_knob_shifts_every_timestamp():
     assert [l.ts + timedelta(days=3) for l in base.app_logs] == [l.ts for l in shifted.app_logs]
 
 
-def test_skew_knob_shifts_rendered_kafka_times(logged_in, monkeypatch, capsys):
-    _, before, _ = run(FETCH_COMMANDS["kafka_logs"], capsys)
-    monkeypatch.setenv("MOCKLOGS_KNOBS", json.dumps({"skew_ms": {"kafka": 45000}}))
-    _, after, _ = run(FETCH_COMMANDS["kafka_logs"], capsys)
-    assert "[2026-03-14 09:01:50,000]" in before and "[2026-03-14 09:02:35,000]" in after
-
 
 def test_drop_and_malform_only_touch_non_critical_lines(logged_in, monkeypatch, capsys):
     world = load(SCENARIO)

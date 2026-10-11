@@ -24,7 +24,7 @@ def analyse(work):
     parsed = parse_all(FileSource(work))
     cor = correlate(classify(parsed.events), inc, topology_of(inc, parsed))
     group = next(g for g in cor.groups if g.group_id == cor.seed_group)
-    tl = build_timeline(cor.events, cor.links, inc.seed.event_id, focus=group.event_ids)
+    tl = build_timeline(cor.events, only=group.event_ids)
     return inc, cor, group, tl
 
 
@@ -56,21 +56,14 @@ def test_seed_group_tells_the_whole_story(env, capsys, monkeypatch):
         {l.kind for l in cor.links}
 
 
-def test_no_skew_injected_means_zero_offset_measured(env, capsys, monkeypatch):
-    _, _, _, tl = run(env, capsys, monkeypatch)
-    (est,) = [s for s in tl.skews if s.basis == "same_occurrence"]
-    assert (est.clock, est.reference, est.offset_ms) == ("kafka", "app:product-service", 0) and est.samples >= 4
-
-
-def test_injected_kafka_skew_is_measured_and_corrected(env, capsys, monkeypatch):
-    inc, cor, _, tl = run(env, capsys, monkeypatch, {"skew_ms": {"kafka": 45000}})
-    (est,) = [s for s in tl.skews if s.basis == "same_occurrence"]
-    assert (est.clock, est.reference, est.offset_ms) == ("kafka", "app:product-service", 45000)
+def test_seed_group_timeline_is_in_true_chronological_order(env, capsys, monkeypatch):
+    inc, cor, _, tl = run(env, capsys, monkeypatch)
     isr = first(cor, tl, lambda e: e.error_code == "kafka.broker.isr_shrink")
     first_retry = first(cor, tl, lambda e: e.error_code == "kafka.producer.retry")
+    publish_failed = [t for t in tl.entries if next(e for e in cor.events if e.event_id == t.event_id).error_code
+                      == "app.publish_failed"][-1]
     seed = next(t for t in tl.entries if t.event_id == inc.seed.event_id)
-    assert isr.adjusted_ts < first_retry.adjusted_ts < seed.adjusted_ts
-    assert isr.skew_applied_ms == -45000
+    assert isr.ts_utc < first_retry.ts_utc < publish_failed.ts_utc < seed.ts_utc
 
 
 def test_shuffled_input_gives_the_same_groups_and_timeline(env, capsys, monkeypatch, tmp_path):

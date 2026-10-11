@@ -108,5 +108,3 @@ class World:
     # Access denials = the user's missing entitlements (D16), e.g. "config:<app>",
     # "logs:<app>", "kafka-topic:<topic>", "kafka-group:<group>", "db:<db>".
     denied: Set[str] = field(default_factory=set)
-    # Per-source clock skew in ms: keys "app:<app>", "kafka", "db".
-    skew_ms: Dict[str, int] = field(default_factory=dict)

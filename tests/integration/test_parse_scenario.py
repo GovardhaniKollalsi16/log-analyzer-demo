@@ -147,10 +147,8 @@ def test_malformed_and_dropped_lines_dont_crash_and_keep_the_evidence(tmp_path, 
     assert any(e.app == "product-service" and e.level.value == "ERROR" for e in noisy.events)
 
 
-def test_time_shift_and_skew_are_normalized_to_utc(tmp_path, monkeypatch, capsys, clean):
-    shifted, _ = fetch(tmp_path / "t", monkeypatch, capsys,
-                       {"t0": "2026-03-17T09:00:00Z", "skew_ms": {"kafka": 45000}},
-                       )
+def test_time_shift_is_normalized_to_utc(tmp_path, monkeypatch, capsys, clean):
+    shifted, _ = fetch(tmp_path / "t", monkeypatch, capsys, {"t0": "2026-03-17T09:00:00Z"})
     # Shifted 3 days: the fixed --since/--until window now finds no app/DB lines, which is correct behaviour.
     assert all(e.ts_utc is None or e.ts_utc.utcoffset() == timedelta(0) for e in shifted.events)
 

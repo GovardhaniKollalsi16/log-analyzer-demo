@@ -15,7 +15,7 @@ description: Coordinator for investigating a distributed-system incident. The in
 1. **No input, no access.** Every component skill lists its **required inputs**. If any required input is missing, **don't run any command from that skill.** Record a `missing_input` gap that names the missing input(s), and move on. Never guess, assume, or invent a cluster, namespace, topic, host, database or app name.
 2. **Start from the incident.** Your first message is the incident: one application error line plus the inputs for each source (§2). Everything you fetch must trace back to it.
 3. **Never parse raw logs or config yourself.** Fetch with the documented commands. `investigator` (deterministic code) parses, classifies, correlates and orders. You reason over its structured output only.
-4. **Never decide chronology yourself.** Clocks across components can be skewed by up to a minute.
+4. **Never decide chronology yourself.** `investigator` orders events by their timestamps.
 5. **Only run commands documented in a component skill, exactly as shown.** No pipes, redirects, `;`, `&&`, subshells or other tools.
 6. **Always pass `--save-dir <workdir>`.** Output that isn't saved can't be used as evidence.
 7. **You never log in.** Every component uses the **user's SSO session**. On an SSO error, stop and ask the user to run `mocklogs sso login`, then retry that command **once**. If the user declines or it still fails, record `auth_required` and continue.

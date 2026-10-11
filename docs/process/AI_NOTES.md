@@ -287,3 +287,23 @@ User: "Q1. Data quality issues dont need it.  D13 partner pricing upstream is ka
 3. **Junk code:** `timeline.py`'s first draft had a loop ending in `pass` and an over-complicated sample count. Removed before the first run.
 4. **Canary checks:** disabling the "thread switched request" rule failed the interleaving test, and estimating skew from ID links failed the delivery-delay test. Both restored.
 5. **Not implemented, said openly:** the design's "causal order within an ID chain overrides timestamps" (R26). Ordering is skew-adjusted time plus uncertainty flags.
+
+## 2026-10-10 — M6 — Redirect: drop all clock-drift/skew handling (D30)
+
+- **AI had built (M6):** skew estimation from same-occurrence pairs, reference-clock selection (R25), skew-adjusted ordering, `order_uncertain`/`concurrent_with` flags with a 60 s tolerance (D2), a mock skew knob, and a deferred "causal reordering" item (R26). The AI had treated drift as a first-class problem since M0.
+- **User:** "Yeah the clock drift between machines is not an issue, since the window is big. Ignore all the references in the application that measure or take into account clock drift/skew"
+- **Changed:**
+  - `investigator`:
+    - `timeline.py` now sorts by UTC timestamp with deterministic ties;
+    - `SkewEstimate`, `DEFAULT_SKEW_TOLERANCE_MS`, `TimelineEntry.adjusted_ts/skew_applied_ms/order_uncertain/concurrent_with` and the bundle's skew fields are removed;
+    - the same-occurrence match window went from 1 min to 2 s (copies of one line are written moments apart).
+  - `mocklogs`: the `skew_ms` knob and `render.skewed` are removed. Snapshots and skill samples were unchanged, which confirms the knob never affected default output.
+  - Skills: coordinator rule 4 and the Kafka timing sentence no longer mention skew.
+  - `CLAUDE.md`: the user's original rule "handle … timestamp skew" was updated to record D30. This is the user's own rule changing; the AI changed only the wording to match the decision.
+  - Design: D2 superseded; R6/R6b/R25/R26 withdrawn; module, model and milestone text updated; the M8 matrix loses "skew below tolerance".
+  - Tests: skew-specific tests removed or replaced by plain chronology tests → `282 passed`.
+- **Kept on purpose, flagged to the user:**
+  - the 1-minute **thread** window (D17), which groups one unit of work on a thread and isn't a clock allowance;
+  - SAME_OCCURRENCE links, which still stop a Kafka line being counted twice;
+  - the planner's client-ID fetch, which still collects the app-side retries.
+- **Self-caught:** a guard in the AI's own edit script rejected its replacement comment (which contained "skew") and stopped the script half-way. It was rerun after rewording.

@@ -94,7 +94,7 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 
 ---
 
-## M6 — Correlation (IDs + thread segments) + timeline 🟡 (implemented 2026-10-10, awaiting review)
+## M6 — Correlation (IDs + thread segments) + timeline 🟡 (implemented 2026-10-10; skew handling removed per D30; awaiting review)
 **Scope**
 - `correlation.py`: links, each labeled with its kind and strength:
   - `EXACT_ID`: same app + same in-app `correlation_id` (D25: never across apps);
@@ -103,12 +103,12 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
   - **resource links:** Kafka broker/producer lines ↔ app errors naming the same topic-partition;
   - **cross-source copies:** the same Kafka client line seen in an app's logs and in `kafka logs` is linked as one occurrence, so detectors don't double-count (found in M4);
   - Kafka client IDs attributed to apps via the M5 config map (D26).
-- **Planner addition (found by the M6 skew demo):** each app's Kafka client lines are fetched by the client IDs the seed config declares. They carry no business key or correlation ID, but they hold the retries/timeouts and the same-occurrence pairs that skew estimation needs.
-- `timeline.py`: skew estimation from causal pairs; 60 s tolerance (D2); causal order within ID chains wins; `order_uncertain` flags.
+- **Planner addition (found by the M6 timeline demo):** each app's Kafka client lines are fetched by the client IDs the seed config declares. They carry no business key or correlation ID, but they hold the app-side retries and timeouts (and are linked to their `kafka logs` copies so nothing is counted twice).
+- `timeline.py`: chronological order by UTC timestamp, deterministic ties (D30: no clock-drift handling).
 
-**Tests:** two requests interleaved on one thread are not merged; the same thread name in two apps is not linked; correlation IDs never link across apps; a business key outside the window doesn't link; cross-source copies collapse to one occurrence; shuffled input gives the same timeline; injected skew; delivery delay ≠ skew.
+**Tests:** two requests interleaved on one thread are not merged; the same thread name in two apps is not linked; correlation IDs never link across apps; a business key outside the window doesn't link; cross-source copies collapse to one occurrence; shuffled input gives the same timeline.
 
-> **Kickoff prompt:** "Start M6 per MILESTONES.md. Show me the scenario 1 timeline with skew injected."
+> **Kickoff prompt:** "Start M6 per MILESTONES.md. Show me the scenario 1 timeline."
 
 ---
 
@@ -139,7 +139,6 @@ Done: `pyproject.toml`, packages, `models.py`, 11 tests incl. the boundary guard
 - shuffle;
 - drop non-critical records;
 - duplicates;
-- skew below tolerance;
 - malformed lines;
 - access denial (where applicable).
 

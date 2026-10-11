@@ -15,8 +15,7 @@ from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set
 
-DEFAULT_SKEW_TOLERANCE_MS = 60_000      # D2: Kafka events have been seen about 1 min late; tune later.
-THREAD_SEGMENT_WINDOW_MS = 60_000       # D17: thread links within 1 min, stop early at a new correlation ID.
+THREAD_SEGMENT_WINDOW_MS = 60_000  # D17: thread links within 1 min, stop early at a new correlation ID.
 
 
 class Source(str, enum.Enum):
@@ -346,23 +345,12 @@ class Link:
 
 
 @dataclass
-class SkewEstimate:
-    """How far `clock` runs ahead of `reference` (a positive offset means `clock` is ahead)."""
-
-    clock: str           # "app:<app>", "kafka" or "db"
-    reference: str       # the clock it's measured against
-    offset_ms: int
-    basis: str           # "same_occurrence" (one event seen on both clocks) | "none"
-    samples: int = 0
-
-
-@dataclass
 class TimelineEntry:
+    """One event on the timeline. Ordered by its own UTC timestamp: clock drift between
+    machines is not a concern for this tool (D30, the incident window is wide)."""
+
     event_id: str
-    adjusted_ts: Optional[datetime]
-    skew_applied_ms: int = 0
-    order_uncertain: bool = False
-    concurrent_with: List[str] = field(default_factory=list)
+    ts_utc: datetime
 
 
 @dataclass
@@ -406,13 +394,11 @@ class AnalysisBundle:
     bundle_id: str
     seed: Optional[Seed] = None
     topology: Optional[AppTopology] = None
-    skew_tolerance_ms: int = DEFAULT_SKEW_TOLERANCE_MS
     traversal: List[FetchStep] = field(default_factory=list)
     coverage_gaps: List[CoverageGap] = field(default_factory=list)
     events: List[Event] = field(default_factory=list)
     groups: List[CorrelationGroup] = field(default_factory=list)
     timeline: List[TimelineEntry] = field(default_factory=list)
-    skew_estimates: List[SkewEstimate] = field(default_factory=list)
     findings: List[Finding] = field(default_factory=list)
     hypotheses: List[Hypothesis] = field(default_factory=list)
     factors: List[ConfidenceFactor] = field(default_factory=list)

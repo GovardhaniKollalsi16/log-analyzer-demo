@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import zlib
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from mocklogs.scenarios.base import ScenarioKnobs, make_rng
@@ -16,10 +16,6 @@ Line = Tuple[str, bool]  # (text, critical)
 
 
 # --- time --------------------------------------------------------------------
-
-def skewed(world: World, key: str, ts: datetime) -> datetime:
-    return ts + timedelta(milliseconds=world.skew_ms.get(key, 0))
-
 
 def iso_ms(ts: datetime) -> str:
     return ts.strftime("%Y-%m-%dT%H:%M:%S.") + f"{ts.microsecond // 1000:03d}Z"
@@ -33,7 +29,7 @@ def kubectl_prefix(ts: datetime) -> str:
 
 def app_json(world: World, line: AppLogLine) -> str:
     dep = world.deployments[line.app]
-    ts = skewed(world, f"app:{line.app}", line.ts)
+    ts = line.ts
     obj = {
         "ts": iso_ms(ts),
         "level": line.level,
@@ -57,17 +53,17 @@ def app_kubectl(world: World, line: AppLogLine, timestamps: bool) -> str:
     body = app_json(world, line)
     if not timestamps:
         return body
-    return f"{kubectl_prefix(skewed(world, f'app:{line.app}', line.ts))} {body}"
+    return f"{kubectl_prefix(line.ts)} {body}"
 
 
 def kafka_log4j(world: World, line: KafkaLogLine) -> str:
-    ts = skewed(world, "kafka", line.ts)
+    ts = line.ts
     stamp = ts.strftime("%Y-%m-%d %H:%M:%S,") + f"{ts.microsecond // 1000:03d}"
     return f"[{stamp}] {line.level} {line.text} ({line.logger})"
 
 
 def db_text(world: World, line: DbLogLine) -> str:
-    ts = skewed(world, "db", line.ts)
+    ts = line.ts
     stamp = ts.strftime("%Y-%m-%d %H:%M:%S.") + f"{ts.microsecond // 1000:03d} UTC"
     return f"{stamp} [{line.pid}] app={line.app} user={line.user} db={line.db} {line.severity}:  {line.msg}"
 
@@ -75,7 +71,7 @@ def db_text(world: World, line: DbLogLine) -> str:
 def console_message(world: World, msg: KafkaMessage, props: Dict[str, str]) -> str:
     parts = []
     if props.get("print.timestamp") == "true":
-        ms = int(skewed(world, "kafka", msg.ts).timestamp() * 1000)
+        ms = int(msg.ts.timestamp() * 1000)
         parts.append(f"CreateTime:{ms}")
     if props.get("print.partition") == "true":
         parts.append(f"Partition:{msg.partition}")

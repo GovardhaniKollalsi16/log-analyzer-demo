@@ -21,7 +21,7 @@ The user needs a real, unpolished record of how they work with AI. These rules a
 - **Environment:** always use the project venv: `.venv/bin/python`, `.venv/bin/pytest`. Never install into the system Python. `.venv/` is gitignored; recreate it with `python3 -m venv .venv && .venv/bin/pip install -U pip setuptools pytest`.
 - The SKILL.md command allowlist is a **fenced JSON block** (not TOML), so it can be read with stdlib `json` on 3.9.
 - Keep module boundaries clear: adapters, parsing/normalization, correlation, timeline, detectors, analysis, narration, report, CLI.
-- Handle malformed records, missing IDs, timestamp skew, duplicates, and out-of-order logs.
+- Handle malformed records, missing IDs, duplicates, and out-of-order logs. (Clock drift between machines is out of scope: the user decided it's not an issue because the incident window is wide, D30.)
 - **Never hardcode a root cause for a scenario.** The analysis code must not know scenario names or the injected fault. Robustness tests rename services, shift times, shuffle order, and drop records.
 - The LLM never parses raw logs or decides chronology. Deterministic code does that, and the LLM reasons over the structured output.
 - Every conclusion cites event IDs. Citations to non-existent event IDs are rejected by the validator.

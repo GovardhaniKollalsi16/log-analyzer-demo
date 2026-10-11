@@ -220,7 +220,7 @@ class _Planner:
     def client_logs(self, app: str, loc, topo: AppTopology, direction: Direction) -> None:
         """An app's own Kafka client lines (retries, timeouts, expiries) carry its client ID but
         neither the business key nor a correlation ID. Fetch them by the client IDs the seed config
-        declares for that app (D26). They're also how clock skew is estimated (same occurrence)."""
+        declares for that app (D26). They're the app-side copies of the retries in `kafka logs`."""
         for cid in sorted(c for c, owner in topo.client_ids.items() if owner == app):
             self.want(Source.APP, app,
                       ["kubectl", "logs", f"deploy/{app}", "--context", loc.cluster, "-n", loc.namespace,

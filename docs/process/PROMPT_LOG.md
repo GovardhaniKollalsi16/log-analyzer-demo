@@ -1114,3 +1114,27 @@ What is this give explain clearly
 - **Did:** Explained R26 (causal ordering vs. timestamp ordering) in chat with a concrete example. No files changed besides this log.
 - **Commands run:** none besides appending this entry.
 - **Tests:** none.
+
+---
+
+## Entry 046 — 2026-10-11T05:10:17Z (22:10 PDT) — Milestone: M6 (redirect: drop clock-skew handling)
+
+### Prompt (verbatim)
+
+````text
+Yeah the clock drift between machines is not an issue, since the window is big. Ignore all the references in the application that measure or take into account clock drift/skew
+````
+
+### Outcome
+
+- **Did:** Removed all clock-drift/skew handling across the code, mock, skills, `CLAUDE.md` and design (D30), keeping the thread window, same-occurrence de-duplication and the client-ID fetch (details in AI_NOTES).
+- **Files:**
+  - Code: `src/investigator/{models,timeline,correlation,planner}.py`, `src/mocklogs/{world,render,cli}.py`, `src/mocklogs/scenarios/{base,upstream_timeout}.py`
+  - Tests: `tests/unit/{test_models,test_correlation_timeline}.py`, `tests/mocklogs/test_cli.py`, `tests/integration/{test_parse_scenario,test_correlate_scenario}.py`
+  - Skills: `.claude/skills/{incident-logs,incident-kafka}/SKILL.md`
+  - Docs: `CLAUDE.md`, `docs/design/{PROPOSAL,MILESTONES}.md`, `docs/process/{AI_NOTES,PROMPT_LOG}.md`
+- **Commands run (actual results):**
+  - `grep -i skew` inventory before and after (no code, test or skill references remain; the design docs keep only superseded/withdrawn rows)
+  - `pytest tests/mocklogs/test_snapshots.py` → `22 passed` (unchanged); `skill_samples --check` → exit 0
+  - `.venv/bin/pytest` → `282 passed` (×3 across the steps)
+- Finished at 2026-10-11T05:12:31Z. Not pushed (M6 still awaiting review).
