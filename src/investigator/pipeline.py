@@ -3,15 +3,18 @@ correlate -> detectors -> hypotheses -> bundle. Used by `investigator correlate`
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 from investigator.adapters import FileSource
-from investigator.analysis import build_bundle
+from investigator.adapters.base import RawOutput
+from investigator.analysis import build_bundle, score_cause
 from investigator.classify import classify
-from investigator.correlation import correlate
+from investigator.correlation import CorrelationResult, correlate
 from investigator.correlation_keys import KeyRule
-from investigator.models import AnalysisBundle, CoverageGap
+from investigator.detectors import Context
+from investigator.models import AnalysisBundle, AppTopology, CoverageGap, Hypothesis, Incident
 from investigator.parsing import parse_all
 from investigator.parsing.incident import parse_incident
 from investigator.planner import plan, topology_of
@@ -19,7 +22,16 @@ from investigator.planner import plan, topology_of
 INCIDENT_FILE = "incident.txt"
 
 
-def analyse_workdir(workdir: Union[str, Path], rules: List[KeyRule]) -> AnalysisBundle:
+@dataclass
+class Prepared:
+    incident: Incident
+    cor: CorrelationResult
+    topology: Optional[AppTopology]
+    outputs: List[RawOutput]
+    gaps: List[CoverageGap]
+
+
+def prepare(workdir: Union[str, Path], rules: List[KeyRule]) -> Prepared:
     workdir = Path(workdir)
     incident = parse_incident((workdir / INCIDENT_FILE).read_text(encoding="utf-8"), rules)
     source = FileSource(workdir)
@@ -33,4 +45,19 @@ def analyse_workdir(workdir: Union[str, Path], rules: List[KeyRule]) -> Analysis
         if g not in gaps:
             gaps.append(g)
     cor = correlate(classify(parsed.events), incident, topology)
-    return build_bundle(incident, cor, topology, outputs, gaps)
+    return Prepared(incident, cor, topology, outputs, gaps)
+
+
+def analyse_workdir(workdir: Union[str, Path], rules: List[KeyRule]) -> AnalysisBundle:
+    p = prepare(workdir, rules)
+    return build_bundle(p.incident, p.cor, p.topology, p.outputs, p.gaps)
+
+
+def score_in_workdir(workdir: Union[str, Path], rules: List[KeyRule], cause_event_id: str) -> Hypothesis:
+    """`investigator score`: the M7 factors and ceiling for an AI-proposed cause (D31)."""
+    p = prepare(workdir, rules)
+    bundle = build_bundle(p.incident, p.cor, p.topology, p.outputs, p.gaps)
+    ctx = Context(p.incident, p.cor, p.topology, p.outputs)
+    if cause_event_id not in ctx.by_id:
+        raise KeyError(cause_event_id)
+    return score_cause(ctx, p.gaps, cause_event_id, bundle.hypotheses)

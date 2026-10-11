@@ -226,3 +226,36 @@ def build_bundle(incident: Incident, cor: CorrelationResult, topology: Optional[
         factors=list(best.factors) if best else [],
         confidence_cap=best.ceiling if best else Confidence.INSUFFICIENT,
     )
+
+
+# --- AI-proposed causes (D31) -------------------------------------------------------------
+
+def score_cause(ctx: Context, gaps: List[CoverageGap], cause_event_id: str,
+                hypotheses: List[Hypothesis]) -> Hypothesis:
+    """Score ANY event the AI proposes as the cause, with the same factors and ceiling as M7.
+
+    Effects are the seed only (the AI claims "this caused the seed"). Rivals are the detector
+    hypotheses with a different cause. Raises KeyError if the event isn't among the parsed events.
+    """
+    cause = ctx.by_id[cause_event_id]
+    seed = ctx.by_id[ctx.incident.seed.event_id]
+    linkage = _id_linkage(cause, seed, ctx.cor, ctx.seed_group, ctx.in_window(cause))
+    factors = [linkage, _coverage(gaps, ctx.incident, ctx.topology), _precedence(cause, [seed], seed)]
+    rivals = []
+    for h in hypotheses:
+        if h.cause_event_id == cause_event_id:
+            continue
+        rival_link = next(f for f in h.factors if f.name is FactorName.ID_LINKAGE)
+        rivals.append(rival_link)
+    if not rivals:
+        factors.append(ConfidenceFactor(FactorName.COMPETING_HYPOTHESES, V.STRONG, "no rival hypothesis"))
+    elif any(_RANK[r.value] >= _RANK[linkage.value] for r in rivals):
+        factors.append(ConfidenceFactor(FactorName.COMPETING_HYPOTHESES, V.WEAK,
+                                        "a detector hypothesis with a different cause is linked at least as strongly"))
+    else:
+        factors.append(ConfidenceFactor(FactorName.COMPETING_HYPOTHESES, V.PARTIAL,
+                                        "detector hypotheses with other causes exist but are linked more weakly"))
+    where = cause.app or cause.component or cause.source.value
+    return Hypothesis(hyp_id="h-ai", cause_event_id=cause_event_id, finding_ids=[], effect_event_ids=[seed.event_id],
+                      summary=f"AI-proposed cause: {cause.error_code or cause.severity.value} in {where}",
+                      factors=factors, ceiling=_ceiling(factors))

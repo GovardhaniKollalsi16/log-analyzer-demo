@@ -6,6 +6,10 @@
   investigator correlate --workdir <dir> [--rules ...]
       Prints the AnalysisBundle as JSON: what the LLM reasons over (events, links, timeline,
       findings, hypotheses with confidence factors, and the confidence ceiling).
+  investigator check --workdir <dir> -- mocklogs <args...>
+      Allow/deny one command the AI wants to run (D31). Exit 0 = allowed, 1 = denied; JSON reasons.
+  investigator score --workdir <dir> --cause <event_id>
+      The confidence factors and ceiling for an AI-proposed cause (D31).
 """
 
 from __future__ import annotations
@@ -65,6 +69,40 @@ def cmd_correlate(a) -> int:
     return 0
 
 
+def _load(a):
+    from investigator.pipeline import prepare
+    return prepare(Path(a.workdir), load_rules(a.rules))
+
+
+def cmd_check(a) -> int:
+    from investigator.guard import check
+    argv = list(a.command)
+    if argv[:1] == ["--"]:
+        argv = argv[1:]
+    try:
+        p = _load(a)
+    except (OSError, ValueError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    verdict = check(argv, p.incident, p.topology, str(Path(a.workdir)))
+    print(json.dumps({"allowed": verdict.allowed, "shape": verdict.shape, "reasons": verdict.reasons}, indent=2))
+    return 0 if verdict.allowed else 1
+
+
+def cmd_score(a) -> int:
+    from investigator.pipeline import score_in_workdir
+    try:
+        h = score_in_workdir(Path(a.workdir), load_rules(a.rules), a.cause)
+    except KeyError:
+        print(f"error: event {a.cause!r} isn't among the collected events", file=sys.stderr)
+        return 2
+    except (OSError, ValueError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    print(json.dumps(to_jsonable(h), indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="investigator", description="Deterministic incident investigation (no LLM).")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -74,12 +112,20 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("correlate", help="print the analysis bundle for the incident in --workdir")
     s.add_argument("--workdir", required=True)
     s.add_argument("--rules", default=str(DEFAULT_RULES))
+    s = sub.add_parser("check", help="allow/deny one command the AI wants to run")
+    s.add_argument("--workdir", required=True)
+    s.add_argument("--rules", default=str(DEFAULT_RULES))
+    s.add_argument("command", nargs=argparse.REMAINDER, help="-- mocklogs <args...>")
+    s = sub.add_parser("score", help="confidence factors and ceiling for an AI-proposed cause")
+    s.add_argument("--workdir", required=True)
+    s.add_argument("--rules", default=str(DEFAULT_RULES))
+    s.add_argument("--cause", required=True, help="event_id of the proposed cause")
     return p
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     a = build_parser().parse_args(argv)
-    return {"plan": cmd_plan, "correlate": cmd_correlate}[a.cmd](a)
+    return {"plan": cmd_plan, "correlate": cmd_correlate, "check": cmd_check, "score": cmd_score}[a.cmd](a)
 
 
 if __name__ == "__main__":
